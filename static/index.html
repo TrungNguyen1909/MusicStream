@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Music Stream</title>
+    </head>
+    <body>
+        <div>
+            <a id='title'></a>
+        </div>
+        <div>
+            <a id='artist'></a>
+        </div>
+        <div>
+            <a id='lyrics'></a>
+        </div>
+        <button id="play">Play</button>
+        <audio id="audio-player" crossorigin="anonymous" preload="auto" src="" autoplay=true></audio>
+        <script src=/pcm-player.js></script>
+        <script src=/script.js></script>
+        <input class="input" id="query">
+        <button onclick="enqueue()">Enqueue!</button>
+        <div id="results"></div>
+    </body>
+</html>
