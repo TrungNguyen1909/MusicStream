@@ -1,8 +1,9 @@
-module MusicStream
+module github.com/TrungNguyen1909/MusicStream
 
 go 1.13
 
 require (
+	deezer v0.0.0
 	github.com/faiface/beep v1.0.2
 	github.com/gorilla/websocket v1.4.1
 	github.com/hajimehoshi/go-mp3 v0.2.1
@@ -14,4 +15,12 @@ require (
 	golang.org/x/mobile v0.0.0-20191210151939-1a1fef82734d
 	golang.org/x/sys v0.0.0-20200107144601-ef85f5a75ddf
 	golang.org/x/text v0.3.2
+	queue v0.0.0
+	vorbisencoder v0.0.0
 )
+
+replace deezer => ./deezer
+
+replace queue => ./queue
+
+replace vorbisencoder => ./vorbisencoder
