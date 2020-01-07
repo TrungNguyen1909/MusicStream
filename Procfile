@@ -1,2 +1,2 @@
-web: ./bin/main
-worker: ./bin/main
+web: ./bin/MusicStream
+worker: ./bin/MusicStream
