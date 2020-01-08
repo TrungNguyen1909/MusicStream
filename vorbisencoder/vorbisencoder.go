@@ -63,11 +63,11 @@ Encoder* encoder_start(int sample_rate)
 	state->encoded_max_size = 0;
 	state->encoded_length = 0;
 	vorbis_info_init(&state->vi);
-	// if(vorbis_encode_init_vbr(&state->vi, 2, state->sample_rate, vbr_quality)){
+	// if(vorbis_encode_init_vbr(&state->vi, 2, state->sample_rate, 0.4f)){
 	// 	printf("encoder_start() failed: vorbis_encoder_init_vbr()\n");
 	// 	return NULL;
 	// }
-	if(vorbis_encode_init(&state->vi, 2, state->sample_rate, -1,192000,-1)){
+	if(vorbis_encode_init(&state->vi, 2, state->sample_rate, 256000, 256000, 256000)){
 		printf("encoder_start() failed: vorbis_encoder_init()\n");
 		return NULL;
 	}

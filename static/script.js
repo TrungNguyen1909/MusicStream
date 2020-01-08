@@ -72,7 +72,7 @@ window.onload = () => {
     window.audioCtx.resume();
     //setTimeout(play, 0);
     var aud = document.getElementById("audio-player");
-    aud.src = `http://${window.location.host}/audio`;
+    aud.src = `https://${window.location.host}/audio`;
 
     aud.play();
   });

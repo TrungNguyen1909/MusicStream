@@ -87,7 +87,7 @@ function initWebSocket() {
         artistBox.innerText = "";
         titleBox.innerText = "";
         if (!msg.success) {
-          titleBox.innerText = reason;
+          titleBox.innerText = msg.reason;
         } else {
           titleBox.innerText = msg.track.title;
           artistBox.innerText = msg.track.artist.name;
