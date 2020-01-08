@@ -101,6 +101,7 @@ func processTrack() {
 	defer encoder.Close()
 	start := time.Now()
 	var bufferedDuration time.Duration
+	var encodedTime time.Duration
 	for {
 		samples := make([][2]float64, 882)
 		n, ok := streamer.Stream(samples)
@@ -120,9 +121,9 @@ func processTrack() {
 		encodedLen := encoder.Encode(output, buf.Bytes())
 		//err = binary.Write(w, binary.BigEndian, output[:encodedLen])
 		//log.Println(encodedLen)
-
+		encodedTime += 20 * time.Millisecond
 		if encodedLen > 0 {
-			time.Sleep(bufferedDuration - 40*time.Millisecond)
+			//	time.Sleep(bufferedDuration)
 			bufferedDuration = 0
 		}
 		if encodedLen > 0 {
@@ -140,6 +141,7 @@ func processTrack() {
 					done = true
 				}
 			}
+			time.Sleep(encodedTime - time.Since(start) - 40*time.Millisecond)
 		}
 		if encodedLen == 0 {
 			bufferedDuration += 20 * time.Millisecond
@@ -149,7 +151,8 @@ func processTrack() {
 			break
 		}
 	}
-	time.Sleep((time.Duration)(track.Duration)*time.Second - time.Since(start))
+	//time.Sleep((time.Duration)(track.Duration)*time.Second - time.Since(start))
+	log.Println("Stream ended!")
 }
 
 func audioManager() {
@@ -212,7 +215,6 @@ func audioHandler(w http.ResponseWriter, r *http.Request) {
 	defer setListenerCount()
 	defer atomic.AddInt32(&listenersCount, -1)
 	w.Header().Set("Connection", "Keep-Alive")
-	//w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Transfer-Encoding", "chunked")
 	w.Header().Set("Content-Type", "application/ogg")
@@ -221,7 +223,7 @@ func audioHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("status", "200")
 	w.Write(oggHeader)
 	flusher.Flush()
-	channel := make(chan int, 100)
+	channel := make(chan int, 500)
 	channels[currentChannel] <- channel
 	chanidx := currentChannel
 	for {

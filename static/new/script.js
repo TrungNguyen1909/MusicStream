@@ -51,7 +51,13 @@ function enqueue() {
 }
 function setTrack(track) {
   console.log(track);
-  if (track === null) return;
+  if (track === null) {
+    let infoBox = document.getElementById("info");
+  infoBox.getElementsByClassName("artist")[0].innerText = "";
+  infoBox.getElementsByClassName("name")[0].innerText = ""
+  let artworkBox = document.getElementsByClassName("album-art")[0];
+  artworkBox.style.backgroundImage = ``;
+  }
   ctrack = track;
   let infoBox = document.getElementById("info");
   infoBox.getElementsByClassName("artist")[0].innerText = ctrack.artist.name;

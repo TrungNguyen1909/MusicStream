@@ -57,7 +57,7 @@ Encoder* encoder_start(int sample_rate)
 
 	state->sample_rate = sample_rate;
 	state->num_channels = 2;
-	state->encoded_buffer = calloc(1,3 * 1024 * 1024);
+	state->encoded_buffer = malloc(3 * 1024 * 1024);
 	printf("encoder_start(); initializing vorbis encoder with sample_rate = %i Hz\n", state->sample_rate);
 
 	state->encoded_max_size = 0;
@@ -162,6 +162,8 @@ void encoder_finish(Encoder* state)
 	vorbis_dsp_clear(&state->vd);
 	vorbis_comment_clear(&state->vc);
 	vorbis_info_clear(&state->vi);
+	free(state->encoded_buffer);
+	free(state);
 }
 
 #cgo pkg-config: ogg vorbis vorbisenc
