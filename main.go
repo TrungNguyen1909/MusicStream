@@ -5,6 +5,7 @@ import (
 	"deezer"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -41,9 +42,9 @@ func mainTest() {
 	select {}
 }
 
-type message struct {
-	buffer  []byte
-	channel int
+type chunk struct {
+	buffer      []byte
+	encoderTime time.Duration
 }
 type WebSocket struct {
 	conn *websocket.Conn
@@ -61,6 +62,7 @@ var channels [2]chan chan int
 var currentChannel int
 var oggHeader []byte
 var listenersCount int32
+var bufferingChannel chan chunk
 
 func (socket *WebSocket) WriteMessage(messageType int, data []byte) error {
 	socket.mux.Lock()
@@ -75,19 +77,7 @@ func (socket *WebSocket) Close() error {
 func (socket *WebSocket) ReadJSON(v interface{}) error {
 	return socket.conn.ReadJSON(v)
 }
-func processTrack() {
-	if playQueue.Empty() {
-		setTrack(deezer.Track{})
-	}
-	track := playQueue.Pop().(deezer.Track)
-	setTrack(track)
-	fmt.Println(track.Title)
-	fmt.Println(track.Artist.Name)
-	fmt.Println(track.Album.Title)
-	stream, err := dzClient.DownloadTrack(strconv.Itoa(track.ID), 3)
-	if err != nil {
-		log.Fatal(err)
-	}
+func preloadTrack(stream io.ReadCloser) {
 	streamer, format, err := mp3.Decode(stream)
 	if err != nil {
 		log.Fatal(err)
@@ -99,9 +89,8 @@ func processTrack() {
 	encoder := vorbisencoder.NewEncoder(2, 44100)
 	encoder.Encode(oggHeader, make([]byte, 0))
 	defer encoder.Close()
-	start := time.Now()
-	var bufferedDuration time.Duration
 	var encodedTime time.Duration
+	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
 	for {
 		samples := make([][2]float64, 882)
 		n, ok := streamer.Stream(samples)
@@ -123,33 +112,50 @@ func processTrack() {
 		//log.Println(encodedLen)
 		encodedTime += 20 * time.Millisecond
 		if encodedLen > 0 {
-			//	time.Sleep(bufferedDuration)
-			bufferedDuration = 0
-		}
-		if encodedLen > 0 {
 			currentBuffer = output[:encodedLen]
-			done := false
-			for !done {
-				select {
-				case c := <-channels[currentChannel]:
-					select {
-					case c <- ((currentChannel + 1) % 2):
-					default:
-					}
-				default:
-					currentChannel = (currentChannel + 1) % 2
-					done = true
-				}
-			}
-			time.Sleep(encodedTime - time.Since(start) - 40*time.Millisecond)
-		}
-		if encodedLen == 0 {
-			bufferedDuration += 20 * time.Millisecond
+			bufferingChannel <- chunk{buffer: currentBuffer, encoderTime: encodedTime}
 		}
 		// err = binary.Write(w, binary.BigEndian, buf.Bytes())
 		if 0 <= n && n < 882 && ok {
 			break
 		}
+	}
+}
+func processTrack() {
+	if playQueue.Empty() {
+		setTrack(deezer.Track{})
+	}
+	track := playQueue.Pop().(deezer.Track)
+	setTrack(track)
+	fmt.Println(track.Title)
+	fmt.Println(track.Artist.Name)
+	fmt.Println(track.Album.Title)
+	stream, err := dzClient.DownloadTrack(strconv.Itoa(track.ID), 3)
+	if err != nil {
+		log.Fatal(err)
+	}
+	go preloadTrack(stream)
+	start := time.Now()
+	for {
+		Chunk := <-bufferingChannel
+		if Chunk.buffer == nil {
+			break
+		}
+		currentBuffer = Chunk.buffer
+		done := false
+		for !done {
+			select {
+			case c := <-channels[currentChannel]:
+				select {
+				case c <- ((currentChannel + 1) % 2):
+				default:
+				}
+			default:
+				currentChannel = (currentChannel + 1) % 2
+				done = true
+			}
+		}
+		time.Sleep(Chunk.encoderTime - time.Since(start) - 40*time.Millisecond)
 	}
 	//time.Sleep((time.Duration)(track.Duration)*time.Second - time.Since(start))
 	log.Println("Stream ended!")
@@ -159,6 +165,7 @@ func audioManager() {
 	for i := range channels {
 		channels[i] = make(chan chan int, 1000)
 	}
+	bufferingChannel = make(chan chunk, 1000)
 	encoder := vorbisencoder.NewEncoder(2, 44100)
 	oggHeader = make([]byte, 5000)
 	n := encoder.Encode(oggHeader, make([]byte, 0))
