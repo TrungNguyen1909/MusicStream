@@ -309,6 +309,11 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 					c.WriteMessage(websocket.TextMessage, data)
 				}
 			}
+		case 8:
+			data, _ := json.Marshal(map[string]interface{}{
+				"op": 8,
+			})
+			c.WriteMessage(websocket.TextMessage, data)
 
 		}
 	}

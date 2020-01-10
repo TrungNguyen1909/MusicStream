@@ -3,7 +3,7 @@ window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 var aud = null;
 var ws = null;
 var ctrack = null;
-
+var wsInterval = null;
 class musicPlayer {
   constructor() {
     this.play = this.play.bind(this);
@@ -52,11 +52,12 @@ function enqueue() {
 function setTrack(track) {
   console.log(track);
   if (track === null) {
+    return;
     let infoBox = document.getElementById("info");
-  infoBox.getElementsByClassName("artist")[0].innerText = "";
-  infoBox.getElementsByClassName("name")[0].innerText = ""
-  let artworkBox = document.getElementsByClassName("album-art")[0];
-  artworkBox.style.backgroundImage = ``;
+    infoBox.getElementsByClassName("artist")[0].innerText = "";
+    infoBox.getElementsByClassName("name")[0].innerText = "";
+    let artworkBox = document.getElementsByClassName("album-art")[0];
+    artworkBox.style.backgroundImage = ``;
   }
   ctrack = track;
   let infoBox = document.getElementById("info");
@@ -65,7 +66,10 @@ function setTrack(track) {
   let artworkBox = document.getElementsByClassName("album-art")[0];
   artworkBox.style.backgroundImage = `url(${ctrack.album.cover})`;
 }
-
+function setListeners(count) {
+  let infoBox = document.getElementById("info");
+  infoBox.getElementsByClassName("listeners")[0].innerText = `🎧: ${count}`;
+}
 function initWebSocket() {
   ws = new WebSocket(`ws://${window.location.host}/status`);
   ws.onerror = err => {
@@ -74,7 +78,9 @@ function initWebSocket() {
   ws.onopen = event => {
     console.log("[WS] opened");
     ws.send(JSON.stringify({ op: 1 }));
-    ws.send(JSON.stringify({ op: 2 }));
+    wsInterval = setInterval(() => {
+      ws.send(JSON.stringify({ op: 8 }));
+    }, 30000);
   };
   ws.onclose = event => {
     console.log("[WS] closed");
@@ -102,15 +108,18 @@ function initWebSocket() {
           return element !== "active"
             ? subBox.classList.add("active")
             : subBox.classList.remove("active");
-		});
-		setTimeout(()=>{
-			Array.from(subBox.classList).find(function(element) {
-				return element !== "active"
-				  ? subBox.classList.add("active")
-				  : subBox.classList.remove("active");
-			  });
-		},5000)
+        });
+        setTimeout(() => {
+          Array.from(subBox.classList).find(function(element) {
+            return element !== "active"
+              ? subBox.classList.add("active")
+              : subBox.classList.remove("active");
+          });
+        }, 5000);
         document.getElementById("query").value = "";
+        break;
+      case 5:
+        setListeners(msg.listeners);
         break;
       default:
         break;
