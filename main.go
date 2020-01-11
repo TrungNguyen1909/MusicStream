@@ -18,9 +18,15 @@ import (
 	"time"
 	"vorbisencoder"
 
+	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/speaker"
+	"github.com/faiface/beep/vorbis"
 	"github.com/gorilla/websocket"
+)
+
+const (
+	ChunkDelayMS = 40
 )
 
 func mainTest() {
@@ -63,6 +69,7 @@ var currentChannel int
 var oggHeader []byte
 var listenersCount int32
 var bufferingChannel chan chunk
+var etaDone time.Time
 
 func (socket *WebSocket) WriteMessage(messageType int, data []byte) error {
 	socket.mux.Lock()
@@ -77,7 +84,7 @@ func (socket *WebSocket) Close() error {
 func (socket *WebSocket) ReadJSON(v interface{}) error {
 	return socket.conn.ReadJSON(v)
 }
-func preloadTrack(stream io.ReadCloser) {
+func preloadTrack(stream io.ReadCloser, quit chan int) {
 	streamer, format, err := mp3.Decode(stream)
 	if err != nil {
 		log.Fatal(err)
@@ -92,6 +99,11 @@ func preloadTrack(stream io.ReadCloser) {
 	var encodedTime time.Duration
 	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
 	for {
+		select {
+		case <-quit:
+			return
+		default:
+		}
 		samples := make([][2]float64, 882)
 		n, ok := streamer.Stream(samples)
 		if !ok {
@@ -121,12 +133,121 @@ func preloadTrack(stream io.ReadCloser) {
 		}
 	}
 }
+func preloadRadio(quit chan int) {
+	log.Println("Radio preloading started!")
+	resp, err := http.DefaultClient.Get("https://listen.moe/stream")
+	if err != nil {
+		log.Fatal(err)
+	}
+	streamer, format, err := vorbis.Decode(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	resampled := beep.Resample(4, format.SampleRate, beep.SampleRate(44100), streamer)
+	format.SampleRate = beep.SampleRate(48000)
+	defer streamer.Close()
+	encoder := vorbisencoder.NewEncoder(2, 44100)
+	encoder.Encode(oggHeader, make([]byte, 0))
+	defer encoder.Close()
+	var encodedTime time.Duration
+	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
+	defer log.Println("Radio preloading stopped!")
+	for {
+		select {
+		case <-quit:
+			return
+		default:
+		}
+		samples := make([][2]float64, 882)
+		n, ok := resampled.Stream(samples)
+		if !ok {
+			break
+		}
+		//data := make([]byte, format.Width()*n)
+		var buf bytes.Buffer
+		for _, sample := range samples {
+			p := make([]byte, format.Width())
+			format.EncodeSigned(p, sample)
+			for _, v := range p {
+				buf.WriteByte(v)
+			}
+		}
+		output := make([]byte, 5000)
+		encodedLen := encoder.Encode(output, buf.Bytes())
+		//err = binary.Write(w, binary.BigEndian, output[:encodedLen])
+		//log.Println(encodedLen)
+		encodedTime += 20 * time.Millisecond
+		if encodedLen > 0 {
+			currentBuffer = output[:encodedLen]
+			bufferingChannel <- chunk{buffer: currentBuffer, encoderTime: encodedTime}
+		}
+		// err = binary.Write(w, binary.BigEndian, buf.Bytes())
+		if 0 <= n && n < 882 && ok {
+			break
+		}
+	}
+	go preloadRadio(quit)
+}
+func processRadio(quit chan int) {
+	quitPreload := make(chan int)
+	time.Sleep(time.Until(etaDone))
+	start := time.Now()
+	etaDone = start
+	interrupted := false
+	go preloadRadio(quitPreload)
+	defer log.Println("Radio stream ended")
+	defer func() { quit <- 0 }()
+	for {
+		select {
+		case <-quit:
+			quitPreload <- 0
+			interrupted = true
+		default:
+		}
+		if !interrupted {
+			Chunk := <-bufferingChannel
+			if Chunk.buffer == nil {
+				break
+			}
+			currentBuffer = Chunk.buffer
+			done := false
+			for !done {
+				select {
+				case c := <-channels[currentChannel]:
+					select {
+					case c <- ((currentChannel + 1) % 2):
+					default:
+					}
+				default:
+					currentChannel = (currentChannel + 1) % 2
+					done = true
+				}
+			}
+			etaDone = start.Add(Chunk.encoderTime)
+			time.Sleep(Chunk.encoderTime - time.Since(start) - ChunkDelayMS*time.Millisecond)
+		} else {
+			for {
+				Chunk := <-bufferingChannel
+				if Chunk.buffer == nil {
+					break
+				}
+			}
+			break
+		}
+	}
+}
 func processTrack() {
+	quitRadio := make(chan int)
+	radioStarted := false
 	if playQueue.Empty() {
-		setTrack(deezer.Track{})
+		setTrack(deezer.Track{Title: "listen.moe"})
+		radioStarted = true
+		go processRadio(quitRadio)
 	}
 	track := playQueue.Pop().(deezer.Track)
-	setTrack(track)
+	if radioStarted {
+		quitRadio <- 0
+	}
 	fmt.Println(track.Title)
 	fmt.Println(track.Artist.Name)
 	fmt.Println(track.Album.Title)
@@ -134,8 +255,15 @@ func processTrack() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	go preloadTrack(stream)
+	quit := make(chan int)
+	go preloadTrack(stream, quit)
+	if radioStarted {
+		<-quitRadio
+	}
+	time.Sleep(time.Until(etaDone))
+	setTrack(track)
 	start := time.Now()
+	etaDone = start.Add((time.Duration)(track.Duration) * time.Second)
 	for {
 		Chunk := <-bufferingChannel
 		if Chunk.buffer == nil {
@@ -155,7 +283,7 @@ func processTrack() {
 				done = true
 			}
 		}
-		time.Sleep(Chunk.encoderTime - time.Since(start) - 40*time.Millisecond)
+		time.Sleep(Chunk.encoderTime - time.Since(start) - ChunkDelayMS*time.Millisecond)
 	}
 	//time.Sleep((time.Duration)(track.Duration)*time.Second - time.Since(start))
 	log.Println("Stream ended!")
@@ -165,7 +293,7 @@ func audioManager() {
 	for i := range channels {
 		channels[i] = make(chan chan int, 1000)
 	}
-	bufferingChannel = make(chan chunk, 1000)
+	bufferingChannel = make(chan chunk, 500)
 	encoder := vorbisencoder.NewEncoder(2, 44100)
 	oggHeader = make([]byte, 5000)
 	n := encoder.Encode(oggHeader, make([]byte, 0))
@@ -309,6 +437,12 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 					c.WriteMessage(websocket.TextMessage, data)
 				}
 			}
+		case 5:
+			data, _ := json.Marshal(map[string]interface{}{
+				"op":        5,
+				"listeners": atomic.LoadInt32(&listenersCount),
+			})
+			c.WriteMessage(websocket.TextMessage, data)
 		case 8:
 			data, _ := json.Marshal(map[string]interface{}{
 				"op": 8,

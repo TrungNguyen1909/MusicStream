@@ -19,7 +19,9 @@ github.com/hajimehoshi/oto v0.3.1/go.mod h1:e9eTLBB9iZto045HLbzfHJIc+jP3xaKrjZTg
 github.com/hajimehoshi/oto v0.3.4/go.mod h1:PgjqsBJff0efqL2nlMJidJgVJywLn6M4y8PI4TfeWfA=
 github.com/hajimehoshi/oto v0.5.4 h1:Dn+WcYeF310xqStKm0tnvoruYUV5Sce8+sfUaIvWGkE=
 github.com/hajimehoshi/oto v0.5.4/go.mod h1:0QXGEkbuJRohbJaxr7ZQSxnju7hEhseiPx2hrh6raOI=
+github.com/jfreymuth/oggvorbis v1.0.0 h1:aOpiihGrFLXpsh2osOlEvTcg5/aluzGQeC7m3uYWOZ0=
 github.com/jfreymuth/oggvorbis v1.0.0/go.mod h1:abe6F9QRjuU9l+2jek3gj46lu40N4qlYxh2grqkLEDM=
+github.com/jfreymuth/vorbis v1.0.0 h1:SmDf783s82lIjGZi8EGUUaS7YxPHgRj4ZXW/h7rUi7U=
 github.com/jfreymuth/vorbis v1.0.0/go.mod h1:8zy3lUAm9K/rJJk223RKy6vjCZTWC61NA2QD06bfOE0=
 github.com/lucasb-eyer/go-colorful v0.0.0-20181028223441-12d3b2882a08/go.mod h1:NXg0ArsFk0Y01623LgUqoqcouGDB+PwCCQlrwrG6xJ4=
 github.com/mattn/go-runewidth v0.0.4/go.mod h1:LwmH8dsx7+W8Uxz3IHJYH5QSwggIsqBzpuz5H//U1FU=
