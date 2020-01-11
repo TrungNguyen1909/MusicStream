@@ -196,7 +196,12 @@ func processRadio(quit chan int) {
 	interrupted := false
 	go preloadRadio(quitPreload)
 	defer log.Println("Radio stream ended")
-	defer func() { quit <- 0 }()
+	defer func() {
+		select {
+		case quit <- 0:
+		default:
+		}
+	}()
 	for {
 		select {
 		case <-quit:
