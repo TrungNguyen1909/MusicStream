@@ -1,4 +1,4 @@
-window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+//window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 var aud = null;
 var ws = null;
@@ -15,7 +15,6 @@ class musicPlayer {
   }
 
   play() {
-    window.audioCtx.resume();
     let controlPanelObj = this.controlPanel,
       infoBarObj = this.infoBar;
     Array.from(controlPanelObj.classList).find(function(element) {

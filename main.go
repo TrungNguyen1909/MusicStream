@@ -134,11 +134,29 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	}
 }
 func preloadRadio(quit chan int) {
+	time.Sleep(1 * time.Second)
 	log.Println("Radio preloading started!")
-	resp, err := http.DefaultClient.Get("https://listen.moe/stream")
+	req, err := http.NewRequest("GET", "https://listen.moe/stream", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
+	req.Header.Set("authority", "listen.moe")
+	req.Header.Set("pragma", "no-cache")
+	req.Header.Set("cache-control", "no-cache")
+	req.Header.Set("dnt", "1")
+	req.Header.Set("accept-encoding", "identity;q=1, *;q=0")
+	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36")
+	req.Header.Set("accept", "*/*")
+	req.Header.Set("sec-fetch-site", "same-origin")
+	req.Header.Set("sec-fetch-mode", "cors")
+	req.Header.Set("referer", "https://listen.moe/")
+	req.Header.Set("accept-language", "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7")
+	req.Header.Set("range", "bytes=0-")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+start:
 	streamer, format, err := vorbis.Decode(resp.Body)
 	if err != nil {
 		log.Fatal(err)
@@ -161,7 +179,7 @@ func preloadRadio(quit chan int) {
 		samples := make([][2]float64, 882)
 		n, ok := resampled.Stream(samples)
 		if !ok {
-			break
+			goto start
 		}
 		//data := make([]byte, format.Width()*n)
 		var buf bytes.Buffer
@@ -183,10 +201,9 @@ func preloadRadio(quit chan int) {
 		}
 		// err = binary.Write(w, binary.BigEndian, buf.Bytes())
 		if 0 <= n && n < 882 && ok {
-			break
+			goto start
 		}
 	}
-	go preloadRadio(quit)
 }
 func processRadio(quit chan int) {
 	quitPreload := make(chan int)
@@ -196,12 +213,7 @@ func processRadio(quit chan int) {
 	interrupted := false
 	go preloadRadio(quitPreload)
 	defer log.Println("Radio stream ended")
-	defer func() {
-		select {
-		case quit <- 0:
-		default:
-		}
-	}()
+	defer func() { quit <- 0 }()
 	for {
 		select {
 		case <-quit:
@@ -237,7 +249,7 @@ func processRadio(quit chan int) {
 					break
 				}
 			}
-			break
+			return
 		}
 	}
 }
