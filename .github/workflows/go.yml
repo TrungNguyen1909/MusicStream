@@ -1,0 +1,45 @@
+name: Go
+on: [push]
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.13
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+    - name: Set GOPATH
+        # temporary fix
+        # see https://github.com/actions/setup-go/issues/14
+      run: |
+          echo "##[set-env name=GOPATH;]$(dirname $GITHUB_WORKSPACE)"
+          echo "##[add-path]$(dirname $GITHUB_WORKSPACE)/bin"
+          mkdir -p "$(dirname $GITHUB_WORKSPACE)/bin"
+      shell: bash
+    - name: Get dependencies
+      run: |
+        sudo apt-get update
+        xargs sudo apt-get install < Aptfile
+        go get -v -t -d ./...
+
+    - name: Build
+      run: |
+        go build -v .
+        
+    - name: Upload artifact (main server)
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: MusicStream-${{ runner.os }}-${{ github.sha }}.zip
+        path: MusicStream
+    - name: Upload artifact (static website)
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: MusicStream-${{ runner.os }}-${{ github.sha }}-static.zip
+        path: static
