@@ -51,20 +51,21 @@ func mainTest() {
 type chunk struct {
 	buffer      []byte
 	encoderTime time.Duration
+	channel     int
 }
 type WebSocket struct {
 	conn *websocket.Conn
 	mux  *sync.Mutex
 }
 
-var currentBuffer []byte
+//var currentBuffer []byte
 var gotNewBuffer *sync.Cond
 var upgrader = websocket.Upgrader{}
 var connections sync.Map
 var currentTrack deezer.Track
 var dzClient deezer.Client
 var playQueue *queue.Queue
-var channels [2]chan chan int
+var channels [2]chan chan chunk
 var currentChannel int
 var oggHeader []byte
 var listenersCount int32
@@ -124,8 +125,7 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 		//log.Println(encodedLen)
 		encodedTime += 20 * time.Millisecond
 		if encodedLen > 0 {
-			currentBuffer = output[:encodedLen]
-			bufferingChannel <- chunk{buffer: currentBuffer, encoderTime: encodedTime}
+			bufferingChannel <- chunk{buffer: output[:encodedLen], encoderTime: encodedTime}
 		}
 		// err = binary.Write(w, binary.BigEndian, buf.Bytes())
 		if 0 <= n && n < 882 && ok {
@@ -196,8 +196,7 @@ start:
 		//log.Println(encodedLen)
 		encodedTime += 20 * time.Millisecond
 		if encodedLen > 0 {
-			currentBuffer = output[:encodedLen]
-			bufferingChannel <- chunk{buffer: currentBuffer, encoderTime: encodedTime}
+			bufferingChannel <- chunk{buffer: output[:encodedLen], encoderTime: encodedTime}
 		}
 		// err = binary.Write(w, binary.BigEndian, buf.Bytes())
 		if 0 <= n && n < 882 && ok {
@@ -213,7 +212,7 @@ func processRadio(quit chan int) {
 	interrupted := false
 	go preloadRadio(quitPreload)
 	defer log.Println("Radio stream ended")
-	defer func() { quit <- 0 }()
+	defer func() { log.Println("Resuming track streaming..."); quit <- 0 }()
 	for {
 		select {
 		case <-quit:
@@ -223,16 +222,17 @@ func processRadio(quit chan int) {
 		}
 		if !interrupted {
 			Chunk := <-bufferingChannel
+			//currentBuffer = Chunk.buffer
 			if Chunk.buffer == nil {
 				break
 			}
-			currentBuffer = Chunk.buffer
 			done := false
+			Chunk.channel = ((currentChannel + 1) % 2)
 			for !done {
 				select {
 				case c := <-channels[currentChannel]:
 					select {
-					case c <- ((currentChannel + 1) % 2):
+					case c <- Chunk:
 					default:
 					}
 				default:
@@ -246,6 +246,7 @@ func processRadio(quit chan int) {
 			for {
 				Chunk := <-bufferingChannel
 				if Chunk.buffer == nil {
+					log.Println("Found last chunk, breaking...")
 					break
 				}
 			}
@@ -283,16 +284,17 @@ func processTrack() {
 	etaDone = start.Add((time.Duration)(track.Duration) * time.Second)
 	for {
 		Chunk := <-bufferingChannel
+		//currentBuffer = Chunk.buffer
 		if Chunk.buffer == nil {
 			break
 		}
-		currentBuffer = Chunk.buffer
 		done := false
+		Chunk.channel = ((currentChannel + 1) % 2)
 		for !done {
 			select {
 			case c := <-channels[currentChannel]:
 				select {
-				case c <- ((currentChannel + 1) % 2):
+				case c <- Chunk:
 				default:
 				}
 			default:
@@ -308,7 +310,7 @@ func processTrack() {
 
 func audioManager() {
 	for i := range channels {
-		channels[i] = make(chan chan int, 1000)
+		channels[i] = make(chan chan chunk, 1000)
 	}
 	bufferingChannel = make(chan chunk, 500)
 	encoder := vorbisencoder.NewEncoder(2, 44100)
@@ -328,6 +330,7 @@ func audioManager() {
 }
 func setTrack(track deezer.Track) {
 	currentTrack = track
+	log.Println("Setting track on all clients ", currentTrack)
 	data, err := json.Marshal(map[string]interface{}{
 		"op":    1,
 		"track": track,
@@ -375,12 +378,13 @@ func audioHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("status", "200")
 	w.Write(oggHeader)
 	flusher.Flush()
-	channel := make(chan int, 500)
-	channels[currentChannel] <- channel
-	chanidx := currentChannel
+	channel := make(chan chunk, 500)
+	channels[0] <- channel
+	chanidx := 0
 	for {
-		chanidx = <-channel
-		_, err := w.Write(currentBuffer)
+		Chunk := <-channel
+		chanidx = Chunk.channel
+		_, err := w.Write(Chunk.buffer)
 		if err != nil {
 			break
 		}
