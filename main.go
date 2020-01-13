@@ -95,11 +95,14 @@ func streamToClients(quit chan int, quitPreload chan int) {
 	for {
 		select {
 		case <-quit:
-			for len(quit) > 0 {
-				<-quit
-			}
 			quitPreload <- 0
 			interrupted = true
+			for len(quit) > 0 {
+				select {
+				case <-quit:
+				default:
+				}
+			}
 		default:
 		}
 		if !interrupted {
@@ -256,7 +259,7 @@ start:
 	}
 }
 func processRadio(quit chan int) {
-	quitPreload := make(chan int)
+	quitPreload := make(chan int, 10)
 	time.Sleep(time.Until(etaDone))
 	go preloadRadio(quitPreload)
 	atomic.StoreInt32(&isRadioStreaming, 1)
@@ -266,7 +269,7 @@ func processRadio(quit chan int) {
 	streamToClients(quit, quitPreload)
 }
 func processTrack() {
-	quitRadio := make(chan int)
+	quitRadio := make(chan int, 10)
 	radioStarted := false
 	if playQueue.Empty() {
 		setTrack(deezer.Track{Title: "listen.moe"})
@@ -284,7 +287,7 @@ func processTrack() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	quit := make(chan int)
+	quit := make(chan int, 10)
 	go preloadTrack(stream, quit)
 	if radioStarted {
 		<-quitRadio
