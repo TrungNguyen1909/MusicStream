@@ -156,6 +156,8 @@ func preloadRadio(quit chan int) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
+	defer log.Println("Radio preloading stopped!")
 start:
 	streamer, format, err := vorbis.Decode(resp.Body)
 	if err != nil {
@@ -168,8 +170,6 @@ start:
 	encoder.Encode(oggHeader, make([]byte, 0))
 	defer encoder.Close()
 	var encodedTime time.Duration
-	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
-	defer log.Println("Radio preloading stopped!")
 	for {
 		select {
 		case <-quit:
