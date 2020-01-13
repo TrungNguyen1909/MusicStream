@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	ChunkDelayMS = 40
+	chunkDelayMS = 40
 )
 
 func mainTest() {
@@ -53,7 +53,7 @@ type chunk struct {
 	encoderTime time.Duration
 	channel     int
 }
-type WebSocket struct {
+type webSocket struct {
 	conn *websocket.Conn
 	mux  *sync.Mutex
 }
@@ -74,17 +74,17 @@ var etaDone time.Time
 var skipChannel chan int
 var isRadioStreaming int32
 
-func (socket *WebSocket) WriteMessage(messageType int, data []byte) error {
+func (socket *webSocket) WriteMessage(messageType int, data []byte) error {
 	socket.mux.Lock()
 	defer socket.mux.Unlock()
 	return socket.conn.WriteMessage(messageType, data)
 }
-func (socket *WebSocket) Close() error {
+func (socket *webSocket) Close() error {
 	socket.mux.Lock()
 	defer socket.mux.Unlock()
 	return socket.conn.Close()
 }
-func (socket *WebSocket) ReadJSON(v interface{}) error {
+func (socket *webSocket) ReadJSON(v interface{}) error {
 	return socket.conn.ReadJSON(v)
 }
 func streamToClients(quit chan int, quitPreload chan int) {
@@ -123,7 +123,7 @@ func streamToClients(quit chan int, quitPreload chan int) {
 				}
 			}
 			etaDone = start.Add(Chunk.encoderTime)
-			time.Sleep(Chunk.encoderTime - time.Since(start) - ChunkDelayMS*time.Millisecond)
+			time.Sleep(Chunk.encoderTime - time.Since(start) - chunkDelayMS*time.Millisecond)
 		} else {
 			for {
 				Chunk := <-bufferingChannel
@@ -325,7 +325,7 @@ func setTrack(track deezer.Track) {
 		"track": track,
 	})
 	connections.Range(func(key, value interface{}) bool {
-		ws := value.(*WebSocket)
+		ws := value.(*webSocket)
 		if err != nil {
 			return true
 		}
@@ -339,7 +339,7 @@ func setListenerCount() {
 		"listeners": atomic.LoadInt32(&listenersCount),
 	})
 	connections.Range(func(key, value interface{}) bool {
-		ws := value.(*WebSocket)
+		ws := value.(*webSocket)
 		if err != nil {
 			return true
 		}
@@ -393,7 +393,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Print("upgrade:", err)
 		return
 	}
-	c := &WebSocket{conn: _c, mux: &sync.Mutex{}}
+	c := &webSocket{conn: _c, mux: &sync.Mutex{}}
 	connections.Store(c, c)
 	defer c.Close()
 	defer connections.Delete(c)
