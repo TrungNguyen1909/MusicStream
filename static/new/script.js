@@ -7,13 +7,18 @@ var wsInterval = null;
 class musicPlayer {
   constructor() {
     this.play = this.play.bind(this);
+    this.skip = this.skip.bind(this);
+    this.skipBtn = document.getElementById("skip");
+    this.skipBtn.addEventListener("click", this.skip);
     this.playBtn = document.getElementById("play");
     this.playBtn.addEventListener("click", this.play);
     this.controlPanel = document.getElementById("control-panel");
     this.infoBar = document.getElementById("info");
     this.isPlaying = false;
   }
-
+  skip() {
+    ws.send(JSON.stringify({ op: 4 }));
+  }
   play() {
     let controlPanelObj = this.controlPanel,
       infoBarObj = this.infoBar;
@@ -92,9 +97,9 @@ function initWebSocket() {
         setTrack(msg.track);
         break;
       case 3:
-        let subBox = document.getElementById("sub");
-        let artistBox = subBox.getElementsByClassName("artist")[0];
-        let titleBox = subBox.getElementsByClassName("name")[0];
+        var subBox = document.getElementById("sub");
+        var artistBox = subBox.getElementsByClassName("artist")[0];
+        var titleBox = subBox.getElementsByClassName("name")[0];
         artistBox.innerText = "";
         titleBox.innerText = "";
         if (!msg.success) {
@@ -115,6 +120,31 @@ function initWebSocket() {
               : subBox.classList.remove("active");
           });
         }, 5000);
+        document.getElementById("query").value = "";
+        break;
+      case 4:
+        var subBox = document.getElementById("sub");
+        var artistBox = subBox.getElementsByClassName("artist")[0];
+        var titleBox = subBox.getElementsByClassName("name")[0];
+        artistBox.innerText = "";
+        titleBox.innerText = "";
+        if (!msg.success) {
+          titleBox.innerText = msg.reason;
+        } else {
+          titleBox.innerText = "Skipped!";
+        }
+        Array.from(subBox.classList).find(function(element) {
+          return element !== "active"
+            ? subBox.classList.add("active")
+            : subBox.classList.remove("active");
+        });
+        setTimeout(() => {
+          Array.from(subBox.classList).find(function(element) {
+            return element !== "active"
+              ? subBox.classList.add("active")
+              : subBox.classList.remove("active");
+          });
+        }, 2000);
         document.getElementById("query").value = "";
         break;
       case 5:

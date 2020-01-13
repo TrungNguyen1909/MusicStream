@@ -71,6 +71,8 @@ var oggHeader []byte
 var listenersCount int32
 var bufferingChannel chan chunk
 var etaDone time.Time
+var skipChannel chan int
+var isRadioStreaming int32
 
 func (socket *WebSocket) WriteMessage(messageType int, data []byte) error {
 	socket.mux.Lock()
@@ -84,6 +86,55 @@ func (socket *WebSocket) Close() error {
 }
 func (socket *WebSocket) ReadJSON(v interface{}) error {
 	return socket.conn.ReadJSON(v)
+}
+func streamToClients(quit chan int, quitPreload chan int) {
+
+	start := time.Now()
+	etaDone = start
+	interrupted := false
+	for {
+		select {
+		case <-quit:
+			for len(quit) > 0 {
+				<-quit
+			}
+			quitPreload <- 0
+			interrupted = true
+		default:
+		}
+		if !interrupted {
+			Chunk := <-bufferingChannel
+			//currentBuffer = Chunk.buffer
+			if Chunk.buffer == nil {
+				break
+			}
+			done := false
+			Chunk.channel = ((currentChannel + 1) % 2)
+			for !done {
+				select {
+				case c := <-channels[currentChannel]:
+					select {
+					case c <- Chunk:
+					default:
+					}
+				default:
+					currentChannel = (currentChannel + 1) % 2
+					done = true
+				}
+			}
+			etaDone = start.Add(Chunk.encoderTime)
+			time.Sleep(Chunk.encoderTime - time.Since(start) - ChunkDelayMS*time.Millisecond)
+		} else {
+			for {
+				Chunk := <-bufferingChannel
+				if Chunk.buffer == nil {
+					log.Println("Found last chunk, breaking...")
+					break
+				}
+			}
+			return
+		}
+	}
 }
 func preloadTrack(stream io.ReadCloser, quit chan int) {
 	streamer, format, err := mp3.Decode(stream)
@@ -207,52 +258,12 @@ start:
 func processRadio(quit chan int) {
 	quitPreload := make(chan int)
 	time.Sleep(time.Until(etaDone))
-	start := time.Now()
-	etaDone = start
-	interrupted := false
 	go preloadRadio(quitPreload)
+	atomic.StoreInt32(&isRadioStreaming, 1)
+	defer atomic.StoreInt32(&isRadioStreaming, 0)
 	defer log.Println("Radio stream ended")
 	defer func() { log.Println("Resuming track streaming..."); quit <- 0 }()
-	for {
-		select {
-		case <-quit:
-			quitPreload <- 0
-			interrupted = true
-		default:
-		}
-		if !interrupted {
-			Chunk := <-bufferingChannel
-			//currentBuffer = Chunk.buffer
-			if Chunk.buffer == nil {
-				break
-			}
-			done := false
-			Chunk.channel = ((currentChannel + 1) % 2)
-			for !done {
-				select {
-				case c := <-channels[currentChannel]:
-					select {
-					case c <- Chunk:
-					default:
-					}
-				default:
-					currentChannel = (currentChannel + 1) % 2
-					done = true
-				}
-			}
-			etaDone = start.Add(Chunk.encoderTime)
-			time.Sleep(Chunk.encoderTime - time.Since(start) - ChunkDelayMS*time.Millisecond)
-		} else {
-			for {
-				Chunk := <-bufferingChannel
-				if Chunk.buffer == nil {
-					log.Println("Found last chunk, breaking...")
-					break
-				}
-			}
-			return
-		}
-	}
+	streamToClients(quit, quitPreload)
 }
 func processTrack() {
 	quitRadio := make(chan int)
@@ -280,30 +291,7 @@ func processTrack() {
 	}
 	time.Sleep(time.Until(etaDone))
 	setTrack(track)
-	start := time.Now()
-	etaDone = start.Add((time.Duration)(track.Duration) * time.Second)
-	for {
-		Chunk := <-bufferingChannel
-		//currentBuffer = Chunk.buffer
-		if Chunk.buffer == nil {
-			break
-		}
-		done := false
-		Chunk.channel = ((currentChannel + 1) % 2)
-		for !done {
-			select {
-			case c := <-channels[currentChannel]:
-				select {
-				case c <- Chunk:
-				default:
-				}
-			default:
-				currentChannel = (currentChannel + 1) % 2
-				done = true
-			}
-		}
-		time.Sleep(Chunk.encoderTime - time.Since(start) - ChunkDelayMS*time.Millisecond)
-	}
+	streamToClients(skipChannel, quit)
 	//time.Sleep((time.Duration)(track.Duration)*time.Second - time.Since(start))
 	log.Println("Stream ended!")
 }
@@ -313,6 +301,7 @@ func audioManager() {
 		channels[i] = make(chan chan chunk, 1000)
 	}
 	bufferingChannel = make(chan chunk, 500)
+	skipChannel = make(chan int, 500)
 	encoder := vorbisencoder.NewEncoder(2, 44100)
 	oggHeader = make([]byte, 5000)
 	n := encoder.Encode(oggHeader, make([]byte, 0))
@@ -458,6 +447,23 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 					c.WriteMessage(websocket.TextMessage, data)
 				}
 			}
+		case 4:
+			if atomic.LoadInt32(&isRadioStreaming) == 1 {
+				data, _ := json.Marshal(map[string]interface{}{
+					"op":      4,
+					"success": false,
+					"reason":  "You can't skip a radio stream.",
+				})
+				c.WriteMessage(websocket.TextMessage, data)
+			} else {
+				skipChannel <- 0
+				data, _ := json.Marshal(map[string]interface{}{
+					"op":      4,
+					"success": true,
+					"reason":  "",
+				})
+				c.WriteMessage(websocket.TextMessage, data)
+			}
 		case 5:
 			data, _ := json.Marshal(map[string]interface{}{
 				"op":        5,
@@ -553,7 +559,29 @@ func enqueueHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+func skipHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	if atomic.LoadInt32(&isRadioStreaming) == 1 {
+		data, _ := json.Marshal(map[string]interface{}{
+			"op":      4,
+			"success": false,
+			"reason":  "You can't skip a radio stream.",
+		})
 
+		w.Write(data)
+	} else {
+		skipChannel <- 0
+		data, _ := json.Marshal(map[string]interface{}{
+			"op":      4,
+			"success": true,
+			"reason":  "",
+		})
+
+		w.Write(data)
+	}
+}
 func handler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[1:]
 	data, err := ioutil.ReadFile(strings.Join([]string{"static/new/", string(path)}, ""))
@@ -578,6 +606,7 @@ func main() {
 	http.HandleFunc("/audio", audioHandler)
 	http.HandleFunc("/status", wsHandler)
 	http.HandleFunc("/playing", playingHandler)
+	http.HandleFunc("/skip", skipHandler)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static/new"))))
 	http.HandleFunc("/", handler)
 	go audioManager()
