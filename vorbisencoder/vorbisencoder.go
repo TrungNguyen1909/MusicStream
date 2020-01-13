@@ -84,7 +84,7 @@ Encoder* encoder_start(int sample_rate)
 	return state;
 }
 
-long encode(Encoder* state, void* outputSlice, void* inputSlice){
+long encode(Encoder* state, char* outputSlice, char* inputSlice){
 	struct GoSlice* outSlice=(struct GoSlice*)outputSlice;
 	struct GoSlice* dataSlice=(struct GoSlice*)inputSlice;
 	char* out = (char*)outSlice->data;
@@ -179,7 +179,7 @@ func NewEncoder(channels int32, sampleRate int32) *Encoder {
 }
 
 func (encoder *Encoder) Encode(out []byte, data []byte) int {
-	return int(C.encode((*C.struct_tEncoderState)(encoder), unsafe.Pointer(&out), unsafe.Pointer(&data)))
+	return int(C.encode((*C.struct_tEncoderState)(encoder), (*C.char)(unsafe.Pointer(&out)), (*C.char)(unsafe.Pointer(&data))))
 }
 func (encoder *Encoder) Close() {
 	C.encoder_finish((*C.struct_tEncoderState)(encoder))
