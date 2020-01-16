@@ -610,7 +610,7 @@ func main() {
 	http.HandleFunc("/status", wsHandler)
 	http.HandleFunc("/playing", playingHandler)
 	http.HandleFunc("/skip", skipHandler)
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static/new"))))
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/", handler)
 	go audioManager()
 	log.Fatal(http.ListenAndServe(port, nil))
