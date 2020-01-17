@@ -587,12 +587,12 @@ func skipHandler(w http.ResponseWriter, r *http.Request) {
 }
 func handler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[1:]
-	data, err := ioutil.ReadFile(strings.Join([]string{"static/new/", string(path)}, ""))
+	data, err := ioutil.ReadFile(strings.Join([]string{"static/", string(path)}, ""))
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 	if err != nil {
-		http.ServeFile(w, r, "static/new/index.html")
+		http.ServeFile(w, r, "static/index.html")
 		return
 	}
 	w.Write(data)
@@ -610,8 +610,7 @@ func main() {
 	http.HandleFunc("/status", wsHandler)
 	http.HandleFunc("/playing", playingHandler)
 	http.HandleFunc("/skip", skipHandler)
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	http.HandleFunc("/", handler)
+	http.Handle("/", http.FileServer(http.Dir("static")))
 	go audioManager()
 	log.Fatal(http.ListenAndServe(port, nil))
 }
