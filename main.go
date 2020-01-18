@@ -269,6 +269,12 @@ func processRadio(quit chan int) {
 	streamToClients(quit, quitPreload)
 }
 func processTrack() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("Panicked!!!:", r)
+			log.Println("Resuming...")
+		}
+	}()
 	quitRadio := make(chan int, 10)
 	radioStarted := false
 	if playQueue.Empty() {
@@ -317,11 +323,6 @@ func audioManager() {
 	//tracks, _ := dzClient.SearchTrack("Scared to be lonely", "")
 	//playQueue.Enqueue(tracks[0])
 
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("Recovered in audioManager:", r)
-		}
-	}()
 	for {
 		processTrack()
 	}
