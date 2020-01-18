@@ -21,10 +21,12 @@ class musicPlayer {
   play() {
     var aud = document.getElementById("audio-player");
     if (!this.isPlaying) {
+      this.playBtn.classList.add("playing")
       aud.src = `http://${window.location.host}/audio`;
       aud.muted = false;
       aud.play();
     } else {
+      this.playBtn.classList.remove("playing")
       aud.muted = true;
     }
 
