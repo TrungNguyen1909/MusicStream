@@ -57,6 +57,7 @@ function initWebSocket() {
   ws = new WebSocket(`ws://${window.location.host}/status`);
   ws.onerror = err => {
     console.log(err);
+    ws.close()
   };
   ws.onopen = event => {
     console.log("[WS] opened");
@@ -67,6 +68,8 @@ function initWebSocket() {
   };
   ws.onclose = event => {
     console.log("[WS] closed");
+    clearInterval(wsInterval)
+    setTimeout(initWebSocket,1000)
   };
   ws.onmessage = event => {
     console.log(event.data);
