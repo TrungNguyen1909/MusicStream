@@ -262,7 +262,9 @@ func (client *Client) SearchTrack(track, artist string) ([]Track, error) {
 		return nil, err
 	}
 	tracks := resp.Data
-	sort.Sort(byRank(tracks))
+	if !strings.Contains(track, ":") {
+		sort.Sort(byRank(tracks))
+	}
 	return tracks, nil
 }
 
