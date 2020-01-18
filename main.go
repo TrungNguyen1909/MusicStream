@@ -316,6 +316,12 @@ func audioManager() {
 	dzClient.Init()
 	//tracks, _ := dzClient.SearchTrack("Scared to be lonely", "")
 	//playQueue.Enqueue(tracks[0])
+
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in audioManager:", r)
+		}
+	}()
 	for {
 		processTrack()
 	}
