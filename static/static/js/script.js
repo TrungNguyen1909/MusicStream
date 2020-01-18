@@ -13,26 +13,12 @@ class musicPlayer {
     this.playBtn = document.getElementById("play");
     this.playBtn.addEventListener("click", this.play);
     this.controlPanel = document.getElementById("control-panel");
-    this.infoBar = document.getElementById("info");
     this.isPlaying = false;
   }
   skip() {
     ws.send(JSON.stringify({ op: 4 }));
   }
   play() {
-    let controlPanelObj = this.controlPanel,
-      infoBarObj = this.infoBar;
-    Array.from(controlPanelObj.classList).find(function(element) {
-      return element !== "active"
-        ? controlPanelObj.classList.add("active")
-        : controlPanelObj.classList.remove("active");
-    });
-
-    Array.from(infoBarObj.classList).find(function(element) {
-      return element !== "active"
-        ? infoBarObj.classList.add("active")
-        : infoBarObj.classList.remove("active");
-    });
     var aud = document.getElementById("audio-player");
     if (!this.isPlaying) {
       aud.src = `http://${window.location.host}/audio`;
@@ -57,22 +43,15 @@ function setTrack(track) {
   console.log(track);
   if (track === null) {
     return;
-    let infoBox = document.getElementById("info");
-    infoBox.getElementsByClassName("artist")[0].innerText = "";
-    infoBox.getElementsByClassName("name")[0].innerText = "";
-    let artworkBox = document.getElementsByClassName("album-art")[0];
-    artworkBox.style.backgroundImage = ``;
   }
   ctrack = track;
-  let infoBox = document.getElementById("info");
-  infoBox.getElementsByClassName("artist")[0].innerText = ctrack.artist.name;
-  infoBox.getElementsByClassName("name")[0].innerText = ctrack.title;
-  let artworkBox = document.getElementsByClassName("album-art")[0];
-  artworkBox.style.backgroundImage = `url(${ctrack.album.cover})`;
+  document.getElementById("artist").innerText = ctrack.artist.name;
+  document.getElementById("name").innerText = ctrack.title;
+  //let artworkBox = document.getElementsByClassName("album-art")[0];
+  //artworkBox.style.backgroundImage = `url(${ctrack.album.cover})`;
 }
 function setListeners(count) {
-  let infoBox = document.getElementById("info");
-  infoBox.getElementsByClassName("listeners")[0].innerText = `🎧: ${count}`;
+  document.getElementById("listeners").innerText = `Listeners: ${count}`;
 }
 function initWebSocket() {
   ws = new WebSocket(`ws://${window.location.host}/status`);

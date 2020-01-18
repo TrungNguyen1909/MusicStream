@@ -1,0 +1,211 @@
+@import url("https://fonts.googleapis.com/css?family=Fira+Sans");
+html, body {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Fira Sans", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.player {
+  position: relative;
+}
+
+.player .sub {
+	position: absolute;
+	height: 60px;
+	top: 0;
+	opacity: 0;
+	left: 10px;
+	right: 10px;
+	background-color: rgba(30, 28, 44, 0.89);
+	padding: 5px 15px 5px 10px;
+  border-bottom-left-radius: 15px;
+  border-bottom-right-radius: 15px;
+	transition: all .5s ease;
+}
+.player .sub .artist,
+.player .sub .name {
+	display: block;
+}
+.player .sub .name {
+  color: rgba(255, 0, 81, 0.747);
+  font-size: 20px;
+  margin-top: 10px;
+  margin-left: 5px;
+}
+.player .sub .artist {
+  color: white;
+  font-size: 16px;
+  margin-top: 0px;
+  margin-left: 5px;
+}
+.player .sub .progress-bar {
+	background-color: #ddd;
+	height: 2px;
+	width: 100%;
+	position: relative;
+}
+.player .sub .progress-bar .bar {
+	position: absolute;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	background-color: red;
+	width: 10%;
+	transition: all .2s ease;
+}
+.player .sub.active {
+	top: 90px;
+	opacity: 1;
+	transition: all .5s ease;
+}
+
+.player .control-panel {
+  position: relative;
+  background-color: #1E1C2C;
+  border-radius: 15px;
+  width: 500px;
+  height: 90px;
+  z-index: 5;
+}
+.player .control-panel .controls {
+  display: flex;
+  justify-content: flex-end;
+  height: 90px;
+  padding: 0 15px;
+}
+.player .control-panel .controls .info{
+  width: 390px;
+  height: auto;
+}
+.player .control-panel .controls .prev,
+.player .control-panel .controls .play,
+.player .control-panel .controls .next {
+  width: 55px;
+  height: auto;
+  margin: 5px 0;
+  background-color: #1E1C2C;
+  cursor: pointer;
+}
+
+.player .control-panel .controls .prev .svg,
+.player .control-panel .controls .play .svg,
+.player .control-panel .controls .next .svg{
+  display:block;
+  margin-left:auto;
+  margin-right:auto;
+  margin-top: auto;
+  margin-bottom: auto;
+  fill: transparent;
+  stroke: #c2c6cf;
+  stroke-width: 15px;
+}
+
+.player .control-panel .controls .prev .svg :hover,
+.player .control-panel .controls .play .svg :hover,
+.player .control-panel .controls .next .svg :hover {
+  stroke:#FF0052
+}
+.player .control-panel .controls .info .artist,
+.player .control-panel .controls .info .listeners,
+.player .control-panel .controls .info .name {
+  display: block;
+}
+
+.player .control-panel .controls .info .name {
+  color: #FF0052;
+  font-size: 20px;
+  margin-top: 10px;
+  margin-left: 5px;
+}
+.player .control-panel .controls .info .artist {
+  color: white;
+  font-size: 16px;
+  margin-top: 0px;
+  margin-left: 5px;
+}
+
+.player .control-panel .controls .info .listeners{
+  color:white;
+  font-size: 14px;
+  margin-top: 5px;
+  margin-left: 5px;
+}
+.search {
+  display: table;
+}
+.search input {
+  background: none;
+  border: none;
+  outline: none;
+  width: 28px;
+  min-width: 0;
+  padding: 0;
+  z-index: 1;
+  position: relative;
+  line-height: 18px;
+  margin: 5px 0;
+  font-size: 14px;
+  -webkit-appearance: none;
+  font-family: 'Mukta Malar';
+  transition: all .6s ease;
+  cursor: pointer;
+  color: #c2c6cf;
+}
+.search input + div {
+  position: relative;
+  height: 28px;
+  width: 100%;
+  margin: -28px 0 0 0;
+}
+.search input + div svg {
+  display: block;
+  position: absolute;
+  height: 28px;
+  width: 160px;
+  right: 0;
+  top: 0;
+  fill: none;
+  stroke: #c2c6cf;
+  stroke-width: 1.5px;
+  stroke-dashoffset: 271.908;
+  stroke-dasharray: 59 212.908;
+  transition: all .6s ease;
+}
+.search input:not(:placeholder-shown), .search input:focus {
+  width: 160px;
+  padding: 0 4px;
+  cursor: text;
+}
+.search input:not(:placeholder-shown) + div svg, .search input:focus + div svg {
+  stroke-dasharray: 150 212.908;
+  stroke-dashoffset: 300;
+}
+
+::-moz-selection {
+  background: #c2c6cf;
+}
+
+::selection {
+  background: #c2c6cf;
+}
+
+::-moz-selection {
+  background: #c2c6cf;
+}
+div.background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: no-repeat scroll 50% 50%;
+  background-size: cover;
+  z-index: -1;
+  height: 100vh;
+  width: 100%;
+  pointer-events: none;
+  background-image: url("/static/media/bg.jpg")
+}
