@@ -1,6 +1,5 @@
 //window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-var aud = null;
 var ws = null;
 var ctrack = null;
 var wsInterval = null;
@@ -19,15 +18,14 @@ class musicPlayer {
     ws.send(JSON.stringify({ op: 4 }));
   }
   play() {
-    var aud = document.getElementById("audio-player");
     if (!this.isPlaying) {
       this.playBtn.classList.add("playing")
-      aud.src = `http://${window.location.host}/audio`;
-      aud.muted = false;
-      aud.play();
+      window.player.src = `http://${window.location.host}/audio`;
+      window.player.muted = false;
+      window.player.play();
     } else {
       this.playBtn.classList.remove("playing")
-      aud.muted = true;
+      window.player.muted = true;
     }
 
     this.isPlaying = !this.isPlaying;
@@ -49,6 +47,7 @@ function setTrack(track) {
   ctrack = track;
   document.getElementById("artist").innerText = ctrack.artist.name;
   document.getElementById("name").innerText = ctrack.title;
+  window.player.src = `http://${window.location.host}/audio`;
   //let artworkBox = document.getElementsByClassName("album-art")[0];
   //artworkBox.style.backgroundImage = `url(${ctrack.album.cover})`;
 }
@@ -153,5 +152,6 @@ node.addEventListener("keydown", function(event) {
   }
 });
 window.onload = function() {
+  this.player = document.getElementById("audio-player")
   this.initWebSocket();
 };

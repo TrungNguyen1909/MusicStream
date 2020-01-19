@@ -15,11 +15,14 @@ require (
 	golang.org/x/mobile v0.0.0-20191210151939-1a1fef82734d
 	golang.org/x/sys v0.0.0-20200107144601-ef85f5a75ddf
 	golang.org/x/text v0.3.2
+	lyrics v0.0.0
 	queue v0.0.0
 	vorbisencoder v0.0.0
 )
 
 replace deezer => ./deezer
+
+replace lyrics => ./lyrics
 
 replace queue => ./queue
 

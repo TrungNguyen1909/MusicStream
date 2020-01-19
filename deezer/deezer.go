@@ -59,6 +59,7 @@ type Artist struct {
 }
 type Album struct {
 	Title       string `json:"title"`
+	Artist      Artist `json:"artist"`
 	Cover       string `json:"cover"`
 	CoverSmall  string `json:"cover_small"`
 	CoverMedium string `json:"cover_medium"`

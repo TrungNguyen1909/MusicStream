@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"lyrics"
 	"net/http"
 	"os"
 	"queue"
@@ -57,12 +58,32 @@ type webSocket struct {
 	conn *websocket.Conn
 	mux  *sync.Mutex
 }
+type Artist struct {
+	Name string `json:"name"`
+}
+type Album struct {
+	Title       string `json:"title"`
+	Artist      Artist `json:"artist"`
+	Cover       string `json:"cover"`
+	CoverSmall  string `json:"cover_small"`
+	CoverMedium string `json:"cover_medium"`
+	CoverBig    string `json:"cover_big"`
+	CoverXL     string `json:"cover_xl"`
+}
+type Track struct {
+	ID       int           `json:"id"`
+	Title    string        `json:"title"`
+	Artist   Artist        `json:"artist"`
+	Album    Album         `json:"album"`
+	Duration int           `json:"duration"`
+	Lyrics   lyrics.Result `json:"lyrics"`
+}
 
 //var currentBuffer []byte
 var gotNewBuffer *sync.Cond
 var upgrader = websocket.Upgrader{}
 var connections sync.Map
-var currentTrack deezer.Track
+var currentTrack Track
 var dzClient deezer.Client
 var playQueue *queue.Queue
 var channels [2]chan chan chunk
@@ -153,6 +174,7 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	defer encoder.Close()
 	var encodedTime time.Duration
 	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
+	bufferingChannel <- chunk{buffer: oggHeader, encoderTime: 0}
 	for {
 		select {
 		case <-quit:
@@ -213,6 +235,7 @@ func preloadRadio(quit chan int) {
 	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
 	defer log.Println("Radio preloading stopped!")
 start:
+	bufferingChannel <- chunk{buffer: oggHeader, encoderTime: 0}
 	streamer, format, err := vorbis.Decode(resp.Body)
 	if err != nil {
 		log.Fatal(err)
@@ -278,17 +301,25 @@ func processTrack() {
 	quitRadio := make(chan int, 10)
 	radioStarted := false
 	if playQueue.Empty() {
-		setTrack(deezer.Track{Title: "listen.moe"})
+		setTrack(Track{Title: "listen.moe"})
 		radioStarted = true
 		go processRadio(quitRadio)
 	}
-	track := playQueue.Pop().(deezer.Track)
+	dzTrack := playQueue.Pop().(deezer.Track)
 	if radioStarted {
 		quitRadio <- 0
 	}
-	fmt.Println(track.Title)
-	fmt.Println(track.Artist.Name)
-	fmt.Println(track.Album.Title)
+	fmt.Println(dzTrack.Title)
+	fmt.Println(dzTrack.Artist.Name)
+	fmt.Println(dzTrack.Album.Title)
+	var track Track
+	dzb, _ := json.Marshal(dzTrack)
+	_ = json.Unmarshal(dzb, &track)
+	var mxmlyrics lyrics.Result
+	mxmlyrics, err := lyrics.GetLyrics(track.Title, track.Artist.Name, track.Album.Title, track.Album.Artist.Name, track.Duration)
+	if err == nil {
+		track.Lyrics = mxmlyrics
+	}
 	stream, err := dzClient.DownloadTrack(strconv.Itoa(track.ID), 3)
 	if err != nil {
 		log.Fatal(err)
@@ -327,7 +358,7 @@ func audioManager() {
 		processTrack()
 	}
 }
-func setTrack(track deezer.Track) {
+func setTrack(track Track) {
 	currentTrack = track
 	log.Println("Setting track on all clients ", currentTrack)
 	data, err := json.Marshal(map[string]interface{}{
