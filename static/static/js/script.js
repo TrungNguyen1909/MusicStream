@@ -182,7 +182,9 @@ function lyricsControl() {
   clearInterval(lyricsInterval);
   hideLyricsBox();
   var player = document.getElementById("audio-player");
-  var lyricsBox = document.getElementById("lyrics")
+  var lyricsBox = document.getElementById("lyrics");
+  lyricsBox.getElementsByClassName("original")[0].innerText = "";
+  lyricsBox.getElementsByClassName("translated")[0].innerText = "";
   if (ctrack.lyrics == null || ctrack.lyrics.lrc == null) {
     return;
   }
@@ -192,7 +194,7 @@ function lyricsControl() {
     if (ctrack.lyrics.lrc[idx].time.total < player.currentTime) {
       lyricsBox.getElementsByClassName("original")[0].innerText =
         ctrack.lyrics.lrc[idx].text;
-        lyricsBox.getElementsByClassName("translated")[0].innerText =
+      lyricsBox.getElementsByClassName("translated")[0].innerText =
         ctrack.lyrics.lrc[idx].translated;
       idx++;
     }
