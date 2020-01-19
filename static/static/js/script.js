@@ -56,7 +56,13 @@ function setListeners(count) {
   document.getElementById("listeners").innerText = `Listeners: ${count}`;
 }
 function initWebSocket() {
-  ws = new WebSocket(`ws://${window.location.host}/status`);
+  if (window.location.protocol=="http:")
+  {
+    ws = new WebSocket(`ws://${window.location.host}/status`);
+  }
+  else{
+    ws = new WebSocket(`wss://${window.location.host}/status`);
+  }
   ws.onerror = err => {
     console.log(err);
     ws.close()
