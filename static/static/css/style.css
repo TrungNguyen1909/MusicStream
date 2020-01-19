@@ -141,6 +141,43 @@ html, body {
   margin-top: 5px;
   margin-left: 5px;
 }
+
+.player .lyrics {
+	position: absolute;
+	height: 60px;
+	top: 0;
+	opacity: 0;
+	left: 10px;
+	right: 10px;
+	background-color: rgba(30, 28, 44, 0.89);
+	padding: 5px 15px 5px 10px;
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+	transition: all .5s ease;
+}
+.player .lyrics .original,
+.player .lyrics .translated {
+	display: block;
+}
+.player .lyrics .original {
+  color: rgba(255, 0, 81, 0.747);
+  font-size: 20px;
+  margin-bottom: 0px;
+  margin-left: 5px;
+}
+.player .lyrics .translated {
+  color: white;
+  font-size: 16px;
+  margin-bottom: 10px;
+  margin-left: 5px;
+}
+.player .lyrics.active {
+	top: -65px;
+	opacity: 1;
+	transition: all .5s ease;
+}
+
+
 .search {
   display: table;
 }

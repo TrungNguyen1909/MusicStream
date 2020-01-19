@@ -3,6 +3,7 @@
 var ws = null;
 var ctrack = null;
 var wsInterval = null;
+var lyricsInterval = null;
 class musicPlayer {
   constructor() {
     this.play = this.play.bind(this);
@@ -19,12 +20,12 @@ class musicPlayer {
   }
   play() {
     if (!this.isPlaying) {
-      this.playBtn.classList.add("playing")
+      this.playBtn.classList.add("playing");
       window.player.src = `http://${window.location.host}/audio`;
       window.player.muted = false;
       window.player.play();
     } else {
-      this.playBtn.classList.remove("playing")
+      this.playBtn.classList.remove("playing");
       window.player.muted = true;
     }
 
@@ -48,23 +49,54 @@ function setTrack(track) {
   document.getElementById("artist").innerText = ctrack.artist.name;
   document.getElementById("name").innerText = ctrack.title;
   window.player.src = `http://${window.location.host}/audio`;
+  setTimeout(lyricsControl, 0);
   //let artworkBox = document.getElementsByClassName("album-art")[0];
   //artworkBox.style.backgroundImage = `url(${ctrack.album.cover})`;
 }
 function setListeners(count) {
   document.getElementById("listeners").innerText = `Listeners: ${count}`;
 }
+function showSubBox() {
+  subBox = document.getElementById("sub");
+  subBox.classList.add("active");
+}
+function hideSubBox() {
+  subBox = document.getElementById("sub");
+  subBox.classList.remove("active");
+}
+function toggleSubBox() {
+  subBox = document.getElementById("sub");
+  Array.from(subBox.classList).find(function(element) {
+    return element !== "active"
+      ? subBox.classList.add("active")
+      : subBox.classList.remove("active");
+  });
+}
+function showLyricsBox() {
+  lyricsBox = document.getElementById("lyrics");
+  lyricsBox.classList.add("active");
+}
+function hideLyricsBox() {
+  lyricsBox = document.getElementById("lyrics");
+  lyricsBox.classList.remove("active");
+}
+function toggleLyricsBox() {
+  lyricsBox = document.getElementById("lyrics");
+  Array.from(lyricsBox.classList).find(function(element) {
+    return element !== "active"
+      ? lyricsBox.classList.add("active")
+      : lyricsBox.classList.remove("active");
+  });
+}
 function initWebSocket() {
-  if (window.location.protocol=="http:")
-  {
+  if (window.location.protocol == "http:") {
     ws = new WebSocket(`ws://${window.location.host}/status`);
-  }
-  else{
+  } else {
     ws = new WebSocket(`wss://${window.location.host}/status`);
   }
   ws.onerror = err => {
     console.log(err);
-    ws.close()
+    ws.close();
   };
   ws.onopen = event => {
     console.log("[WS] opened");
@@ -75,8 +107,8 @@ function initWebSocket() {
   };
   ws.onclose = event => {
     console.log("[WS] closed");
-    clearInterval(wsInterval)
-    setTimeout(initWebSocket,1000)
+    clearInterval(wsInterval);
+    setTimeout(initWebSocket, 1000);
   };
   ws.onmessage = event => {
     console.log(event.data);
@@ -97,18 +129,8 @@ function initWebSocket() {
           titleBox.innerText = msg.track.title;
           artistBox.innerText = msg.track.artist.name;
         }
-        Array.from(subBox.classList).find(function(element) {
-          return element !== "active"
-            ? subBox.classList.add("active")
-            : subBox.classList.remove("active");
-        });
-        setTimeout(() => {
-          Array.from(subBox.classList).find(function(element) {
-            return element !== "active"
-              ? subBox.classList.add("active")
-              : subBox.classList.remove("active");
-          });
-        }, 5000);
+        showSubBox();
+        setTimeout(hideSubBox, 5000);
         document.getElementById("query").value = "";
         break;
       case 4:
@@ -152,6 +174,31 @@ node.addEventListener("keydown", function(event) {
   }
 });
 window.onload = function() {
-  this.player = document.getElementById("audio-player")
+  this.player = document.getElementById("audio-player");
   this.initWebSocket();
 };
+
+function lyricsControl() {
+  clearInterval(lyricsInterval);
+  hideLyricsBox();
+  var player = document.getElementById("audio-player");
+  var lyricsBox = document.getElementById("lyrics")
+  if (ctrack.lyrics == null || ctrack.lyrics.lrc == null) {
+    return;
+  }
+  showLyricsBox();
+  let idx = 0;
+  lyricsInterval = setInterval(() => {
+    if (ctrack.lyrics.lrc[idx].time.total < player.currentTime) {
+      lyricsBox.getElementsByClassName("original")[0].innerText =
+        ctrack.lyrics.lrc[idx].text;
+        lyricsBox.getElementsByClassName("translated")[0].innerText =
+        ctrack.lyrics.lrc[idx].translated;
+      idx++;
+    }
+    if (idx >= ctrack.lyrics.lrc.length) {
+      hideLyricsBox();
+      clearInterval(lyricsInterval);
+    }
+  }, 100);
+}
