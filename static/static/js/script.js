@@ -215,10 +215,10 @@ function lyricsControl() {
           -(translatedBox.scrollWidth / translatedBox.offsetWidth) * 100 + "%";
       }
       idx++;
-    }
-    if (idx >= ctrack.lyrics.lrc.length) {
-      hideLyricsBox();
-      clearInterval(lyricsInterval);
+      if (idx >= ctrack.lyrics.lrc.length) {
+        hideLyricsBox();
+        clearInterval(lyricsInterval);
+      }
     }
   }, 100);
 }
