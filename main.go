@@ -6,14 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"lyrics"
 	"net/http"
 	"os"
 	"queue"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -79,7 +77,6 @@ type Track struct {
 	Lyrics   lyrics.Result `json:"lyrics"`
 }
 
-//var currentBuffer []byte
 var gotNewBuffer *sync.Cond
 var upgrader = websocket.Upgrader{}
 var connections sync.Map
@@ -128,7 +125,6 @@ func streamToClients(quit chan int, quitPreload chan int) {
 		}
 		if !interrupted {
 			Chunk := <-bufferingChannel
-			//currentBuffer = Chunk.buffer
 			if Chunk.buffer == nil {
 				break
 			}
@@ -165,8 +161,6 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// resampled := beep.Resample(4, format.SampleRate, beep.SampleRate(48000), streamer)
-	// format.SampleRate = beep.SampleRate(48000)
 	defer streamer.Close()
 
 	encoder := vorbisencoder.NewEncoder(2, 44100)
@@ -174,7 +168,6 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	defer encoder.Close()
 	var encodedTime time.Duration
 	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
-	//bufferingChannel <- chunk{buffer: oggHeader, encoderTime: 0}
 	for {
 		select {
 		case <-quit:
@@ -186,7 +179,6 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 		if !ok {
 			break
 		}
-		//data := make([]byte, format.Width()*n)
 		var buf bytes.Buffer
 		for _, sample := range samples {
 			p := make([]byte, format.Width())
@@ -197,13 +189,10 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 		}
 		output := make([]byte, 5000)
 		encodedLen := encoder.Encode(output, buf.Bytes())
-		//err = binary.Write(w, binary.BigEndian, output[:encodedLen])
-		//log.Println(encodedLen)
 		encodedTime += 20 * time.Millisecond
 		if encodedLen > 0 {
 			bufferingChannel <- chunk{buffer: output[:encodedLen], encoderTime: encodedTime}
 		}
-		// err = binary.Write(w, binary.BigEndian, buf.Bytes())
 		if 0 <= n && n < 882 && ok {
 			break
 		}
@@ -235,7 +224,6 @@ func preloadRadio(quit chan int) {
 	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
 	defer log.Println("Radio preloading stopped!")
 start:
-	//bufferingChannel <- chunk{buffer: oggHeader, encoderTime: 0}
 	streamer, format, err := vorbis.Decode(resp.Body)
 	if err != nil {
 		log.Fatal(err)
@@ -258,7 +246,6 @@ start:
 		if !ok {
 			goto start
 		}
-		//data := make([]byte, format.Width()*n)
 		var buf bytes.Buffer
 		for _, sample := range samples {
 			p := make([]byte, format.Width())
@@ -269,13 +256,10 @@ start:
 		}
 		output := make([]byte, 5000)
 		encodedLen := encoder.Encode(output, buf.Bytes())
-		//err = binary.Write(w, binary.BigEndian, output[:encodedLen])
-		//log.Println(encodedLen)
 		encodedTime += 20 * time.Millisecond
 		if encodedLen > 0 {
 			bufferingChannel <- chunk{buffer: output[:encodedLen], encoderTime: encodedTime}
 		}
-		// err = binary.Write(w, binary.BigEndian, buf.Bytes())
 		if 0 <= n && n < 882 && ok {
 			goto start
 		}
@@ -332,7 +316,6 @@ func processTrack() {
 	time.Sleep(time.Until(etaDone))
 	setTrack(track)
 	streamToClients(skipChannel, quit)
-	//time.Sleep((time.Duration)(track.Duration)*time.Second - time.Since(start))
 	log.Println("Stream ended!")
 }
 
@@ -351,8 +334,6 @@ func audioManager() {
 	gotNewBuffer = sync.NewCond(&sync.Mutex{})
 	dzClient = deezer.Client{}
 	dzClient.Init()
-	//tracks, _ := dzClient.SearchTrack("Scared to be lonely", "")
-	//playQueue.Enqueue(tracks[0])
 
 	for {
 		processTrack()
@@ -360,7 +341,7 @@ func audioManager() {
 }
 func setTrack(track Track) {
 	currentTrack = track
-	log.Println("Setting track on all clients ", currentTrack)
+	log.Printf("Setting track on all clients %v - %v\n", currentTrack.Title, currentTrack.Artist.Name)
 	data, err := json.Marshal(map[string]interface{}{
 		"op":    1,
 		"track": track,
@@ -428,6 +409,81 @@ type wsMessage struct {
 	Query     string `json:"query"`
 }
 
+func getPlaying() []byte {
+	data, _ := json.Marshal(map[string]interface{}{
+		"op":    1,
+		"track": currentTrack,
+	})
+	return data
+}
+
+func getListenersCount() []byte {
+	data, _ := json.Marshal(map[string]interface{}{
+		"op":        5,
+		"listeners": atomic.LoadInt32(&listenersCount),
+	})
+	return data
+}
+func enqueue(msg wsMessage) []byte {
+	if len(msg.Query) == 0 {
+		data, _ := json.Marshal(map[string]interface{}{
+			"op":      3,
+			"success": false,
+			"reason":  "Invalid Query!",
+		})
+		return data
+	}
+	tracks, err := dzClient.SearchTrack(msg.Query, "")
+	switch {
+	case err != nil:
+		data, _ := json.Marshal(map[string]interface{}{
+			"op":      3,
+			"success": false,
+			"reason":  "Search Failed!",
+		})
+		return data
+	case len(tracks) == 0:
+		data, _ := json.Marshal(map[string]interface{}{
+			"op":      3,
+			"success": false,
+			"reason":  "No Result!",
+		})
+		return data
+	default:
+		track := tracks[0]
+		playQueue.Enqueue(track)
+		log.Printf("Track enqueued: %v - %v\n", track.Title, track.Artist.Name)
+		data, _ := json.Marshal(map[string]interface{}{
+			"op":      3,
+			"success": true,
+			"reason":  "",
+			"track":   track,
+		})
+		return data
+	}
+
+}
+
+func skip() []byte {
+	if atomic.LoadInt32(&isRadioStreaming) == 1 {
+		data, _ := json.Marshal(map[string]interface{}{
+			"op":      4,
+			"success": false,
+			"reason":  "You can't skip a radio stream.",
+		})
+
+		return data
+	}
+	skipChannel <- 0
+	data, _ := json.Marshal(map[string]interface{}{
+		"op":      4,
+		"success": true,
+		"reason":  "",
+	})
+
+	return data
+}
+
 func wsHandler(w http.ResponseWriter, r *http.Request) {
 	_c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -446,71 +502,13 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		switch msg.Operation {
 		case 1:
-			data, _ := json.Marshal(map[string]interface{}{
-				"op":    1,
-				"track": currentTrack,
-			})
-			c.WriteMessage(websocket.TextMessage, data)
+			c.WriteMessage(websocket.TextMessage, getPlaying())
 		case 3:
-			if len(msg.Query) == 0 {
-				data, _ := json.Marshal(map[string]interface{}{
-					"op":      3,
-					"success": false,
-					"reason":  "Invalid Query!",
-				})
-				c.WriteMessage(websocket.TextMessage, data)
-			} else {
-				tracks, err := dzClient.SearchTrack(msg.Query, "")
-				switch {
-				case err != nil:
-					data, _ := json.Marshal(map[string]interface{}{
-						"op":      3,
-						"success": false,
-						"reason":  "Search Failed!",
-					})
-					c.WriteMessage(websocket.TextMessage, data)
-				case len(tracks) == 0:
-					data, _ := json.Marshal(map[string]interface{}{
-						"op":      3,
-						"success": false,
-						"reason":  "No Result!",
-					})
-					c.WriteMessage(websocket.TextMessage, data)
-				default:
-					track := tracks[0]
-					playQueue.Enqueue(track)
-					data, _ := json.Marshal(map[string]interface{}{
-						"op":      3,
-						"success": true,
-						"reason":  "",
-						"track":   track,
-					})
-					c.WriteMessage(websocket.TextMessage, data)
-				}
-			}
+			c.WriteMessage(websocket.TextMessage, enqueue(msg))
 		case 4:
-			if atomic.LoadInt32(&isRadioStreaming) == 1 {
-				data, _ := json.Marshal(map[string]interface{}{
-					"op":      4,
-					"success": false,
-					"reason":  "You can't skip a radio stream.",
-				})
-				c.WriteMessage(websocket.TextMessage, data)
-			} else {
-				skipChannel <- 0
-				data, _ := json.Marshal(map[string]interface{}{
-					"op":      4,
-					"success": true,
-					"reason":  "",
-				})
-				c.WriteMessage(websocket.TextMessage, data)
-			}
+			c.WriteMessage(websocket.TextMessage, skip())
 		case 5:
-			data, _ := json.Marshal(map[string]interface{}{
-				"op":        5,
-				"listeners": atomic.LoadInt32(&listenersCount),
-			})
-			c.WriteMessage(websocket.TextMessage, data)
+			c.WriteMessage(websocket.TextMessage, getListenersCount())
 		case 8:
 			data, _ := json.Marshal(map[string]interface{}{
 				"op": 8,
@@ -523,26 +521,18 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func playingHandler(w http.ResponseWriter, r *http.Request) {
-	data, _ := json.Marshal(map[string]interface{}{
-		"op":    1,
-		"track": currentTrack,
-	})
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	w.Write(data)
+	w.Write(getPlaying())
 	return
 }
 
 func listenersHandler(w http.ResponseWriter, r *http.Request) {
-	data, _ := json.Marshal(map[string]interface{}{
-		"op":        5,
-		"listeners": atomic.LoadInt32(&listenersCount),
-	})
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	w.Write(data)
+	w.Write(getListenersCount())
 	return
 }
 
@@ -562,79 +552,13 @@ func enqueueHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(data)
 		return
 	}
-	if len(msg.Query) == 0 {
-		data, _ := json.Marshal(map[string]interface{}{
-			"op":      3,
-			"success": false,
-			"reason":  "Invalid Query!",
-		})
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write(data)
-	} else {
-		tracks, err := dzClient.SearchTrack(msg.Query, "")
-		switch {
-		case err != nil:
-			data, _ := json.Marshal(map[string]interface{}{
-				"op":      3,
-				"success": false,
-				"reason":  "Search Failed!",
-			})
-			w.Write(data)
-		case len(tracks) == 0:
-			data, _ := json.Marshal(map[string]interface{}{
-				"op":      3,
-				"success": false,
-				"reason":  "No Result!",
-			})
-			w.Write(data)
-		default:
-			track := tracks[0]
-			playQueue.Enqueue(track)
-			data, _ := json.Marshal(map[string]interface{}{
-				"op":      3,
-				"success": true,
-				"reason":  "",
-				"track":   track,
-			})
-			w.Write(data)
-		}
-	}
+	w.Write(enqueue(msg))
 }
 func skipHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	if atomic.LoadInt32(&isRadioStreaming) == 1 {
-		data, _ := json.Marshal(map[string]interface{}{
-			"op":      4,
-			"success": false,
-			"reason":  "You can't skip a radio stream.",
-		})
-
-		w.Write(data)
-	} else {
-		skipChannel <- 0
-		data, _ := json.Marshal(map[string]interface{}{
-			"op":      4,
-			"success": true,
-			"reason":  "",
-		})
-
-		w.Write(data)
-	}
-}
-func handler(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path[1:]
-	data, err := ioutil.ReadFile(strings.Join([]string{"static/", string(path)}, ""))
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Expires", "0")
-	if err != nil {
-		http.ServeFile(w, r, "static/index.html")
-		return
-	}
-	w.Write(data)
-	return
+	w.Write(skip())
 }
 func main() {
 	port, ok := os.LookupEnv("PORT")

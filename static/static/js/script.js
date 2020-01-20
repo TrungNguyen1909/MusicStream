@@ -1,5 +1,3 @@
-//window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
 var ws = null;
 var ctrack = null;
 var wsInterval = null;
