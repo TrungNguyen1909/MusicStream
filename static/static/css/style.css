@@ -200,6 +200,7 @@ body {
 
 .search {
   display: table;
+  z-index: 5;
 }
 .search input {
   background: none;
@@ -234,7 +235,7 @@ body {
   top: 0;
   fill: none;
   stroke: #c2c6cf;
-  stroke-width: 1.5px;
+  stroke-width: 2px;
   stroke-dashoffset: 271.908;
   stroke-dasharray: 59 212.908;
   transition: all 0.6s ease;
@@ -251,17 +252,6 @@ body {
   stroke-dashoffset: 300;
 }
 
-::-moz-selection {
-  background: #c2c6cf;
-}
-
-::selection {
-  background: #c2c6cf;
-}
-
-::-moz-selection {
-  background: #c2c6cf;
-}
 div.background {
   position: fixed;
   top: 0;
