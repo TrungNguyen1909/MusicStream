@@ -21,7 +21,7 @@ class musicPlayer {
   play() {
     if (!this.isPlaying) {
       this.playBtn.classList.add("playing");
-      window.player.src = `http://${window.location.host}/audio`;
+      window.player.src = `/audio`;
       window.player.muted = false;
       window.player.play();
     } else {
@@ -48,7 +48,7 @@ function setTrack(track) {
   ctrack = track;
   document.getElementById("artist").innerText = ctrack.artist.name;
   document.getElementById("name").innerText = ctrack.title;
-  window.player.src = `http://${window.location.host}/audio`;
+  window.player.src = `/audio`;
   setTimeout(lyricsControl, 0);
   //let artworkBox = document.getElementsByClassName("album-art")[0];
   //artworkBox.style.backgroundImage = `url(${ctrack.album.cover})`;
