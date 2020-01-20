@@ -293,9 +293,7 @@ func processTrack() {
 	if radioStarted {
 		quitRadio <- 0
 	}
-	fmt.Println(dzTrack.Title)
-	fmt.Println(dzTrack.Artist.Name)
-	fmt.Println(dzTrack.Album.Title)
+	log.Printf("Playing %v - %v\n", dzTrack.Title, dzTrack.Artist.Name)
 	var track Track
 	dzb, _ := json.Marshal(dzTrack)
 	_ = json.Unmarshal(dzb, &track)
@@ -371,7 +369,6 @@ func setListenerCount() {
 }
 
 func audioHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("/audio %v\n", r.RemoteAddr)
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		log.Fatal("expected http.ResponseWriter to be an http.Flusher")
@@ -560,6 +557,12 @@ func skipHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Expires", "0")
 	w.Write(skip())
 }
+func logRequest(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+		handler.ServeHTTP(w, r)
+	})
+}
 func main() {
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
@@ -574,5 +577,5 @@ func main() {
 	http.HandleFunc("/skip", skipHandler)
 	http.Handle("/", http.FileServer(http.Dir("static")))
 	go audioManager()
-	log.Fatal(http.ListenAndServe(port, nil))
+	log.Fatal(http.ListenAndServe(port, logRequest(http.DefaultServeMux)))
 }
