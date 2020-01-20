@@ -173,8 +173,14 @@ function lyricsControl() {
   hideLyricsBox();
   var player = document.getElementById("audio-player");
   var lyricsBox = document.getElementById("lyrics");
-  lyricsBox.getElementsByClassName("original")[0].innerText = "";
-  lyricsBox.getElementsByClassName("translated")[0].innerText = "";
+  let originalBox = lyricsBox.getElementsByClassName("original")[0]
+  let translatedBox = lyricsBox.getElementsByClassName("translated")[0]
+  originalBox.innerText = "";
+  translatedBox.innerText = "";
+  originalBox.style.transitionDuration = "0s"
+  translatedBox.style.transitionDuration = "0s"
+  originalBox.classList.remove("overflow")
+  translatedBox.classList.remove("overflow")
   if (ctrack.lyrics == null || ctrack.lyrics.lrc == null) {
     return;
   }
@@ -182,10 +188,25 @@ function lyricsControl() {
   let idx = 0;
   lyricsInterval = setInterval(() => {
     if (ctrack.lyrics.lrc[idx].time.total < player.currentTime) {
-      lyricsBox.getElementsByClassName("original")[0].innerText =
+      originalBox.innerText = "";
+      translatedBox.innerText = "";
+      originalBox.style.transitionDuration = "0s"
+      translatedBox.style.transitionDuration = "0s"
+      originalBox.classList.remove("overflow")
+      translatedBox.classList.remove("overflow")
+      originalBox.innerText =
         ctrack.lyrics.lrc[idx].text;
-      lyricsBox.getElementsByClassName("translated")[0].innerText =
+      translatedBox.innerText =
         ctrack.lyrics.lrc[idx].translated;
+        let delta = (ctrack.lyrics.lrc[idx+1].time.total-ctrack.lyrics.lrc[idx].time.total);
+      if(isElementOverflowing(originalBox)&&idx+1<ctrack.lyrics.lrc.length){
+        originalBox.style.transitionDuration =  2*delta+"s"
+        originalBox.classList.add("overflow")
+      }
+      if(isElementOverflowing(translatedBox)&&idx+1<ctrack.lyrics.lrc.length){
+        translatedBox.style.transitionDuration = 2*delta +"s"
+        translatedBox.classList.add("overflow")
+      }
       idx++;
     }
     if (idx >= ctrack.lyrics.lrc.length) {
@@ -193,4 +214,11 @@ function lyricsControl() {
       clearInterval(lyricsInterval);
     }
   }, 100);
+}
+
+function isElementOverflowing(element) {
+  var overflowX = element.offsetWidth < element.scrollWidth,
+    overflowY = element.offsetHeight < element.scrollHeight;
+
+  return (overflowX || overflowY);
 }

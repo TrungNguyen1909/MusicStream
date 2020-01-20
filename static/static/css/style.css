@@ -157,7 +157,10 @@ html, body {
 }
 .player .lyrics .original,
 .player .lyrics .translated {
-	display: block;
+  display: block;
+  width: 450px;
+  overflow: hidden;
+  white-space: nowrap;
 }
 .player .lyrics .original {
   color: rgba(255, 0, 81, 0.747);
@@ -176,7 +179,16 @@ html, body {
 	opacity: 1;
 	transition: all .5s ease;
 }
-
+.marquee {
+  transition-property: text-indent;
+  -o-transition-property: text-indent;
+  -moz-transition-property: text-indent;
+  -webkit-transition-property: text-indent;
+  text-indent: 0%;
+}
+.marquee.overflow{
+  text-indent: -500%;
+}
 
 .search {
   display: table;
