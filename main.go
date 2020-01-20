@@ -143,20 +143,26 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 		log.Fatal(err)
 	}
 	defer streamer.Close()
-
-	encoder := vorbisencoder.NewEncoder(2, 44100)
+	resampled := beep.Resample(4, format.SampleRate, beep.SampleRate(48000), streamer)
+	format.SampleRate = beep.SampleRate(48000)
+	encoder := vorbisencoder.NewEncoder(2, 48000)
 	encoder.Encode(oggHeader, make([]byte, 0))
+	silenceFrame := make([]byte, 5000)
+	n := encoder.Encode(silenceFrame, make([]byte, 76032))
+	silenceFrame = silenceFrame[:n]
 	defer encoder.Close()
 	var encodedTime time.Duration
 	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
+	encodedTime += 396 * time.Millisecond
+	bufferingChannel <- chunk{buffer: silenceFrame, encoderTime: encodedTime}
 	for {
 		select {
 		case <-quit:
 			return
 		default:
 		}
-		samples := make([][2]float64, 882)
-		n, ok := streamer.Stream(samples)
+		samples := make([][2]float64, 960)
+		n, ok := resampled.Stream(samples)
 		if !ok {
 			break
 		}
@@ -168,13 +174,13 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 				buf.WriteByte(v)
 			}
 		}
-		output := make([]byte, 5000)
+		output := make([]byte, 10000)
 		encodedLen := encoder.Encode(output, buf.Bytes())
 		encodedTime += 20 * time.Millisecond
 		if encodedLen > 0 {
 			bufferingChannel <- chunk{buffer: output[:encodedLen], encoderTime: encodedTime}
 		}
-		if 0 <= n && n < 882 && ok {
+		if 0 <= n && n < 960 && ok {
 			break
 		}
 	}
@@ -209,10 +215,9 @@ start:
 	if err != nil {
 		log.Fatal(err)
 	}
-	resampled := beep.Resample(4, format.SampleRate, beep.SampleRate(44100), streamer)
-	format.SampleRate = beep.SampleRate(48000)
+
 	defer streamer.Close()
-	encoder := vorbisencoder.NewEncoder(2, 44100)
+	encoder := vorbisencoder.NewEncoder(2, 48000)
 	encoder.Encode(oggHeader, make([]byte, 0))
 	defer encoder.Close()
 	var encodedTime time.Duration
@@ -222,8 +227,8 @@ start:
 			return
 		default:
 		}
-		samples := make([][2]float64, 882)
-		n, ok := resampled.Stream(samples)
+		samples := make([][2]float64, 960)
+		n, ok := streamer.Stream(samples)
 		if !ok {
 			goto start
 		}
@@ -235,13 +240,13 @@ start:
 				buf.WriteByte(v)
 			}
 		}
-		output := make([]byte, 5000)
+		output := make([]byte, 10000)
 		encodedLen := encoder.Encode(output, buf.Bytes())
 		encodedTime += 20 * time.Millisecond
 		if encodedLen > 0 {
 			bufferingChannel <- chunk{buffer: output[:encodedLen], encoderTime: encodedTime}
 		}
-		if 0 <= n && n < 882 && ok {
+		if 0 <= n && n < 960 && ok {
 			goto start
 		}
 	}
@@ -301,7 +306,7 @@ func audioManager() {
 	}
 	bufferingChannel = make(chan chunk, 500)
 	skipChannel = make(chan int, 500)
-	encoder := vorbisencoder.NewEncoder(2, 44100)
+	encoder := vorbisencoder.NewEncoder(2, 48000)
 	oggHeader = make([]byte, 5000)
 	n := encoder.Encode(oggHeader, make([]byte, 0))
 	oggHeader = oggHeader[:n]

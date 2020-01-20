@@ -184,7 +184,7 @@ function lyricsControl() {
   showLyricsBox();
   let idx = 0;
   lyricsInterval = setInterval(() => {
-    if (ctrack.lyrics.lrc[idx].time.total < player.currentTime) {
+    if (ctrack.lyrics.lrc[idx].time.total < player.currentTime-0.396) {
       originalBox.innerText = "";
       translatedBox.innerText = "";
       originalBox.style.transitionDuration = "0s";
