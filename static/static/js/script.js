@@ -21,7 +21,7 @@ class musicPlayer {
   play() {
     if (!this.isPlaying) {
       this.playBtn.classList.add("playing");
-      window.player.src = `/audio`;
+      //window.player.src = `/audio`;
       window.player.muted = false;
       window.player.play();
     } else {
