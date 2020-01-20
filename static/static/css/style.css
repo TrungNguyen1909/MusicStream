@@ -193,7 +193,7 @@ html, body {
   text-indent: 0%;
 }
 .marquee.overflow{
-  text-indent: -500%;
+  text-indent: -150%;
 }
 
 .search {
