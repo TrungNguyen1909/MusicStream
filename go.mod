@@ -3,6 +3,7 @@ module github.com/TrungNguyen1909/MusicStream
 go 1.13
 
 require (
+	common v0.0.0
 	deezer v0.0.0
 	github.com/faiface/beep v1.0.2
 	github.com/gorilla/websocket v1.4.1
@@ -19,6 +20,8 @@ require (
 	queue v0.0.0
 	vorbisencoder v0.0.0
 )
+
+replace common => ./common
 
 replace deezer => ./deezer
 

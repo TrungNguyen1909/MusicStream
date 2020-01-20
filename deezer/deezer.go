@@ -2,6 +2,7 @@ package deezer
 
 import (
 	"bytes"
+	"common"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
@@ -52,29 +53,10 @@ type pageTrackResponse struct {
 	Results pageTrackResults `json:"results"`
 }
 type searchTrackResponse struct {
-	Data []Track `json:"data"`
+	Data []common.Track `json:"data"`
 }
-type Artist struct {
-	Name string `json:"name"`
-}
-type Album struct {
-	Title       string `json:"title"`
-	Artist      Artist `json:"artist"`
-	Cover       string `json:"cover"`
-	CoverSmall  string `json:"cover_small"`
-	CoverMedium string `json:"cover_medium"`
-	CoverBig    string `json:"cover_big"`
-	CoverXL     string `json:"cover_xl"`
-}
-type Track struct {
-	ID       int    `json:"id"`
-	Title    string `json:"title"`
-	Artist   Artist `json:"artist"`
-	Album    Album  `json:"album"`
-	Duration int    `json:"duration"`
-	Rank     int    `json:"rank"`
-}
-type byRank []Track
+
+type byRank []common.Track
 
 func (p byRank) Len() int {
 	return len(p)
@@ -244,7 +226,7 @@ func (client *Client) downloadTrack(trackInfo pageTrackData, trackQualityID int)
 	return &trackDecrypter{r: response.Body, BlowfishKey: client.getBlowfishKey(trackInfo)}, nil
 }
 
-func (client *Client) SearchTrack(track, artist string) ([]Track, error) {
+func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) {
 	var url string
 	if len(artist) == 0 {
 		url = fmt.Sprintf("https://api.deezer.com/search?q=%s", template.URLQueryEscaper(track))

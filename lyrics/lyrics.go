@@ -1,6 +1,7 @@
 package lyrics
 
 import (
+	"common"
 	"compress/gzip"
 	"encoding/json"
 	"io"
@@ -209,25 +210,8 @@ type mxmResponse struct {
 		} `json:"header"`
 	} `json:"message"`
 }
-type Time struct {
-	Hundredths int     `json:"hundredths"`
-	Minutes    int     `json:"minutes"`
-	Seconds    int     `json:"seconds"`
-	Total      float64 `json:"total"`
-}
-type Line struct {
-	Text       string `json:"text"`
-	Translated string `json:"translated"`
-	Time       Time   `json:"time"`
-}
 
-type Result struct {
-	RawLyrics    string `json:"txt"`
-	SyncedLyrics []Line `json:"lrc"`
-	Language     string `json:"lang"`
-}
-
-func GetLyrics(track, artist, album, albumartist string, duration int) (result Result, err error) {
+func GetLyrics(track, artist, album, albumartist string, duration int) (result common.LyricsResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("GetLyrics: %v\n", r)
@@ -280,12 +264,12 @@ func GetLyrics(track, artist, album, albumartist string, duration int) (result R
 		log.Println(err)
 		return
 	}
-	result = Result{}
+	result = common.LyricsResult{}
 	result.RawLyrics = d.Message.Body.MacroCalls.TrackLyricsGet.Message.Body.Lyrics.LyricsBody
 	subtitle := d.Message.Body.MacroCalls.TrackSubtitlesGet.Message.Body.SubtitleList[0].Subtitle
 	result.Language = subtitle.SubtitleLanguage
 	sd := subtitle.SubtitleBody
-	var syncedLyrics []Line
+	var syncedLyrics []common.LyricsLine
 	err = json.Unmarshal(([]byte)(sd), &syncedLyrics)
 	if err != nil {
 		log.Println(err)
@@ -294,7 +278,7 @@ func GetLyrics(track, artist, album, albumartist string, duration int) (result R
 	result.SyncedLyrics = syncedLyrics
 	if result.Language != "en" {
 		st := subtitle.SubtitleTranslated.SubtitleBody
-		var subtitleTranslated []Line
+		var subtitleTranslated []common.LyricsLine
 		err = json.Unmarshal(([]byte)(st), &subtitleTranslated)
 		if err != nil {
 			err = nil

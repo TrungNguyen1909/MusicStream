@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"common"
 	"deezer"
 	"encoding/json"
 	"fmt"
@@ -56,31 +57,11 @@ type webSocket struct {
 	conn *websocket.Conn
 	mux  *sync.Mutex
 }
-type Artist struct {
-	Name string `json:"name"`
-}
-type Album struct {
-	Title       string `json:"title"`
-	Artist      Artist `json:"artist"`
-	Cover       string `json:"cover"`
-	CoverSmall  string `json:"cover_small"`
-	CoverMedium string `json:"cover_medium"`
-	CoverBig    string `json:"cover_big"`
-	CoverXL     string `json:"cover_xl"`
-}
-type Track struct {
-	ID       int           `json:"id"`
-	Title    string        `json:"title"`
-	Artist   Artist        `json:"artist"`
-	Album    Album         `json:"album"`
-	Duration int           `json:"duration"`
-	Lyrics   lyrics.Result `json:"lyrics"`
-}
 
 var gotNewBuffer *sync.Cond
 var upgrader = websocket.Upgrader{}
 var connections sync.Map
-var currentTrack Track
+var currentTrack common.Track
 var dzClient deezer.Client
 var playQueue *queue.Queue
 var channels [2]chan chan chunk
@@ -285,19 +266,16 @@ func processTrack() {
 	quitRadio := make(chan int, 10)
 	radioStarted := false
 	if playQueue.Empty() {
-		setTrack(Track{Title: "listen.moe"})
+		setTrack(common.Track{Title: "listen.moe"})
 		radioStarted = true
 		go processRadio(quitRadio)
 	}
-	dzTrack := playQueue.Pop().(deezer.Track)
+	track := playQueue.Pop().(common.Track)
 	if radioStarted {
 		quitRadio <- 0
 	}
-	log.Printf("Playing %v - %v\n", dzTrack.Title, dzTrack.Artist.Name)
-	var track Track
-	dzb, _ := json.Marshal(dzTrack)
-	_ = json.Unmarshal(dzb, &track)
-	var mxmlyrics lyrics.Result
+	log.Printf("Playing %v - %v\n", track.Title, track.Artist.Name)
+	var mxmlyrics common.LyricsResult
 	mxmlyrics, err := lyrics.GetLyrics(track.Title, track.Artist.Name, track.Album.Title, track.Album.Artist.Name, track.Duration)
 	if err == nil {
 		track.Lyrics = mxmlyrics
@@ -337,7 +315,7 @@ func audioManager() {
 		processTrack()
 	}
 }
-func setTrack(track Track) {
+func setTrack(track common.Track) {
 	currentTrack = track
 	log.Printf("Setting track on all clients %v - %v\n", currentTrack.Title, currentTrack.Artist.Name)
 	data, err := json.Marshal(map[string]interface{}{
