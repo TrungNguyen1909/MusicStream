@@ -194,8 +194,10 @@ function lyricsControl() {
       originalBox.innerText = ctrack.lyrics.lrc[idx].text;
       translatedBox.innerText = ctrack.lyrics.lrc[idx].translated;
       let delta =
-        ctrack.lyrics.lrc[idx + 1].time.total -
-        ctrack.lyrics.lrc[idx].time.total;
+        idx + 1 < ctrack.lyrics.lrc.length
+          ? ctrack.lyrics.lrc[idx + 1].time.total -
+            ctrack.lyrics.lrc[idx].time.total
+          : 10;
       if (
         isElementOverflowing(originalBox) &&
         idx + 1 < ctrack.lyrics.lrc.length
