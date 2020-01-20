@@ -130,7 +130,7 @@ function initWebSocket() {
           artistBox.innerText = msg.track.artist.name;
         }
         showSubBox();
-        setTimeout(hideSubBox, 5000);
+        setTimeout(hideSubBox, 3000);
         document.getElementById("query").value = "";
         break;
       case 4:
@@ -144,18 +144,8 @@ function initWebSocket() {
         } else {
           titleBox.innerText = "Skipped!";
         }
-        Array.from(subBox.classList).find(function(element) {
-          return element !== "active"
-            ? subBox.classList.add("active")
-            : subBox.classList.remove("active");
-        });
-        setTimeout(() => {
-          Array.from(subBox.classList).find(function(element) {
-            return element !== "active"
-              ? subBox.classList.add("active")
-              : subBox.classList.remove("active");
-          });
-        }, 2000);
+        showSubBox()
+        setTimeout(hideSubBox, 2000);
         document.getElementById("query").value = "";
         break;
       case 5:
