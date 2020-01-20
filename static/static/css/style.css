@@ -30,6 +30,9 @@ html, body {
 .player .sub .artist,
 .player .sub .name {
 	display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .player .sub .name {
   color: rgba(255, 0, 81, 0.747);
@@ -120,6 +123,9 @@ html, body {
 .player .control-panel .controls .info .listeners,
 .player .control-panel .controls .info .name {
   display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .player .control-panel .controls .info .name {
