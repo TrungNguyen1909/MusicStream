@@ -174,7 +174,7 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	defer encoder.Close()
 	var encodedTime time.Duration
 	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
-	bufferingChannel <- chunk{buffer: oggHeader, encoderTime: 0}
+	//bufferingChannel <- chunk{buffer: oggHeader, encoderTime: 0}
 	for {
 		select {
 		case <-quit:
@@ -235,7 +235,7 @@ func preloadRadio(quit chan int) {
 	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
 	defer log.Println("Radio preloading stopped!")
 start:
-	bufferingChannel <- chunk{buffer: oggHeader, encoderTime: 0}
+	//bufferingChannel <- chunk{buffer: oggHeader, encoderTime: 0}
 	streamer, format, err := vorbis.Decode(resp.Body)
 	if err != nil {
 		log.Fatal(err)
