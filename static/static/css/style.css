@@ -188,7 +188,7 @@ body {
 .player .lyrics.active {
   top: -65px;
   opacity: 1;
-  transition: all 0.5s ease;
+  transition: all 0.5s ease-in-out;
 }
 .marquee {
   transition-property: text-indent;
