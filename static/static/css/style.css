@@ -192,9 +192,6 @@ html, body {
   -webkit-transition-property: text-indent;
   text-indent: 0%;
 }
-.marquee.overflow{
-  text-indent: -150%;
-}
 
 .search {
   display: table;

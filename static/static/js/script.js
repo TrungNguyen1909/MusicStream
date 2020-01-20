@@ -144,7 +144,7 @@ function initWebSocket() {
         } else {
           titleBox.innerText = "Skipped!";
         }
-        showSubBox()
+        showSubBox();
         setTimeout(hideSubBox, 2000);
         document.getElementById("query").value = "";
         break;
@@ -173,14 +173,13 @@ function lyricsControl() {
   hideLyricsBox();
   var player = document.getElementById("audio-player");
   var lyricsBox = document.getElementById("lyrics");
-  let originalBox = lyricsBox.getElementsByClassName("original")[0]
-  let translatedBox = lyricsBox.getElementsByClassName("translated")[0]
+  let originalBox = lyricsBox.getElementsByClassName("original")[0];
+  let translatedBox = lyricsBox.getElementsByClassName("translated")[0];
   originalBox.innerText = "";
   translatedBox.innerText = "";
-  originalBox.style.transitionDuration = "0s"
-  translatedBox.style.transitionDuration = "0s"
-  originalBox.classList.remove("overflow")
-  translatedBox.classList.remove("overflow")
+  originalBox.style.transitionDuration = "0s";
+  originalBox.style.textIndent = "0%";
+  translatedBox.style.textIndent = "0%";
   if (ctrack.lyrics == null || ctrack.lyrics.lrc == null) {
     return;
   }
@@ -190,22 +189,30 @@ function lyricsControl() {
     if (ctrack.lyrics.lrc[idx].time.total < player.currentTime) {
       originalBox.innerText = "";
       translatedBox.innerText = "";
-      originalBox.style.transitionDuration = "0s"
-      translatedBox.style.transitionDuration = "0s"
-      originalBox.classList.remove("overflow")
-      translatedBox.classList.remove("overflow")
-      originalBox.innerText =
-        ctrack.lyrics.lrc[idx].text;
-      translatedBox.innerText =
-        ctrack.lyrics.lrc[idx].translated;
-        let delta = (ctrack.lyrics.lrc[idx+1].time.total-ctrack.lyrics.lrc[idx].time.total);
-      if(isElementOverflowing(originalBox)&&idx+1<ctrack.lyrics.lrc.length){
-        originalBox.style.transitionDuration =  2*delta+"s"
-        originalBox.classList.add("overflow")
+      originalBox.style.transitionDuration = "0s";
+      translatedBox.style.transitionDuration = "0s";
+      originalBox.style.textIndent = "0%";
+      translatedBox.style.textIndent = "0%";
+      originalBox.innerText = ctrack.lyrics.lrc[idx].text;
+      translatedBox.innerText = ctrack.lyrics.lrc[idx].translated;
+      let delta =
+        ctrack.lyrics.lrc[idx + 1].time.total -
+        ctrack.lyrics.lrc[idx].time.total;
+      if (
+        isElementOverflowing(originalBox) &&
+        idx + 1 < ctrack.lyrics.lrc.length
+      ) {
+        originalBox.style.transitionDuration = 2 * delta + "s";
+        originalBox.style.textIndent =
+          -(originalBox.scrollWidth / originalBox.offsetWidth) * 100 + "%";
       }
-      if(isElementOverflowing(translatedBox)&&idx+1<ctrack.lyrics.lrc.length){
-        translatedBox.style.transitionDuration = 2*delta +"s"
-        translatedBox.classList.add("overflow")
+      if (
+        isElementOverflowing(translatedBox) &&
+        idx + 1 < ctrack.lyrics.lrc.length
+      ) {
+        translatedBox.style.transitionDuration = 2 * delta + "s";
+        translatedBox.style.textIndent =
+          -(translatedBox.scrollWidth / translatedBox.offsetWidth) * 100 + "%";
       }
       idx++;
     }
@@ -220,5 +227,5 @@ function isElementOverflowing(element) {
   var overflowX = element.offsetWidth < element.scrollWidth,
     overflowY = element.offsetHeight < element.scrollHeight;
 
-  return (overflowX || overflowY);
+  return overflowX || overflowY;
 }
