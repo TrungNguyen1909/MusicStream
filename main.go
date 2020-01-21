@@ -258,6 +258,7 @@ start:
 func processRadio(quit chan int) {
 	quitPreload := make(chan int, 10)
 	time.Sleep(time.Until(etaDone))
+	setTrack(common.Track{Title: "listen.moe"})
 	go preloadRadio(quitPreload)
 	atomic.StoreInt32(&isRadioStreaming, 1)
 	defer atomic.StoreInt32(&isRadioStreaming, 0)
@@ -275,7 +276,6 @@ func processTrack() {
 	quitRadio := make(chan int, 10)
 	radioStarted := false
 	if playQueue.Empty() {
-		setTrack(common.Track{Title: "listen.moe"})
 		radioStarted = true
 		go processRadio(quitRadio)
 	}
