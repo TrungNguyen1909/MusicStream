@@ -107,6 +107,7 @@ func streamToClients(quit chan int, quitPreload chan int) {
 		if !interrupted {
 			Chunk := <-bufferingChannel
 			if Chunk.buffer == nil {
+				log.Println("Found last chunk, breaking...")
 				break
 			}
 			done := false
@@ -325,6 +326,7 @@ func audioManager() {
 	}
 }
 func setTrack(track common.Track) {
+	time.Sleep(1 * time.Second)
 	currentTrack = track
 	log.Printf("Setting track on all clients %v - %v\n", currentTrack.Title, currentTrack.Artist.Name)
 	data, err := json.Marshal(map[string]interface{}{
@@ -459,6 +461,7 @@ func skip() []byte {
 		return data
 	}
 	skipChannel <- 0
+	log.Println("Current song skipped!")
 	data, _ := json.Marshal(map[string]interface{}{
 		"op":      4,
 		"success": true,
