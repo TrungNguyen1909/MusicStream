@@ -32,6 +32,7 @@ type LyricsLine struct {
 	Text       string     `json:"text"`
 	Translated string     `json:"translated"`
 	Time       LyricsTime `json:"time"`
+	Original   string     `json:"original"`
 }
 
 type LyricsResult struct {

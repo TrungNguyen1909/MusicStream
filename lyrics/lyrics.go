@@ -270,23 +270,28 @@ func GetLyrics(track, artist, album, albumartist string, duration int) (result c
 	result.Language = subtitle.SubtitleLanguage
 	sd := subtitle.SubtitleBody
 	var syncedLyrics []common.LyricsLine
-	err = json.Unmarshal(([]byte)(sd), &syncedLyrics)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	result.SyncedLyrics = syncedLyrics
 	if result.Language != "en" {
 		st := subtitle.SubtitleTranslated.SubtitleBody
 		var subtitleTranslated []common.LyricsLine
 		err = json.Unmarshal(([]byte)(st), &subtitleTranslated)
 		if err != nil {
-			err = nil
+			log.Println(err)
 			return
 		}
+		syncedLyrics = make([]common.LyricsLine, len(subtitleTranslated))
 		for i, v := range subtitleTranslated {
 			syncedLyrics[i].Translated = v.Text
+			syncedLyrics[i].Text = v.Original
+			syncedLyrics[i].Time = v.Time
 		}
+		result.SyncedLyrics = syncedLyrics
+	} else {
+		err = json.Unmarshal(([]byte)(sd), &syncedLyrics)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		result.SyncedLyrics = syncedLyrics
 	}
 	return
 }
