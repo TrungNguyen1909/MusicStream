@@ -2,6 +2,7 @@ var ws = null;
 var ctrack = null;
 var wsInterval = null;
 var lyricsInterval = null;
+var subBoxTimeout = null;
 class musicPlayer {
   constructor() {
     this.play = this.play.bind(this);
@@ -127,8 +128,9 @@ function initWebSocket() {
           titleBox.innerText = msg.track.title;
           artistBox.innerText = msg.track.artist.name;
         }
+        clearTimeout(subBoxTimeout)
         showSubBox();
-        setTimeout(hideSubBox, 3000);
+        subBoxTimeout = setTimeout(hideSubBox, 3000);
         document.getElementById("query").value = "";
         break;
       case 4:
@@ -142,8 +144,9 @@ function initWebSocket() {
         } else {
           titleBox.innerText = "Skipped!";
         }
+        clearTimeout(subBoxTimeout)
         showSubBox();
-        setTimeout(hideSubBox, 2000);
+        subBoxTimeout = setTimeout(hideSubBox, 2000);
         document.getElementById("query").value = "";
         break;
       case 5:
@@ -154,10 +157,13 @@ function initWebSocket() {
     }
   };
 }
-const node = document.getElementsByClassName("query-track")[0];
-node.addEventListener("keydown", function(event) {
-  if (event.key === "Enter") {
+var enterPressed = false;
+const search = document.getElementsByClassName("query-track")[0];
+search.addEventListener("keydown", function(event) {
+  if (event.key === "Enter"&&!enterPressed) {
     event.preventDefault();
+    enterPressed = true;
+    setTimeout(()=>{enterPressed = false;},1000)
     enqueue();
   }
 });
