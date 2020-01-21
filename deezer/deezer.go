@@ -17,7 +17,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -164,11 +163,15 @@ func (client *Client) makeUnofficialAPIRequest(method string, body []byte) *http
 }
 func (client *Client) initDeezerAPI() {
 	request := client.makeUnofficialAPIRequest("deezer.getUserData", []byte(""))
-	response, _ := client.httpClient.Do(request)
+	response, err := client.httpClient.Do(request)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 	var resp getUserDataResponse
 	json.NewDecoder(response.Body).Decode(&resp)
 	client.unofficialAPIQuery.Set("api_token", resp.Results.CheckForm)
-	// fmt.Printf("Successfully initiated Deezer API. Checkform: \"%s\"\n", resp.Results.CheckForm)
+	fmt.Printf("Successfully initiated Deezer API. Checkform: \"%s\"\n", resp.Results.CheckForm)
 }
 func (client *Client) getTrackInfo(trackID string) pageTrackData {
 	data := map[string]string{
@@ -245,9 +248,9 @@ func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) 
 		return nil, err
 	}
 	tracks := resp.Data
-	if !strings.Contains(track, ":") {
-		sort.Sort(byRank(tracks))
-	}
+	// if !strings.Contains(track, ":") {
+	// 	sort.Sort(byRank(tracks))
+	// }
 	return tracks, nil
 }
 

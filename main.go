@@ -271,6 +271,9 @@ func processTrack() {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Println("Panicked!!!:", r)
+			log.Println("Creating a new deezer client...")
+			dzClient = deezer.Client{}
+			dzClient.Init()
 			log.Println("Resuming...")
 		}
 	}()
