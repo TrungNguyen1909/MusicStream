@@ -152,7 +152,11 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	silenceFrame = silenceFrame[:n]
 	defer encoder.Close()
 	var encodedTime time.Duration
-	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
+	defer func() {
+		encodedTime += 396 * time.Millisecond
+		bufferingChannel <- chunk{buffer: silenceFrame, encoderTime: encodedTime}
+		bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
+	}()
 	encodedTime += 396 * time.Millisecond
 	bufferingChannel <- chunk{buffer: silenceFrame, encoderTime: encodedTime}
 	for {
@@ -186,7 +190,7 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	}
 }
 func preloadRadio(quit chan int) {
-	time.Sleep(1 * time.Second)
+	time.Sleep(time.Until(etaDone))
 	log.Println("Radio preloading started!")
 	req, err := http.NewRequest("GET", "https://listen.moe/stream", nil)
 	if err != nil {
