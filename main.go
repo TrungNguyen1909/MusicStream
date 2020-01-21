@@ -215,6 +215,9 @@ func preloadRadio(quit chan int) {
 	}
 	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
 	defer log.Println("Radio preloading stopped!")
+	encoder := vorbisencoder.NewEncoder(2, 48000)
+	encoder.Encode(oggHeader, make([]byte, 0))
+	defer encoder.Close()
 start:
 	streamer, format, err := vorbis.Decode(resp.Body)
 	if err != nil {
@@ -222,9 +225,6 @@ start:
 	}
 
 	defer streamer.Close()
-	encoder := vorbisencoder.NewEncoder(2, 48000)
-	encoder.Encode(oggHeader, make([]byte, 0))
-	defer encoder.Close()
 	var encodedTime time.Duration
 	for {
 		select {
