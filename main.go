@@ -148,18 +148,26 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	format.SampleRate = beep.SampleRate(48000)
 	encoder := vorbisencoder.NewEncoder(2, 48000)
 	encoder.Encode(oggHeader, make([]byte, 0))
-	silenceFrame := make([]byte, 20000)
-	n := encoder.Encode(silenceFrame, make([]byte, 76032*2))
-	silenceFrame = silenceFrame[:n]
-	defer encoder.Close()
+
 	var encodedTime time.Duration
-	defer func() {
-		encodedTime += 396 * 2 * time.Millisecond
+	for i := 0; i < 2; i++ {
+		silenceFrame := make([]byte, 20000)
+		n := encoder.Encode(silenceFrame, make([]byte, 76032))
+		silenceFrame = silenceFrame[:n]
+		encodedTime += 396 * time.Millisecond
 		bufferingChannel <- chunk{buffer: silenceFrame, encoderTime: encodedTime}
+	}
+	defer encoder.Close()
+	defer func() {
+		for i := 0; i < 2; i++ {
+			silenceFrame := make([]byte, 20000)
+			n := encoder.Encode(silenceFrame, make([]byte, 76032))
+			silenceFrame = silenceFrame[:n]
+			encodedTime += 396 * time.Millisecond
+			bufferingChannel <- chunk{buffer: silenceFrame, encoderTime: encodedTime}
+		}
 		bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
 	}()
-	encodedTime += 396 * 2 * time.Millisecond
-	bufferingChannel <- chunk{buffer: silenceFrame, encoderTime: encodedTime}
 	for {
 		select {
 		case <-quit:
