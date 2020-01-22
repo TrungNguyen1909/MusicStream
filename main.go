@@ -570,5 +570,22 @@ func main() {
 	http.HandleFunc("/skip", skipHandler)
 	http.Handle("/", http.FileServer(http.Dir("static")))
 	go audioManager()
+	go selfPinger()
 	log.Fatal(http.ListenAndServe(port, logRequest(http.DefaultServeMux)))
+}
+
+func selfPinger() {
+	appName, ok := os.LookupEnv("HEROKU_APP_NAME")
+	if !ok {
+		return
+	}
+	log.Println("Starting periodic keep-alive ping...")
+	url := fmt.Sprintf("https://%s.herokuapp.com", appName)
+	for {
+		if atomic.LoadInt32(&listenersCount) > 0 {
+			http.Get(url)
+			log.Println("Ping!")
+		}
+		time.Sleep(1 * time.Minute)
+	}
 }
