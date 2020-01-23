@@ -177,7 +177,7 @@ func (client *Client) initDeezerAPI() {
 	var resp getUserDataResponse
 	json.Unmarshal(buf, &resp)
 	if len(resp.Results.CheckForm) <= 0 {
-		log.Println(buf)
+		log.Printf("%s\n", buf)
 		return
 	}
 	client.unofficialAPIQuery.Set("api_token", resp.Results.CheckForm)
@@ -246,14 +246,12 @@ func (client *Client) downloadTrack(trackInfo pageTrackData, trackQualityID int)
 
 func (client *Client) GetTrackByID(trackID int) (track common.Track, err error) {
 	var url string
-	url = fmt.Sprintf("https://api.deezer.com/search?q=%d", trackID)
+	url = fmt.Sprintf("https://api.deezer.com/track/%d", trackID)
 	response, err := http.Get(url)
 	if err != nil {
 		return
 	}
-	body, _ := ioutil.ReadAll(response.Body)
-	err = json.Unmarshal(body, &track)
-
+	err = json.NewDecoder(response.Body).Decode(&track)
 	return
 }
 
