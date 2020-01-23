@@ -143,6 +143,7 @@ func NewClient() (client *Client) {
 	client.unofficialAPIQuery.Set("api_token", "")
 	client.arlCookie = &http.Cookie{Name: "arl", Value: arlCookie}
 	client.deezerURL, _ = url.Parse(deezerURL)
+	client.initDeezerAPI()
 	return
 }
 
@@ -177,7 +178,6 @@ func (client *Client) initDeezerAPI() {
 	json.Unmarshal(buf, &resp)
 	if len(resp.Results.CheckForm) <= 0 {
 		log.Println(buf)
-		client = NewClient()
 		return
 	}
 	client.unofficialAPIQuery.Set("api_token", resp.Results.CheckForm)
