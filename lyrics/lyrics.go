@@ -211,7 +211,7 @@ type mxmResponse struct {
 	} `json:"message"`
 }
 
-func GetLyrics(track, artist, album, albumartist string, duration int) (result common.LyricsResult, err error) {
+func GetLyrics(track, artist, album, artists string, duration int) (result common.LyricsResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("GetLyrics: %v\n", r)
@@ -222,11 +222,11 @@ func GetLyrics(track, artist, album, albumartist string, duration int) (result c
 	reqURL, _ := url.Parse("http://apic.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&user_language=en&tags=playing&namespace=lyrics_synched&f_subtitle_length_max_deviation=1&subtitle_format=mxm&app_id=mac-ios-v2.0&part=subtitle_translated%2Clyrics_translated&selected_language=en&usertoken=***REMOVED***")
 	queries := reqURL.Query()
 	queries.Add("q_track", track)
-	queries.Add("q_artists", artist)
-	if len(albumartist) > 0 {
-		queries.Add("q_artist", "Bruno Mars")
+	queries.Add("q_artist", artist)
+	if len(artists) > 0 {
+		queries.Add("q_artists", "Bruno Mars")
 	} else {
-		queries.Add("q_artist", artist)
+		queries.Add("q_artists", artist)
 	}
 	queries.Add("q_album", album)
 	queries.Add("q_duration", strconv.Itoa(duration))

@@ -252,6 +252,7 @@ func (client *Client) GetTrackByID(trackID int) (track common.Track, err error) 
 		return
 	}
 	err = json.NewDecoder(response.Body).Decode(&track)
+	track.GetArtists()
 	return
 }
 

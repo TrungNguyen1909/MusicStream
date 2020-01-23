@@ -309,7 +309,7 @@ func processTrack() {
 	}
 	log.Printf("Playing %v - %v\n", track.Title, track.Artist.Name)
 	var mxmlyrics common.LyricsResult
-	mxmlyrics, err = lyrics.GetLyrics(track.Title, track.Artist.Name, track.Album.Title, track.Album.Artist.Name, track.Duration)
+	mxmlyrics, err = lyrics.GetLyrics(track.Title, track.Artist.Name, track.Album.Title, track.Artists, track.Duration)
 	if err == nil {
 		track.Lyrics = mxmlyrics
 	}
@@ -466,6 +466,7 @@ func enqueue(msg wsMessage) []byte {
 		return data
 	default:
 		track := tracks[0]
+		track, _ = dzClient.GetTrackByID(track.ID)
 		playQueue.Enqueue(track)
 		log.Printf("Track enqueued: %v - %v\n", track.Title, track.Artist.Name)
 		data, _ := json.Marshal(map[string]interface{}{
@@ -579,6 +580,7 @@ func skipHandler(w http.ResponseWriter, r *http.Request) {
 func logRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+		w.Header().Set("Expires", "0")
 		handler.ServeHTTP(w, r)
 	})
 }

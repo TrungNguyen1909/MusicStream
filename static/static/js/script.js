@@ -46,7 +46,7 @@ function setTrack(track) {
     return;
   }
   ctrack = track;
-  document.getElementById("artist").innerText = ctrack.artist.name;
+  document.getElementById("artist").innerText = ctrack.artists;
   document.getElementById("name").innerText = ctrack.title;
   window.player.src = `/audio`;
   setTimeout(lyricsControl, 0);
@@ -126,7 +126,7 @@ function initWebSocket() {
           titleBox.innerText = msg.reason;
         } else {
           titleBox.innerText = msg.track.title;
-          artistBox.innerText = msg.track.artist.name;
+          artistBox.innerText = msg.track.artists;
         }
         clearTimeout(subBoxTimeout)
         showSubBox();
