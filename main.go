@@ -56,7 +56,6 @@ type webSocket struct {
 	mux  *sync.Mutex
 }
 
-var gotNewBuffer *sync.Cond
 var upgrader = websocket.Upgrader{}
 var connections sync.Map
 var currentTrack common.Track
@@ -349,7 +348,6 @@ func audioManager() {
 	oggHeader = oggHeader[:n]
 	encoder.Close()
 	playQueue = queue.NewQueue()
-	gotNewBuffer = sync.NewCond(&sync.Mutex{})
 	dzClient = deezer.NewClient()
 	currentTrackID = -1
 	for {
