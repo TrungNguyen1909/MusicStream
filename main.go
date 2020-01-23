@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"queue"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -31,9 +30,8 @@ const (
 
 func mainTest() {
 	fmt.Println("Hello World!")
-	client := deezer.Client{}
-	client.Init()
-	track, err := client.DownloadTrack("637884472", 3)
+	client := deezer.NewClient()
+	track, err := client.DownloadTrack(637884472, 3)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -62,7 +60,7 @@ var gotNewBuffer *sync.Cond
 var upgrader = websocket.Upgrader{}
 var connections sync.Map
 var currentTrack common.Track
-var dzClient deezer.Client
+var dzClient *deezer.Client
 var playQueue *queue.Queue
 var channels [2]chan chan chunk
 var currentChannel int
@@ -72,6 +70,8 @@ var bufferingChannel chan chunk
 var etaDone time.Time
 var skipChannel chan int
 var isRadioStreaming int32
+var currentTrackID int
+var watchDog int
 
 func (socket *webSocket) WriteMessage(messageType int, data []byte) error {
 	socket.mux.Lock()
@@ -278,20 +278,27 @@ func processRadio(quit chan int) {
 func processTrack() {
 	defer func() {
 		if r := recover(); r != nil {
+			watchDog++
 			log.Println("Panicked!!!:", r)
 			log.Println("Creating a new deezer client...")
-			dzClient = deezer.Client{}
-			dzClient.Init()
+			dzClient = deezer.NewClient()
 			log.Println("Resuming...")
 		}
 	}()
-	quitRadio := make(chan int, 10)
+	var track common.Track
 	radioStarted := false
-	if playQueue.Empty() {
-		radioStarted = true
-		go processRadio(quitRadio)
+	quitRadio := make(chan int, 10)
+	if currentTrackID == -1 || watchDog >= 3 {
+		if playQueue.Empty() {
+			radioStarted = true
+			go processRadio(quitRadio)
+		}
+		track = playQueue.Pop().(common.Track)
+		watchDog = 0
+	} else {
+		track, _ = dzClient.GetTrackByID(currentTrackID)
 	}
-	track := playQueue.Pop().(common.Track)
+	currentTrackID = track.ID
 	if radioStarted {
 		quitRadio <- 0
 	}
@@ -301,9 +308,9 @@ func processTrack() {
 	if err == nil {
 		track.Lyrics = mxmlyrics
 	}
-	stream, err := dzClient.DownloadTrack(strconv.Itoa(track.ID), 3)
+	stream, err := dzClient.DownloadTrack(track.ID, 3)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	quit := make(chan int, 10)
 	go preloadTrack(stream, quit)
@@ -314,6 +321,8 @@ func processTrack() {
 	setTrack(track)
 	streamToClients(skipChannel, quit)
 	log.Println("Stream ended!")
+	currentTrackID = -1
+	watchDog = 0
 }
 
 func audioManager() {
@@ -329,9 +338,8 @@ func audioManager() {
 	encoder.Close()
 	playQueue = queue.NewQueue()
 	gotNewBuffer = sync.NewCond(&sync.Mutex{})
-	dzClient = deezer.Client{}
-	dzClient.Init()
-
+	dzClient = deezer.NewClient()
+	currentTrackID = -1
 	for {
 		processTrack()
 	}

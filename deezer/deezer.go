@@ -125,7 +125,8 @@ type Client struct {
 	deezerURL          *url.URL
 }
 
-func (client *Client) Init() {
+func NewClient() (client *Client) {
+	client = &Client{}
 	cookiesJar, _ := cookiejar.New(nil)
 	client.httpClient = &http.Client{Jar: cookiesJar}
 	client.httpHeaders = http.Header{}
@@ -142,7 +143,7 @@ func (client *Client) Init() {
 	client.unofficialAPIQuery.Set("api_token", "")
 	client.arlCookie = &http.Cookie{Name: "arl", Value: arlCookie}
 	client.deezerURL, _ = url.Parse(deezerURL)
-
+	return
 }
 
 func getAPICID() string {
@@ -168,13 +169,22 @@ func (client *Client) initDeezerAPI() {
 		log.Println(err)
 		return
 	}
+	buf, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println(err)
+	}
 	var resp getUserDataResponse
-	json.NewDecoder(response.Body).Decode(&resp)
+	json.Unmarshal(buf, &resp)
+	if len(resp.Results.CheckForm) <= 0 {
+		log.Println(buf)
+		client = NewClient()
+		return
+	}
 	client.unofficialAPIQuery.Set("api_token", resp.Results.CheckForm)
-	fmt.Printf("Successfully initiated Deezer API. Checkform: \"%s\"\n", resp.Results.CheckForm)
+	log.Printf("Successfully initiated Deezer API. Checkform: \"%s\"\n", resp.Results.CheckForm)
 }
-func (client *Client) getTrackInfo(trackID string) pageTrackData {
-	data := map[string]string{
+func (client *Client) getTrackInfo(trackID int, secondTry bool) (pageTrackData, error) {
+	data := map[string]interface{}{
 		"SNG_ID": trackID,
 	}
 	encoded, _ := json.Marshal(data)
@@ -183,8 +193,14 @@ func (client *Client) getTrackInfo(trackID string) pageTrackData {
 
 	var resp pageTrackResponse
 	json.NewDecoder(response.Body).Decode(&resp)
-	// fmt.Println(resp.Results.Data.MD5Origin)
-	return resp.Results.Data
+	if len(resp.Results.Data.MD5Origin) <= 0 {
+		if secondTry {
+			panic("Failed to get trackInfo adequately")
+		}
+		client.initDeezerAPI()
+		return client.getTrackInfo(trackID, true)
+	}
+	return resp.Results.Data, nil
 }
 func (client *Client) getSongFileName(trackInfo pageTrackData, trackQualityID int) string {
 	encoder := charmap.Windows1252.NewEncoder()
@@ -219,7 +235,6 @@ func (client *Client) getTrackDownloadURL(trackInfo pageTrackData, trackQualityI
 }
 
 func (client *Client) downloadTrack(trackInfo pageTrackData, trackQualityID int) (io.ReadCloser, error) {
-	client.initDeezerAPI()
 	trackurl := client.getTrackDownloadURL(trackInfo, trackQualityID)
 	// fmt.Printf("%x\n", trackurl)
 	response, err := client.httpClient.Get(trackurl)
@@ -227,6 +242,19 @@ func (client *Client) downloadTrack(trackInfo pageTrackData, trackQualityID int)
 		return nil, err
 	}
 	return &trackDecrypter{r: response.Body, BlowfishKey: client.getBlowfishKey(trackInfo)}, nil
+}
+
+func (client *Client) GetTrackByID(trackID int) (track common.Track, err error) {
+	var url string
+	url = fmt.Sprintf("https://api.deezer.com/search?q=%d", trackID)
+	response, err := http.Get(url)
+	if err != nil {
+		return
+	}
+	body, _ := ioutil.ReadAll(response.Body)
+	err = json.Unmarshal(body, &track)
+
+	return
 }
 
 func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) {
@@ -254,9 +282,11 @@ func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) 
 	return tracks, nil
 }
 
-func (client *Client) DownloadTrack(trackID string, trackQualityID int) (io.ReadCloser, error) {
-	client.initDeezerAPI()
-	trackInfo := client.getTrackInfo(trackID)
+func (client *Client) DownloadTrack(trackID int, trackQualityID int) (io.ReadCloser, error) {
+	trackInfo, err := client.getTrackInfo(trackID, false)
+	if err != nil {
+		return nil, err
+	}
 	return client.downloadTrack(trackInfo, trackQualityID)
 }
 
