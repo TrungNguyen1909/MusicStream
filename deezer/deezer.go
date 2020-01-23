@@ -264,7 +264,7 @@ func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) 
 	} else {
 		url = fmt.Sprintf("https://api.deezer.com/search?q=track:\"%s\"artist:\"%s\"", template.URLQueryEscaper(track), template.URLQueryEscaper(artist))
 	}
-	response, err := client.httpClient.Get(url)
+	response, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
