@@ -16,11 +16,12 @@ class musicPlayer {
   }
   skip() {
     ws.send(JSON.stringify({ op: 4 }));
+    this.skipBtn.disabled = true;
+    setTimeout(()=>{this.skipBtn.disabled = false},1000)
   }
   play() {
     if (!this.isPlaying) {
       this.playBtn.classList.add("playing");
-      //window.player.src = `/audio`;
       window.player.muted = false;
       window.player.play();
     } else {
