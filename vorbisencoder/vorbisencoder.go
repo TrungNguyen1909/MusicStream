@@ -58,7 +58,7 @@ Encoder* encoder_start(int sample_rate)
 	state->sample_rate = sample_rate;
 	state->num_channels = 2;
 	state->encoded_buffer = malloc(3 * 1024 * 1024);
-	printf("encoder_start(); initializing vorbis encoder with sample_rate = %i Hz\n", state->sample_rate);
+	//printf("encoder_start(); initializing vorbis encoder with sample_rate = %i Hz\n", state->sample_rate);
 
 	state->encoded_max_size = 0;
 	state->encoded_length = 0;
@@ -133,7 +133,7 @@ long encode(Encoder* state, char* outputSlice, char* inputSlice){
 }
 void encoder_finish(Encoder* state)
 {
-	printf("encoder_finish(); ending stream\n");
+	//printf("encoder_finish(); ending stream\n");
 
 	// write an end-of-stream packet
 	vorbis_analysis_wrote(&state->vd, 0);
@@ -154,8 +154,8 @@ void encoder_finish(Encoder* state)
 		}
 	}
 
-	printf("encoder_finish(); final encoded stream length: %i bytes\n", state->encoded_length);
-	printf("encoder_finish(); cleaning up\n");
+	//printf("encoder_finish(); final encoded stream length: %i bytes\n", state->encoded_length);
+	//printf("encoder_finish(); cleaning up\n");
 
 	ogg_stream_clear(&state->os);
 	vorbis_block_clear(&state->vb);

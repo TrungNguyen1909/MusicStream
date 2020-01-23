@@ -110,7 +110,6 @@ function initWebSocket() {
     setTimeout(initWebSocket, 1000);
   };
   ws.onmessage = event => {
-    console.log(event.data);
     var msg = JSON.parse(event.data);
     switch (msg.op) {
       case 1:
