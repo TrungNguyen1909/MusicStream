@@ -286,6 +286,7 @@ func processTrack() {
 		}
 	}()
 	var track common.Track
+	var err error
 	radioStarted := false
 	quitRadio := make(chan int, 10)
 	if currentTrackID == -1 || watchDog >= 3 {
@@ -296,7 +297,12 @@ func processTrack() {
 		track = playQueue.Pop().(common.Track)
 		watchDog = 0
 	} else {
-		track, _ = dzClient.GetTrackByID(currentTrackID)
+		track, err = dzClient.GetTrackByID(currentTrackID)
+		if err != nil {
+			currentTrackID = -1
+			watchDog = 0
+			return
+		}
 	}
 	currentTrackID = track.ID
 	if radioStarted {
@@ -304,7 +310,7 @@ func processTrack() {
 	}
 	log.Printf("Playing %v - %v\n", track.Title, track.Artist.Name)
 	var mxmlyrics common.LyricsResult
-	mxmlyrics, err := lyrics.GetLyrics(track.Title, track.Artist.Name, track.Album.Title, track.Album.Artist.Name, track.Duration)
+	mxmlyrics, err = lyrics.GetLyrics(track.Title, track.Artist.Name, track.Album.Title, track.Album.Artist.Name, track.Duration)
 	if err == nil {
 		track.Lyrics = mxmlyrics
 	}
