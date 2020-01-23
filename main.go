@@ -317,6 +317,12 @@ func processTrack() {
 	if radioStarted {
 		<-quitRadio
 	}
+	for len(skipChannel) > 0 {
+		select {
+		case <-skipChannel:
+		default:
+		}
+	}
 	time.Sleep(time.Until(etaDone))
 	setTrack(track)
 	streamToClients(skipChannel, quit)
