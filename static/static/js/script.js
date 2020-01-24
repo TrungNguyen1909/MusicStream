@@ -17,7 +17,9 @@ class musicPlayer {
   skip() {
     ws.send(JSON.stringify({ op: 4 }));
     this.skipBtn.disabled = true;
-    setTimeout(()=>{this.skipBtn.disabled = false},1000)
+    setTimeout(() => {
+      this.skipBtn.disabled = false;
+    }, 1000);
   }
   play() {
     if (!this.isPlaying) {
@@ -128,7 +130,7 @@ function initWebSocket() {
           titleBox.innerText = msg.track.title;
           artistBox.innerText = msg.track.artists;
         }
-        clearTimeout(subBoxTimeout)
+        clearTimeout(subBoxTimeout);
         showSubBox();
         subBoxTimeout = setTimeout(hideSubBox, 3000);
         document.getElementById("query").value = "";
@@ -144,7 +146,7 @@ function initWebSocket() {
         } else {
           titleBox.innerText = "Skipped!";
         }
-        clearTimeout(subBoxTimeout)
+        clearTimeout(subBoxTimeout);
         showSubBox();
         subBoxTimeout = setTimeout(hideSubBox, 2000);
         document.getElementById("query").value = "";
@@ -160,10 +162,12 @@ function initWebSocket() {
 var enterPressed = false;
 const search = document.getElementsByClassName("query-track")[0];
 search.addEventListener("keydown", function(event) {
-  if (event.key === "Enter"&&!enterPressed) {
+  if (event.key === "Enter" && !enterPressed) {
     event.preventDefault();
     enterPressed = true;
-    setTimeout(()=>{enterPressed = false;},1000)
+    setTimeout(() => {
+      enterPressed = false;
+    }, 1000);
     enqueue();
   }
 });
@@ -182,6 +186,9 @@ function lyricsControl() {
   originalBox.innerText = "";
   translatedBox.innerText = "";
   originalBox.style.transitionDuration = "0s";
+  translatedBox.style.transitionDuration = "0s";
+  originalBox.style.transitionDelay = "0s";
+  translatedBox.style.transitionDelay = "0s";
   originalBox.style.textIndent = "0%";
   translatedBox.style.textIndent = "0%";
   if (ctrack.lyrics == null || ctrack.lyrics.lrc == null) {
@@ -190,11 +197,13 @@ function lyricsControl() {
   showLyricsBox();
   let idx = 0;
   lyricsInterval = setInterval(() => {
-    if (ctrack.lyrics.lrc[idx].time.total < player.currentTime-0.396*2) {
+    if (ctrack.lyrics.lrc[idx].time.total < player.currentTime - 0.396 * 2) {
       originalBox.innerText = "";
       translatedBox.innerText = "";
       originalBox.style.transitionDuration = "0s";
       translatedBox.style.transitionDuration = "0s";
+      originalBox.style.transitionDelay = "0s";
+      translatedBox.style.transitionDelay = "0s";
       originalBox.style.textIndent = "0%";
       translatedBox.style.textIndent = "0%";
       originalBox.innerText = ctrack.lyrics.lrc[idx].text;
@@ -209,6 +218,8 @@ function lyricsControl() {
         idx + 1 < ctrack.lyrics.lrc.length
       ) {
         originalBox.style.transitionDuration = 2 * delta + "s";
+
+        originalBox.style.transitionDelay = "1s";
         originalBox.style.textIndent =
           -(originalBox.scrollWidth / originalBox.offsetWidth) * 100 + "%";
       }
@@ -217,6 +228,8 @@ function lyricsControl() {
         idx + 1 < ctrack.lyrics.lrc.length
       ) {
         translatedBox.style.transitionDuration = 2 * delta + "s";
+
+        translatedBox.style.transitionDelay = "1s";
         translatedBox.style.textIndent =
           -(translatedBox.scrollWidth / translatedBox.offsetWidth) * 100 + "%";
       }
