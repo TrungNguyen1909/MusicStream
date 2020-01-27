@@ -138,6 +138,7 @@ func streamToClients(quit chan int, quitPreload chan int) {
 	}
 }
 func preloadTrack(stream io.ReadCloser, quit chan int) {
+	var encodedTime time.Duration
 	streamer, format, err := mp3.Decode(stream)
 	if err != nil {
 		log.Fatal(err)
@@ -147,8 +148,7 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	format.SampleRate = beep.SampleRate(48000)
 	encoder := vorbisencoder.NewEncoder(2, 48000)
 	encoder.Encode(oggHeader, make([]byte, 0))
-
-	var encodedTime time.Duration
+	bufferingChannel <- chunk{buffer: oggHeader, encoderTime: encodedTime}
 	for i := 0; i < 2; i++ {
 		silenceFrame := make([]byte, 20000)
 		n := encoder.Encode(silenceFrame, make([]byte, 76032))
@@ -156,7 +156,6 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 		encodedTime += 396 * time.Millisecond
 		bufferingChannel <- chunk{buffer: silenceFrame, encoderTime: encodedTime}
 	}
-	defer encoder.Close()
 	defer func() {
 		for i := 0; i < 2; i++ {
 			silenceFrame := make([]byte, 20000)
@@ -165,6 +164,9 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 			encodedTime += 396 * time.Millisecond
 			bufferingChannel <- chunk{buffer: silenceFrame, encoderTime: encodedTime}
 		}
+		lastBuffer := make([]byte, 20000)
+		n := encoder.EndStream(lastBuffer)
+		bufferingChannel <- chunk{buffer: lastBuffer[:n], encoderTime: encodedTime}
 		bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
 	}()
 	for {
@@ -198,6 +200,7 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	}
 }
 func preloadRadio(quit chan int) {
+	var encodedTime time.Duration
 	time.Sleep(time.Until(etaDone))
 	log.Println("Radio preloading started!")
 	req, err := http.NewRequest("GET", "https://listen.moe/stream", nil)
@@ -220,11 +223,19 @@ func preloadRadio(quit chan int) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer func() { bufferingChannel <- chunk{buffer: nil, encoderTime: 0} }()
+	defer func() {
+		bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
+	}()
 	defer log.Println("Radio preloading stopped!")
 	encoder := vorbisencoder.NewEncoder(2, 48000)
 	encoder.Encode(oggHeader, make([]byte, 0))
-	defer encoder.Close()
+	bufferingChannel <- chunk{buffer: oggHeader, encoderTime: encodedTime}
+	defer func() {
+
+		lastBuffer := make([]byte, 10000)
+		n := encoder.EndStream(lastBuffer)
+		bufferingChannel <- chunk{buffer: lastBuffer[:n], encoderTime: encodedTime}
+	}()
 start:
 	streamer, format, err := vorbis.Decode(resp.Body)
 	if err != nil {
@@ -232,7 +243,6 @@ start:
 	}
 
 	defer streamer.Close()
-	var encodedTime time.Duration
 	for {
 		select {
 		case <-quit:
@@ -346,7 +356,7 @@ func audioManager() {
 	oggHeader = make([]byte, 5000)
 	n := encoder.Encode(oggHeader, make([]byte, 0))
 	oggHeader = oggHeader[:n]
-	encoder.Close()
+	encoder.EndStream(nil)
 	playQueue = queue.NewQueue()
 	dzClient = deezer.NewClient()
 	currentTrackID = -1

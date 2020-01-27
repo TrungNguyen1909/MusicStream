@@ -131,8 +131,11 @@ long encode(Encoder* state, char* outputSlice, char* inputSlice){
 	state->encoded_length -=min(state->encoded_length,out_size);
 	return ret;
 }
-void encoder_finish(Encoder* state)
+long encoder_finish(Encoder* state, char* outputSlice)
 {
+	struct GoSlice* outSlice=(struct GoSlice*)outputSlice;
+	char* out = outSlice!=NULL?(char*)outSlice->data:0;
+	long out_size = outSlice->len;
 	//printf("encoder_finish(); ending stream\n");
 
 	// write an end-of-stream packet
@@ -156,6 +159,9 @@ void encoder_finish(Encoder* state)
 
 	//printf("encoder_finish(); final encoded stream length: %i bytes\n", state->encoded_length);
 	//printf("encoder_finish(); cleaning up\n");
+	memcpy(out,state->encoded_buffer,min(state->encoded_length,out_size));
+	long ret = min(state->encoded_length,out_size);
+	state->encoded_length -=min(state->encoded_length,out_size);
 
 	ogg_stream_clear(&state->os);
 	vorbis_block_clear(&state->vb);
@@ -164,6 +170,7 @@ void encoder_finish(Encoder* state)
 	vorbis_info_clear(&state->vi);
 	free(state->encoded_buffer);
 	free(state);
+	return out_size;
 }
 
 #cgo pkg-config: ogg vorbis vorbisenc
@@ -181,6 +188,6 @@ func NewEncoder(channels int32, sampleRate int32) *Encoder {
 func (encoder *Encoder) Encode(out []byte, data []byte) int {
 	return int(C.encode((*C.struct_tEncoderState)(encoder), (*C.char)(unsafe.Pointer(&out)), (*C.char)(unsafe.Pointer(&data))))
 }
-func (encoder *Encoder) Close() {
-	C.encoder_finish((*C.struct_tEncoderState)(encoder))
+func (encoder *Encoder) EndStream(out []byte) int {
+	return int(C.encoder_finish((*C.struct_tEncoderState)(encoder), (*C.char)(unsafe.Pointer(&out))))
 }
