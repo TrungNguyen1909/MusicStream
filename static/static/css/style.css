@@ -265,3 +265,10 @@ div.background {
   pointer-events: none;
   background-image: url("/static/media/bg.jpg");
 }
+::-moz-selection {
+  background: #c2c6cf;
+}
+
+::selection {
+  background: #c2c6cf;
+}
