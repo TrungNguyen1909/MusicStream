@@ -149,20 +149,24 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	encoder := vorbisencoder.NewEncoder(2, 48000)
 	encoder.Encode(oggHeader, make([]byte, 0))
 	bufferingChannel <- chunk{buffer: oggHeader, encoderTime: encodedTime}
-	for i := 0; i < 2; i++ {
-		silenceFrame := make([]byte, 20000)
-		n := encoder.Encode(silenceFrame, make([]byte, 76032))
-		silenceFrame = silenceFrame[:n]
-		encodedTime += 396 * time.Millisecond
-		bufferingChannel <- chunk{buffer: silenceFrame, encoderTime: encodedTime}
-	}
-	defer func() {
+	for j := 0; j < 2; j++ {
 		for i := 0; i < 2; i++ {
 			silenceFrame := make([]byte, 20000)
 			n := encoder.Encode(silenceFrame, make([]byte, 76032))
 			silenceFrame = silenceFrame[:n]
 			encodedTime += 396 * time.Millisecond
 			bufferingChannel <- chunk{buffer: silenceFrame, encoderTime: encodedTime}
+		}
+	}
+	defer func() {
+		for j := 0; j < 2; j++ {
+			for i := 0; i < 2; i++ {
+				silenceFrame := make([]byte, 20000)
+				n := encoder.Encode(silenceFrame, make([]byte, 76032))
+				silenceFrame = silenceFrame[:n]
+				encodedTime += 396 * time.Millisecond
+				bufferingChannel <- chunk{buffer: silenceFrame, encoderTime: encodedTime}
+			}
 		}
 		lastBuffer := make([]byte, 20000)
 		n := encoder.EndStream(lastBuffer)
