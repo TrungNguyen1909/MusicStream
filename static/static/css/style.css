@@ -12,6 +12,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+body {
+  z-index: -10;
+}
+
 .player {
   position: relative;
 }
