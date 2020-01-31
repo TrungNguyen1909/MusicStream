@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css?family=Fira+Sans");
 html,
 body {
+  overflow: hidden;
   position: relative;
   min-height: 100vh;
   display: flex;
@@ -22,7 +23,7 @@ body {
   opacity: 0;
   left: 10px;
   right: 10px;
-  background-color: rgba(30, 28, 44, 0.89);
+  background-color: #054e58bb;
   padding: 5px 15px 5px 10px;
   border-bottom-left-radius: 15px;
   border-bottom-right-radius: 15px;
@@ -36,7 +37,7 @@ body {
   text-overflow: ellipsis;
 }
 .player .sub .name {
-  color: rgba(255, 0, 81, 0.747);
+  color: #eec996d5;
   font-size: 20px;
   margin-top: 10px;
   margin-left: 5px;
@@ -47,21 +48,6 @@ body {
   margin-top: 0px;
   margin-left: 5px;
 }
-.player .sub .progress-bar {
-  background-color: #ddd;
-  height: 2px;
-  width: 100%;
-  position: relative;
-}
-.player .sub .progress-bar .bar {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  background-color: red;
-  width: 10%;
-  transition: all 0.2s ease;
-}
 .player .sub.active {
   top: 90px;
   opacity: 1;
@@ -70,7 +56,7 @@ body {
 
 .player .control-panel {
   position: relative;
-  background-color: #1e1c2c;
+  background-color: #054f58;
   border-radius: 15px;
   width: 500px;
   height: 90px;
@@ -92,7 +78,7 @@ body {
   width: 55px;
   height: auto;
   margin: 5px 0;
-  background-color: #1e1c2c;
+  background-color: #054e58;
   cursor: pointer;
 }
 
@@ -112,7 +98,7 @@ body {
 .player .control-panel .controls .prev .svg :hover,
 .player .control-panel .controls .play .svg :hover,
 .player .control-panel .controls .next .svg :hover {
-  stroke: #ff0052;
+  stroke: #eec996;
 }
 .player .control-panel .controls .play .svg path {
   d: path(
@@ -134,7 +120,7 @@ body {
 }
 
 .player .control-panel .controls .info .name {
-  color: #ff0052;
+  color: #eec996;
   font-size: 20px;
   margin-top: 10px;
   margin-left: 5px;
@@ -160,7 +146,7 @@ body {
   opacity: 0;
   left: 10px;
   right: 10px;
-  background-color: rgba(30, 28, 44, 0.89);
+  background-color: #054f58bb;
   padding: 5px 15px 5px 10px;
   border-top-left-radius: 15px;
   border-top-right-radius: 15px;
@@ -174,7 +160,7 @@ body {
   white-space: nowrap;
 }
 .player .lyrics .original {
-  color: rgba(255, 0, 81, 0.747);
+  color: #eec996d5;
   font-size: 20px;
   margin-bottom: 0px;
   margin-left: 5px;
@@ -263,7 +249,9 @@ div.background {
   height: 100vh;
   width: 100%;
   pointer-events: none;
-  background-image: url("/static/media/bg.jpg");
+  background-image: url("/static/media/3c17cc3b8b30e8179a12ada724adcecae46b2d18.jpg");
+  filter: blur(4px);
+  -webkit-filter: blur(4px);
 }
 ::-moz-selection {
   background: #c2c6cf;
