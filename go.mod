@@ -2,6 +2,7 @@ module github.com/TrungNguyen1909/MusicStream
 
 go 1.13
 
+// +heroku goVersion go1.13
 require (
 	common v0.0.0
 	deezer v0.0.0
