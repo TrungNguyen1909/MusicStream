@@ -27,11 +27,11 @@
 
 [[constraint]]
   name = "github.com/faiface/beep"
-  version = "1.0.2"
+  version = "^1.0.2"
 
 [[constraint]]
   name = "github.com/gorilla/websocket"
-  version = "1.4.1"
+  version = "^1.4.1"
 
 [[constraint]]
   branch = "master"
@@ -39,7 +39,7 @@
 
 [[constraint]]
   name = "golang.org/x/text"
-  version = "0.3.2"
+  version = "^0.3.2"
 
 [prune]
   go-tests = true
