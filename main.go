@@ -609,7 +609,7 @@ func main() {
 	http.HandleFunc("/status", wsHandler)
 	http.HandleFunc("/playing", playingHandler)
 	http.HandleFunc("/skip", skipHandler)
-	http.Handle("/", http.FileServer(http.Dir("static")))
+	http.Handle("/", http.FileServer(http.Dir("www")))
 	go audioManager()
 	go selfPinger()
 	log.Fatal(http.ListenAndServe(port, logRequest(http.DefaultServeMux)))

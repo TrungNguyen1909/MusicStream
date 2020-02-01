@@ -38,8 +38,8 @@ jobs:
       with:
         name: MusicStream-${{ runner.os }}-${{ github.sha }}.zip
         path: MusicStream
-    - name: Upload artifact (static website)
+    - name: Upload artifact (website)
       uses: actions/upload-artifact@v1.0.0
       with:
-        name: MusicStream-${{ runner.os }}-${{ github.sha }}-static.zip
-        path: static
+        name: MusicStream-${{ runner.os }}-${{ github.sha }}-www.zip
+        path: www
