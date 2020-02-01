@@ -1,68 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Music Stream</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=8f6cce" />
+  </head>
 
-<head>
-	<meta charset="UTF-8">
-	<title>Music Stream</title>
-	<link rel="stylesheet" href="/static/css/style.css?v=8">
+  <body>
+    <!-- partial:index.partial.html -->
+    <div class="background"></div>
 
-</head>
-
-<body>
-	<!-- partial:index.partial.html -->
-	<div class="background"></div>
-	
-	<div class="search__container">
-		<input id="query" autocomplete="off" class="search__input" type="text" placeholder="Search">
-	</div>
-	<div class="player">
-		<div id="lyrics" class="lyrics">
-			<span class="original marquee"></span>
-			<span class="translated marquee"></span>
-		</div>
-		<div id="control-panel" class="control-panel">
-			<div class="controls">
-				<div class="info">
-					<span id="name" class="name"></span>
-					<span id="artist" class="artist"></span>
-					<span id="listeners" class="listeners"></span>
-				</div>
-				<div id="play" class="play">
-					<svg class="svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-						version="1.1" id="Capa_1" x="0px" y="0px" viewBox="0 0 250.488 250.488" xml:space="preserve"
-						width="100%" height="100%">
-
-						<g transform="translate(75,65) scale(0.5)">
-							<path style="fill-rule:evenodd;clip-rule:evenodd;"
-								d="M203.791,99.628L49.307,2.294c-4.567-2.719-10.238-2.266-14.521-2.266   c-17.132,0-17.056,13.227-17.056,16.578v198.94c0,2.833-0.075,16.579,17.056,16.579c4.283,0,9.955,0.451,14.521-2.267   l154.483-97.333c12.68-7.545,10.489-16.449,10.489-16.449S216.471,107.172,203.791,99.628z" />
-
-						</g>
-					</svg>
-				</div>
-				<div class="next" id="skip">
-					<svg class="svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-						version="1.1" id="Capa_1" x="0px" y="0px" viewBox="0 0 250.488 250.488" xml:space="preserve"
-						width="100%" height="100%">
-
-						<g transform="translate(75,65) scale(0.5)">
-							<path
-								d="M242.381,110.693L140.415,24.591c-3.48-2.406-7.805-2.005-11.071-2.005   c-13.061,0-13.003,11.7-13.003,14.666v65.249l-92.265-77.91c-3.482-2.406-7.807-2.005-11.072-2.005   C-0.057,22.587,0,34.287,0,37.252v175.983c0,2.507-0.057,14.666,13.004,14.666c3.265,0,7.59,0.401,11.072-2.005l92.265-77.91   v65.249c0,2.507-0.058,14.666,13.003,14.666c3.266,0,7.591,0.401,11.071-2.005l101.966-86.101   c9.668-6.675,7.997-14.551,7.997-14.551S252.049,117.367,242.381,110.693z" />
-						</g>
-					</svg>
-				</div>
-			</div>
-		</div>
-		<div id="sub" class="sub">
-			<span class="name"></span>
-			<span class="artist"></span>
-		</div>
-		<audio id="audio-player" crossorigin="anonymous" preload="auto" muted="true" autoplay=true>
-			<source src="/audio" type="audio/ogg">
-		</audio>
-	</div>
-	<!-- partial -->
-	<script src="/static/js/script.js?v=8"></script>
-
-</body>
-
+    <div class="search__container">
+      <input
+        id="query"
+        autocomplete="off"
+        class="search__input"
+        type="text"
+        placeholder="Search"
+      />
+    </div>
+    <div class="player">
+      <div id="lyrics" class="lyrics">
+        <span class="original marquee"></span>
+        <span class="translated marquee"></span>
+      </div>
+      <div id="control-panel" class="control-panel">
+        <div class="controls">
+          <div class="info">
+            <span id="name" class="name"></span>
+            <span id="artist" class="artist"></span>
+            <span id="listeners" class="listeners"></span>
+          </div>
+          <div id="play" class="play">
+            <svg
+              class="svg"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+              version="1.1"
+              id="Capa_1"
+              x="0px"
+              y="0px"
+              viewBox="0 0 250.488 250.488"
+              xml:space="preserve"
+              width="100%"
+              height="100%"
+            >
+              <g transform="translate(75,65) scale(0.5)">
+                <path
+                  style="fill-rule:evenodd;clip-rule:evenodd;"
+                  d="M203.791,99.628L49.307,2.294c-4.567-2.719-10.238-2.266-14.521-2.266   c-17.132,0-17.056,13.227-17.056,16.578v198.94c0,2.833-0.075,16.579,17.056,16.579c4.283,0,9.955,0.451,14.521-2.267   l154.483-97.333c12.68-7.545,10.489-16.449,10.489-16.449S216.471,107.172,203.791,99.628z"
+                />
+              </g>
+            </svg>
+          </div>
+          <div class="next" id="skip">
+            <svg
+              class="svg"
+              xmlns="http://www.w3.org/2000/svg"
+              xmlns:xlink="http://www.w3.org/1999/xlink"
+              version="1.1"
+              id="Capa_1"
+              x="0px"
+              y="0px"
+              viewBox="0 0 250.488 250.488"
+              xml:space="preserve"
+              width="100%"
+              height="100%"
+            >
+              <g transform="translate(75,65) scale(0.5)">
+                <path
+                  d="M242.381,110.693L140.415,24.591c-3.48-2.406-7.805-2.005-11.071-2.005   c-13.061,0-13.003,11.7-13.003,14.666v65.249l-92.265-77.91c-3.482-2.406-7.807-2.005-11.072-2.005   C-0.057,22.587,0,34.287,0,37.252v175.983c0,2.507-0.057,14.666,13.004,14.666c3.265,0,7.59,0.401,11.072-2.005l92.265-77.91   v65.249c0,2.507-0.058,14.666,13.003,14.666c3.266,0,7.591,0.401,11.071-2.005l101.966-86.101   c9.668-6.675,7.997-14.551,7.997-14.551S252.049,117.367,242.381,110.693z"
+                />
+              </g>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div id="sub" class="sub">
+        <span class="name"></span>
+        <span class="artist"></span>
+      </div>
+      <audio
+        id="audio-player"
+        crossorigin="anonymous"
+        preload="auto"
+        muted="true"
+        autoplay="true"
+      >
+        <source src="/audio" type="audio/ogg" />
+      </audio>
+    </div>
+    <!-- partial -->
+    <script src="/static/js/script.js?v=b4301b" />
+  </body>
 </html>

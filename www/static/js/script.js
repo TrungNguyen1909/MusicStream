@@ -68,7 +68,7 @@ function hideSubBox() {
 }
 function toggleSubBox() {
   subBox = document.getElementById("sub");
-  Array.from(subBox.classList).find(function (element) {
+  Array.from(subBox.classList).find(function(element) {
     return element !== "active"
       ? subBox.classList.add("active")
       : subBox.classList.remove("active");
@@ -84,7 +84,7 @@ function hideLyricsBox() {
 }
 function toggleLyricsBox() {
   lyricsBox = document.getElementById("lyrics");
-  Array.from(lyricsBox.classList).find(function (element) {
+  Array.from(lyricsBox.classList).find(function(element) {
     return element !== "active"
       ? lyricsBox.classList.add("active")
       : lyricsBox.classList.remove("active");
@@ -161,7 +161,7 @@ function initWebSocket() {
 }
 var enterPressed = false;
 const search = document.getElementById("query");
-search.addEventListener("keydown", function (event) {
+search.addEventListener("keydown", function(event) {
   if (event.key === "Enter" && !enterPressed) {
     event.preventDefault();
     enterPressed = true;
@@ -171,7 +171,7 @@ search.addEventListener("keydown", function (event) {
     enqueue();
   }
 });
-window.onload = function () {
+window.onload = function() {
   this.player = document.getElementById("audio-player");
   this.initWebSocket();
 };
@@ -212,7 +212,7 @@ function lyricsControl() {
         let delta =
           idx + 1 < ctrack.lyrics.lrc.length
             ? ctrack.lyrics.lrc[idx + 1].time.total -
-            ctrack.lyrics.lrc[idx].time.total
+              ctrack.lyrics.lrc[idx].time.total
             : 10;
         if (
           isElementOverflowing(originalBox) &&
@@ -232,7 +232,8 @@ function lyricsControl() {
 
           translatedBox.style.transitionDelay = "1s";
           translatedBox.style.textIndent =
-            -(translatedBox.scrollWidth / translatedBox.offsetWidth) * 100 + "%";
+            -(translatedBox.scrollWidth / translatedBox.offsetWidth) * 100 +
+            "%";
         }
         idx++;
         if (idx >= ctrack.lyrics.lrc.length) {
@@ -240,8 +241,7 @@ function lyricsControl() {
           clearInterval(lyricsInterval);
         }
       }
-    }
-    catch{
+    } catch {
       hideLyricsBox();
       clearInterval(lyricsInterval);
     }
