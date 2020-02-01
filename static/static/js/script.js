@@ -160,7 +160,7 @@ function initWebSocket() {
   };
 }
 var enterPressed = false;
-const search = document.getElementsByClassName("query-track")[0];
+const search = document.getElementById("query");
 search.addEventListener("keydown", function (event) {
   if (event.key === "Enter" && !enterPressed) {
     event.preventDefault();

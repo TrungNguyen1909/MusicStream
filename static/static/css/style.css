@@ -27,7 +27,7 @@ body {
   opacity: 0;
   left: 10px;
   right: 10px;
-  background-color: #054e58bb;
+  background-color: #1B2B40c0;
   padding: 5px 15px 5px 10px;
   border-bottom-left-radius: 15px;
   border-bottom-right-radius: 15px;
@@ -41,13 +41,13 @@ body {
   text-overflow: ellipsis;
 }
 .player .sub .name {
-  color: #eec996d5;
+  color: #D92B3Ac0;
   font-size: 20px;
   margin-top: 10px;
   margin-left: 5px;
 }
 .player .sub .artist {
-  color: white;
+  color: #c2c6cf;
   font-size: 16px;
   margin-top: 0px;
   margin-left: 5px;
@@ -60,7 +60,7 @@ body {
 
 .player .control-panel {
   position: relative;
-  background-color: #054f58;
+  background-color: #1B2B40;
   border-radius: 15px;
   width: 500px;
   height: 90px;
@@ -82,7 +82,7 @@ body {
   width: 55px;
   height: auto;
   margin: 5px 0;
-  background-color: #054e58;
+  background-color: #1B2B40;
   cursor: pointer;
 }
 
@@ -102,7 +102,7 @@ body {
 .player .control-panel .controls .prev .svg :hover,
 .player .control-panel .controls .play .svg :hover,
 .player .control-panel .controls .next .svg :hover {
-  stroke: #eec996;
+  stroke: #D92B3A;
 }
 .player .control-panel .controls .play .svg path {
   d: path(
@@ -124,23 +124,26 @@ body {
 }
 
 .player .control-panel .controls .info .name {
-  color: #eec996;
+  color: #D92B3A;
   font-size: 20px;
   margin-top: 10px;
   margin-left: 5px;
+  height: 24px;
 }
 .player .control-panel .controls .info .artist {
-  color: white;
+  color: #c2c6cf;
   font-size: 16px;
   margin-top: 0px;
   margin-left: 5px;
+  height: 19px;
 }
 
 .player .control-panel .controls .info .listeners {
-  color: white;
+  color: #c2c6cf;
   font-size: 14px;
   margin-top: 5px;
   margin-left: 5px;
+  height: 17px;
 }
 
 .player .lyrics {
@@ -150,7 +153,7 @@ body {
   opacity: 0;
   left: 10px;
   right: 10px;
-  background-color: #054f58bb;
+  background-color: #1B2B40c0;
   padding: 5px 15px 5px 10px;
   border-top-left-radius: 15px;
   border-top-right-radius: 15px;
@@ -164,13 +167,13 @@ body {
   white-space: nowrap;
 }
 .player .lyrics .original {
-  color: #eec996d5;
+  color: #D92B3Ac0;
   font-size: 20px;
   margin-bottom: 0px;
   margin-left: 5px;
 }
 .player .lyrics .translated {
-  color: white;
+  color: #c2c6cf;
   font-size: 16px;
   margin-bottom: 10px;
   margin-left: 5px;
@@ -189,60 +192,6 @@ body {
   text-indent: 0%;
 }
 
-.search {
-  display: table;
-  z-index: 4;
-}
-.search input {
-  background: none;
-  border: none;
-  outline: none;
-  width: 28px;
-  min-width: 0;
-  padding: 0;
-  z-index: 1;
-  position: relative;
-  line-height: 18px;
-  margin: 5px 0;
-  font-size: 14px;
-  -webkit-appearance: none;
-  font-family: "Fira Sans";
-  transition: all 0.6s ease;
-  cursor: pointer;
-  color: #c2c6cf;
-}
-.search input + div {
-  position: relative;
-  height: 28px;
-  width: 100%;
-  margin: -28px 0 0 0;
-}
-.search input + div svg {
-  display: block;
-  position: absolute;
-  height: 28px;
-  width: 160px;
-  right: 0;
-  top: 0;
-  fill: none;
-  stroke: #c2c6cf;
-  stroke-width: 2px;
-  stroke-dashoffset: 271.908;
-  stroke-dasharray: 59 212.908;
-  transition: all 0.6s ease;
-}
-.search input:not(:placeholder-shown),
-.search input:focus {
-  width: 160px;
-  padding: 0 4px;
-  cursor: text;
-}
-.search input:not(:placeholder-shown) + div svg,
-.search input:focus + div svg {
-  stroke-dasharray: 150 212.908;
-  stroke-dashoffset: 300;
-}
-
 div.background {
   position: fixed;
   top: 0;
@@ -253,9 +202,9 @@ div.background {
   height: 100vh;
   width: 100%;
   pointer-events: none;
-  background-image: url("/static/media/3c17cc3b8b30e8179a12ada724adcecae46b2d18.jpg");
-  filter: blur(4px);
-  -webkit-filter: blur(4px);
+  background-image: url("/static/media/cfa71cb20e36187a28ba59df1613fe02e8433a41.jpg");
+  filter: blur(0px);
+  -webkit-filter: blur(0px);
 }
 ::-moz-selection {
   background: #c2c6cf;
@@ -264,3 +213,47 @@ div.background {
 ::selection {
   background: #c2c6cf;
 }
+
+.search__container {
+  z-index: 4;
+  position: absolute;
+  top:0;
+  width: 500px;
+}
+
+.search__input {
+  width: 450px;
+  padding: 12px 24px;
+  background-color: #c2c6cf;
+  transition: transform 250ms ease-in-out;
+  font-size: 15px;
+  line-height: 18px;
+  
+  color: #c2c6cf;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='#c2c6cf' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3Cpath d='M0 0h24v24H0z' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 18px 18px;
+  background-position: 95% center;
+  border: 1px solid #c2c6cf;
+  border-radius: 15px;
+  transition: all 250ms ease-in-out;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.search__input::placeholder {
+      color: #c2c6cf;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+  }
+
+.search__input:hover,
+  .search__input:focus {
+      padding: 12px 0;
+      outline: 0;
+      border: 1px solid transparent;
+      border-bottom: 1px solid #c2c6cf;
+      border-radius: 0;
+      background-position: 100% center;
+  }

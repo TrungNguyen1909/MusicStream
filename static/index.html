@@ -4,13 +4,17 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Music Stream</title>
-	<link rel="stylesheet" href="/static/css/style.css?v=1">
+	<link rel="stylesheet" href="/static/css/style.css?v=8">
 
 </head>
 
 <body>
 	<!-- partial:index.partial.html -->
 	<div class="background"></div>
+	
+	<div class="search__container">
+		<input id="query" autocomplete="off" class="search__input" type="text" placeholder="Search">
+	</div>
 	<div class="player">
 		<div id="lyrics" class="lyrics">
 			<span class="original marquee"></span>
@@ -56,20 +60,8 @@
 			<source src="/audio" type="audio/ogg">
 		</audio>
 	</div>
-	<div style="width:8px"></div>
-	<div class="search">
-		<input type="text" placeholder=" " id="query" class="query-track" autocomplete="off">
-		<div>
-			<svg class="svg">
-				<path
-					d="M32.9418651,-20.6880772 C37.9418651,-20.6880772 40.9418651,-16.6880772 40.9418651,-12.6880772 C40.9418651,-8.68807717 37.9418651,-4.68807717 32.9418651,-4.68807717 C27.9418651,-4.68807717 24.9418651,-8.68807717 24.9418651,-12.6880772 C24.9418651,-16.6880772 27.9418651,-20.6880772 32.9418651,-20.6880772 L32.9418651,-29.870624 C32.9418651,-30.3676803 33.3448089,-30.770624 33.8418651,-30.770624 C34.08056,-30.770624 34.3094785,-30.6758029 34.4782612,-30.5070201 L141.371843,76.386562"
-					transform="translate(83.156854, 22.171573) rotate(-225.000000) translate(-83.156854, -22.171573)">
-				</path>
-			</svg>
-		</div>
-	</div>
 	<!-- partial -->
-	<script src="/static/js/script.js?v=1"></script>
+	<script src="/static/js/script.js?v=8"></script>
 
 </body>
 
