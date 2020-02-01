@@ -3,15 +3,19 @@ package main
 import (
 	"bytes"
 	"common"
+	"crypto/sha1"
 	"deezer"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"lyrics"
 	"net/http"
 	"os"
+	"path"
 	"queue"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -591,9 +595,117 @@ func skipHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Expires", "0")
 	w.Write(skip())
 }
+func redirectToRoot(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+func toHTTPError(err error) (msg string, httpStatus int) {
+	if os.IsNotExist(err) {
+		return "404 page not found", http.StatusNotFound
+	}
+	if os.IsPermission(err) {
+		return "403 Forbidden", http.StatusForbidden
+	}
+	// Default:
+	return "500 Internal Server Error", http.StatusInternalServerError
+}
+func fileServer(fs http.Dir) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		upath := r.URL.Path
+		if !strings.HasPrefix(upath, "/") {
+			upath = "/" + upath
+			r.URL.Path = upath
+		}
+		name := path.Clean(upath)
+		const indexPage = "/index.html"
+
+		// redirect .../index.html to .../
+		// can't use Redirect() because that would make the path absolute,
+		// which would be a problem running under StripPrefix
+		if strings.HasSuffix(r.URL.Path, indexPage) {
+			http.Redirect(w, r, "./", http.StatusSeeOther)
+			return
+		}
+
+		f, err := fs.Open(name)
+		if err != nil {
+			msg, code := toHTTPError(err)
+			http.Error(w, msg, code)
+			return
+		}
+		defer f.Close()
+
+		d, err := f.Stat()
+		if err != nil {
+			msg, code := toHTTPError(err)
+			http.Error(w, msg, code)
+			return
+		}
+
+		// redirect to canonical path: / at end of directory url
+		// r.URL.Path always begins with /
+		url := r.URL.Path
+		if d.IsDir() {
+			if url[len(url)-1] != '/' {
+				http.Redirect(w, r, path.Base(url)+"/", http.StatusSeeOther)
+				return
+			}
+		} else {
+			if url[len(url)-1] == '/' {
+				http.Redirect(w, r, "../"+path.Base(url), http.StatusSeeOther)
+				return
+			}
+		}
+
+		// redirect if the directory name doesn't end in a slash
+		if d.IsDir() {
+			url := r.URL.Path
+			if url[len(url)-1] != '/' {
+				http.Redirect(w, r, path.Base(url)+"/", http.StatusSeeOther)
+				return
+			}
+		}
+
+		// use contents of index.html for directory, if present
+		if d.IsDir() {
+			index := strings.TrimSuffix(name, "/") + indexPage
+			ff, err := fs.Open(index)
+			if err == nil {
+				defer ff.Close()
+				dd, err := ff.Stat()
+				if err == nil {
+					name = index
+					d = dd
+					f = ff
+				}
+			}
+		}
+
+		// Still a directory? (we didn't find an index.html file)
+		if d.IsDir() {
+			msg, code := toHTTPError(os.ErrPermission)
+			http.Error(w, msg, code)
+			return
+		}
+
+		// serveContent will check modification time
+		content, err := ioutil.ReadAll(f)
+		if err != nil {
+			msg, code := toHTTPError(err)
+			http.Error(w, msg, code)
+			return
+		}
+		etag := sha1.Sum(content)
+		w.Header().Set("ETag", "W/"+fmt.Sprintf("%x", etag))
+		// This should handle Etag
+		http.ServeContent(w, r, d.Name(), d.ModTime(), f)
+		return
+
+	}
+}
 func logRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+		w.Header().Set("Cache-Control", "no-cache")
 		handler.ServeHTTP(w, r)
 	})
 }
@@ -609,7 +721,7 @@ func main() {
 	http.HandleFunc("/status", wsHandler)
 	http.HandleFunc("/playing", playingHandler)
 	http.HandleFunc("/skip", skipHandler)
-	http.Handle("/", http.FileServer(http.Dir("www")))
+	http.HandleFunc("/", fileServer(http.Dir("www")))
 	go audioManager()
 	go selfPinger()
 	log.Fatal(http.ListenAndServe(port, logRequest(http.DefaultServeMux)))
