@@ -90,6 +90,8 @@ type csnSearchResult struct {
 	}
 }
 
+var pattern *regexp.Regexp
+
 func Search(query string) (tracks []common.Track, err error) {
 	queryURL, _ := url.Parse("https://chiasenhac.vn/search/real")
 	queries := queryURL.Query()
@@ -124,11 +126,10 @@ func (track *Track) Populate() (err error) {
 	if err != nil {
 		return
 	}
-	r, err := regexp.Compile("sources: \\[([^\\]]*)\\]")
-	if err != nil {
-		return
+	if pattern == nil {
+		pattern, _ = regexp.Compile("sources: \\[([^\\]]*)\\]")
 	}
-	m := r.FindSubmatch(buf)
+	m := pattern.FindSubmatch(buf)
 	res := bytes.Join([][]byte{[]byte("["), bytes.Trim(m[1], ", \n"), []byte("]")}, []byte(""))
 	var csnResults []csnResult
 	err = json.Unmarshal(res, &csnResults)
