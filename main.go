@@ -196,7 +196,7 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 				buf.WriteByte(v)
 			}
 		}
-		output := make([]byte, 10000)
+		output := make([]byte, 20000)
 		encodedLen := encoder.Encode(output, buf.Bytes())
 		encodedTime += 20 * time.Millisecond
 		if encodedLen > 0 {
@@ -222,7 +222,7 @@ func preloadRadio(quit chan int) {
 	bufferingChannel <- chunk{buffer: oggHeader, encoderTime: encodedTime}
 	defer func() {
 
-		lastBuffer := make([]byte, 10000)
+		lastBuffer := make([]byte, 20000)
 		n := encoder.EndStream(lastBuffer)
 		bufferingChannel <- chunk{buffer: lastBuffer[:n], encoderTime: encodedTime}
 	}()
@@ -252,7 +252,7 @@ start:
 				buf.WriteByte(v)
 			}
 		}
-		output := make([]byte, 10000)
+		output := make([]byte, 20000)
 		encodedLen := encoder.Encode(output, buf.Bytes())
 		encodedTime += 20 * time.Millisecond
 		if encodedLen > 0 {
@@ -346,7 +346,7 @@ func audioManager() {
 	for i := range channels {
 		channels[i] = make(chan chan chunk, 1000)
 	}
-	bufferingChannel = make(chan chunk, 500)
+	bufferingChannel = make(chan chunk, 1000)
 	skipChannel = make(chan int, 500)
 	encoder := vorbisencoder.NewEncoder(2, 48000)
 	oggHeader = make([]byte, 5000)
