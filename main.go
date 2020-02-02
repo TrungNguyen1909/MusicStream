@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"common"
 	"crypto/sha1"
+	"csn"
 	"deezer"
 	"encoding/json"
 	"fmt"
@@ -23,7 +24,6 @@ import (
 
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
-	"github.com/faiface/beep/speaker"
 	"github.com/faiface/beep/vorbis"
 	"github.com/gorilla/websocket"
 )
@@ -31,24 +31,6 @@ import (
 const (
 	chunkDelayMS = 40
 )
-
-func mainTest() {
-	fmt.Println("Hello World!")
-	client := deezer.NewClient()
-	track, err := client.DownloadTrack(637884472, 3)
-	if err != nil {
-		log.Fatal(err)
-	}
-	streamer, format, err := mp3.Decode(track)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer streamer.Close()
-	fmt.Println(format)
-	speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
-	speaker.Play(streamer)
-	select {}
-}
 
 type chunk struct {
 	buffer      []byte
@@ -59,10 +41,16 @@ type webSocket struct {
 	conn *websocket.Conn
 	mux  *sync.Mutex
 }
+type wsMessage struct {
+	Operation int    `json:"op"`
+	Query     string `json:"query"`
+	Selector  int    `json:"selector"`
+}
 
 var upgrader = websocket.Upgrader{}
 var connections sync.Map
 var currentTrack common.Track
+var currentTrackMeta common.TrackMetadata
 var dzClient *deezer.Client
 var playQueue *queue.Queue
 var channels [2]chan chan chunk
@@ -75,6 +63,7 @@ var skipChannel chan int
 var isRadioStreaming int32
 var currentTrackID int
 var watchDog int
+var radio common.RadioTrack
 
 func (socket *webSocket) WriteMessage(messageType int, data []byte) error {
 	socket.mux.Lock()
@@ -211,26 +200,8 @@ func preloadRadio(quit chan int) {
 	var encodedTime time.Duration
 	time.Sleep(time.Until(etaDone))
 	log.Println("Radio preloading started!")
-	req, err := http.NewRequest("GET", "https://listen.moe/stream", nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Set("authority", "listen.moe")
-	req.Header.Set("pragma", "no-cache")
-	req.Header.Set("cache-control", "no-cache")
-	req.Header.Set("dnt", "1")
-	req.Header.Set("accept-encoding", "identity;q=1, *;q=0")
-	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.117 Safari/537.36")
-	req.Header.Set("accept", "*/*")
-	req.Header.Set("sec-fetch-site", "same-origin")
-	req.Header.Set("sec-fetch-mode", "cors")
-	req.Header.Set("referer", "https://listen.moe/")
-	req.Header.Set("accept-language", "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7")
-	req.Header.Set("range", "bytes=0-")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
+	stream, _ := radio.Download()
+	defer stream.Close()
 	defer func() {
 		bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
 	}()
@@ -245,7 +216,7 @@ func preloadRadio(quit chan int) {
 		bufferingChannel <- chunk{buffer: lastBuffer[:n], encoderTime: encodedTime}
 	}()
 start:
-	streamer, format, err := vorbis.Decode(resp.Body)
+	streamer, format, err := vorbis.Decode(stream)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -284,7 +255,8 @@ start:
 func processRadio(quit chan int) {
 	quitPreload := make(chan int, 10)
 	time.Sleep(time.Until(etaDone))
-	setTrack(common.Track{Title: "listen.moe"})
+	currentTrack = radio
+	setTrack(common.GetMetadata(radio))
 	go preloadRadio(quitPreload)
 	atomic.StoreInt32(&isRadioStreaming, 1)
 	defer atomic.StoreInt32(&isRadioStreaming, 0)
@@ -297,8 +269,10 @@ func processTrack() {
 		if r := recover(); r != nil {
 			watchDog++
 			log.Println("Panicked!!!:", r)
-			log.Println("Creating a new deezer client...")
-			dzClient = deezer.NewClient()
+			if currentTrack.Source() == common.Deezer {
+				log.Println("Creating a new deezer client...")
+				dzClient = deezer.NewClient()
+			}
 			log.Println("Resuming...")
 		}
 	}()
@@ -306,7 +280,7 @@ func processTrack() {
 	var err error
 	radioStarted := false
 	quitRadio := make(chan int, 10)
-	if currentTrackID == -1 || watchDog >= 3 {
+	if currentTrackID == -1 || watchDog >= 3 || currentTrack.Source() == common.CSN {
 		if playQueue.Empty() {
 			radioStarted = true
 			go processRadio(quitRadio)
@@ -314,24 +288,27 @@ func processTrack() {
 		track = playQueue.Pop().(common.Track)
 		watchDog = 0
 	} else {
-		track, err = dzClient.GetTrackByID(currentTrackID)
+		err = dzClient.PopulateMetadata(currentTrack.(*deezer.Track))
+		track = currentTrack
 		if err != nil {
 			currentTrackID = -1
 			watchDog = 0
 			return
 		}
 	}
-	currentTrackID = track.ID
+	currentTrackID = track.ID()
+	currentTrack = track
 	if radioStarted {
 		quitRadio <- 0
 	}
-	log.Printf("Playing %v - %v\n", track.Title, track.Artist.Name)
+	log.Printf("Playing %v - %v\n", track.Title(), track.Artist())
+	trackDict := common.GetMetadata(track)
 	var mxmlyrics common.LyricsResult
-	mxmlyrics, err = lyrics.GetLyrics(track.Title, track.Artist.Name, track.Album.Title, track.Artists, track.Duration)
+	mxmlyrics, err = lyrics.GetLyrics(track.Title(), track.Artist(), track.Album(), track.Artists(), track.Duration())
 	if err == nil {
-		track.Lyrics = mxmlyrics
+		trackDict.Lyrics = mxmlyrics
 	}
-	stream, err := dzClient.DownloadTrack(track.ID, 3)
+	stream, err := track.Download()
 	if err != nil {
 		panic(err)
 	}
@@ -347,7 +324,7 @@ func processTrack() {
 		}
 	}
 	time.Sleep(time.Until(etaDone))
-	setTrack(track)
+	setTrack(trackDict)
 	streamToClients(skipChannel, quit)
 	log.Println("Stream ended!")
 	currentTrackID = -1
@@ -367,18 +344,19 @@ func audioManager() {
 	encoder.EndStream(nil)
 	playQueue = queue.NewQueue()
 	dzClient = deezer.NewClient()
+	radio = common.RadioTrack{}
 	currentTrackID = -1
 	for {
 		processTrack()
 	}
 }
-func setTrack(track common.Track) {
+func setTrack(trackMeta common.TrackMetadata) {
 	time.Sleep(1 * time.Second)
-	currentTrack = track
-	log.Printf("Setting track on all clients %v - %v\n", currentTrack.Title, currentTrack.Artist.Name)
+	currentTrackMeta = trackMeta
+	log.Printf("Setting track on all clients %v - %v\n", trackMeta.Title, trackMeta.Artist)
 	data, err := json.Marshal(map[string]interface{}{
 		"op":    1,
-		"track": track,
+		"track": trackMeta,
 	})
 	connections.Range(func(key, value interface{}) bool {
 		ws := value.(*webSocket)
@@ -437,15 +415,10 @@ func audioHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type wsMessage struct {
-	Operation int    `json:"op"`
-	Query     string `json:"query"`
-}
-
 func getPlaying() []byte {
 	data, _ := json.Marshal(map[string]interface{}{
 		"op":    1,
-		"track": currentTrack,
+		"track": currentTrackMeta,
 	})
 	return data
 }
@@ -458,6 +431,7 @@ func getListenersCount() []byte {
 	return data
 }
 func enqueue(msg wsMessage) []byte {
+	var err error
 	if len(msg.Query) == 0 {
 		data, _ := json.Marshal(map[string]interface{}{
 			"op":      3,
@@ -466,7 +440,13 @@ func enqueue(msg wsMessage) []byte {
 		})
 		return data
 	}
-	tracks, err := dzClient.SearchTrack(msg.Query, "")
+	var tracks []common.Track
+	switch msg.Selector {
+	case 2:
+		tracks, err = csn.Search(msg.Query)
+	default:
+		tracks, err = dzClient.SearchTrack(msg.Query, "")
+	}
 	switch {
 	case err != nil:
 		data, _ := json.Marshal(map[string]interface{}{
@@ -484,14 +464,20 @@ func enqueue(msg wsMessage) []byte {
 		return data
 	default:
 		track := tracks[0]
-		track, _ = dzClient.GetTrackByID(track.ID)
+		if track.Source() == common.Deezer {
+			track, err = dzClient.GetTrackByID(track.ID())
+		} else if track.Source() == common.CSN {
+			cTrack := track.(csn.Track)
+			err = cTrack.Populate()
+			track = cTrack
+		}
 		playQueue.Enqueue(track)
-		log.Printf("Track enqueued: %v - %v\n", track.Title, track.Artist.Name)
+		log.Printf("Track enqueued: %v - %v\n", track.Title(), track.Artist())
 		data, _ := json.Marshal(map[string]interface{}{
 			"op":      3,
 			"success": true,
 			"reason":  "",
-			"track":   track,
+			"track":   common.GetMetadata(track),
 		})
 		return data
 	}

@@ -36,15 +36,51 @@ class musicPlayer {
 }
 
 const newMusicplayer = new musicPlayer();
+var mode = 1;
+var dzSel = document.getElementById("deezer-sel");
+var csnSel = document.getElementById("csn-sel");
+
+function applySelector() {
+  if (mode == 1) {
+    csnSel.classList.remove("active");
+    dzSel.classList.add("active");
+  } else {
+    csnSel.classList.add("active");
+    dzSel.classList.remove("active");
+  }
+  localStorage.setItem("src-selector", mode);
+}
+
+function initSelector() {
+  let selector = localStorage.getItem("src-selector");
+  if (!selector) {
+    mode = 1;
+    applySelector();
+    return;
+  } else {
+    mode = +(selector);
+    applySelector();
+  }
+}
+
+dzSel.addEventListener("click", () => {
+  mode = 1;
+  applySelector();
+});
+
+csnSel.addEventListener("click", () => {
+  mode = 2;
+  applySelector();
+});
 
 function enqueue() {
   q = document.getElementById("query").value.trim();
-  if (ws === null) return;
-  ws.send(JSON.stringify({ op: 3, query: q }));
+  if (!ws) return;
+  ws.send(JSON.stringify({ op: 3, query: q, selector: mode }));
 }
 function setTrack(track) {
   console.log(track);
-  if (track === null) {
+  if (!track) {
     return;
   }
   ctrack = track;
@@ -172,6 +208,7 @@ search.addEventListener("keydown", function(event) {
   }
 });
 window.onload = function() {
+  this.initSelector();
   this.player = document.getElementById("audio-player");
   this.initWebSocket();
 };
@@ -191,7 +228,7 @@ function lyricsControl() {
   translatedBox.style.transitionDelay = "0s";
   originalBox.style.textIndent = "0%";
   translatedBox.style.textIndent = "0%";
-  if (ctrack.lyrics == null || ctrack.lyrics.lrc == null) {
+  if (!ctrack.lyrics || !ctrack.lyrics.lrc) {
     return;
   }
   showLyricsBox();

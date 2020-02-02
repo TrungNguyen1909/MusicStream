@@ -5,7 +5,9 @@ go 1.13
 // +heroku goVersion go1.13
 require (
 	common v0.0.0
+	csn v0.0.0
 	deezer v0.0.0
+	github.com/anaskhan96/soup v1.1.1
 	github.com/faiface/beep v1.0.2
 	github.com/gorilla/websocket v1.4.1
 	github.com/hajimehoshi/go-mp3 v0.2.1
@@ -21,6 +23,8 @@ require (
 	queue v0.0.0
 	vorbisencoder v0.0.0
 )
+
+replace csn => ./csn
 
 replace common => ./common
 

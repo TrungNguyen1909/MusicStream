@@ -233,10 +233,13 @@ div.background {
   position: absolute;
   top: 0;
   width: 500px;
+  display: block;
 }
 
 .search__input {
-  width: 450px;
+  margin-left: 100px;
+  position: relative;
+  width: 350px;
   padding: 12px 24px;
   background-color: #c2c6cf;
   transition: transform 250ms ease-in-out;
@@ -245,12 +248,10 @@ div.background {
 
   color: #c2c6cf;
   background-color: transparent;
-  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='#c2c6cf' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3Cpath d='M0 0h24v24H0z' fill='none'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-size: 18px 18px;
-  background-position: 95% center;
   border: 1px solid #c2c6cf;
-  border-radius: 15px;
+  border-top-right-radius: 15px;
+  border-bottom-right-radius: 15px;
+  border-left: none;
   transition: all 250ms ease-in-out;
   backface-visibility: hidden;
   transform-style: preserve-3d;
@@ -264,12 +265,43 @@ div.background {
 
 .search__input:hover,
 .search__input:focus {
-  padding: 12px 0;
+  padding: 12px 10px;
   outline: 0;
   border: 1px solid transparent;
   border-bottom: 1px solid #c2c6cf;
   border-radius: 0;
   background-position: 100% center;
 }
-
-
+.btn-group {
+  position: absolute;
+  top: 0;
+}
+.btn-group div {
+  line-height: 42px;
+  height: 42px;
+  width: 50px;
+  background-color: transparent;
+  border: 1px solid #c2c6cf;
+  color: #c2c6cf; /* White text */
+  float: left; /* Float the buttons side by side */
+  text-align: center;
+  vertical-align: center;
+}
+.btn-group div:first-child {
+  border-top-left-radius: 15px;
+  border-bottom-left-radius: 15px;
+}
+.btn-group div:not(:last-child) {
+  border-right: none; /* Prevent double borders */
+}
+.btn-group:after {
+  content: "";
+  clear: both;
+  display: table;
+}
+/* Add a background color on hover */
+.btn-group div:hover,
+.btn-group div:focus,
+.btn-group .active {
+  background-color: #04060d;
+}

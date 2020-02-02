@@ -229,7 +229,9 @@ func GetLyrics(track, artist, album, artists string, duration int) (result commo
 		queries.Add("q_artists", artist)
 	}
 	queries.Add("q_album", album)
-	queries.Add("q_duration", strconv.Itoa(duration))
+	if duration > 0 {
+		queries.Add("q_duration", strconv.Itoa(duration))
+	}
 	queries.Add("f_subtitle_length", strconv.Itoa(duration))
 	// queries.Add("q_track", "Four Season")
 	// queries.Add("q_artists", "TAEYEON")

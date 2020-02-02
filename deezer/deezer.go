@@ -7,6 +7,7 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -32,6 +33,69 @@ const (
 
 var arlCookie = "***REMOVED***"
 
+type Artist struct {
+	Name string `json:"name"`
+}
+type Album struct {
+	Title       string `json:"title"`
+	Cover       string `json:"cover"`
+	CoverSmall  string `json:"cover_small"`
+	CoverMedium string `json:"cover_medium"`
+	CoverBig    string `json:"cover_big"`
+	CoverXL     string `json:"cover_xl"`
+}
+type Track struct {
+	deezerTrack
+	StreamURL   string
+	BlowfishKey []byte
+}
+
+func (track Track) ID() int {
+	return track.deezerTrack.ID
+}
+
+func (track Track) Title() string {
+	return track.deezerTrack.Title
+}
+
+func (track Track) Album() string {
+	return track.deezerTrack.Album.Title
+}
+
+func (track Track) Source() int {
+	return common.Deezer
+}
+
+func (track Track) Artist() string {
+	return track.deezerTrack.Artist.Name
+}
+func (track Track) Artists() string {
+	artists := ""
+	for _, v := range track.deezerTrack.Contributors {
+		artists = strings.Join([]string{artists, v.Name}, ", ")
+	}
+	artists = artists[2:]
+	return artists
+}
+func (track Track) Duration() int {
+	return track.deezerTrack.Duration
+}
+
+func (track Track) CoverURL() string {
+	return track.deezerTrack.Album.CoverXL
+}
+
+func (track Track) Download() (io.ReadCloser, error) {
+	if track.StreamURL == "" || len(track.BlowfishKey) == 0 {
+		return nil, errors.New("Metadata not yet populated")
+	}
+	response, err := http.DefaultClient.Get(track.StreamURL)
+	if err != nil {
+		return nil, err
+	}
+	return &trackDecrypter{r: response.Body, BlowfishKey: track.BlowfishKey}, nil
+}
+
 type getUserDataResults struct {
 	CheckForm string `json:"checkForm"`
 }
@@ -52,21 +116,18 @@ type pageTrackResponse struct {
 	Results pageTrackResults `json:"results"`
 }
 type searchTrackResponse struct {
-	Data []common.Track `json:"data"`
+	Data []deezerTrack `json:"data"`
 }
 
-type byRank []common.Track
-
-func (p byRank) Len() int {
-	return len(p)
-}
-
-func (p byRank) Swap(i, j int) {
-	p[i], p[j] = p[j], p[i]
-}
-
-func (p byRank) Less(i, j int) bool {
-	return p[i].Rank > p[j].Rank
+type deezerTrack struct {
+	ID           int      `json:"id"`
+	Title        string   `json:"title"`
+	Artist       Artist   `json:"artist"`
+	Artists      string   `json:"artists"`
+	Contributors []Artist `json:"contributors"`
+	Album        Album    `json:"album"`
+	Duration     int      `json:"duration"`
+	Rank         int      `json:"rank"`
 }
 
 type trackDecrypter struct {
@@ -202,7 +263,7 @@ func (client *Client) getTrackInfo(trackID int, secondTry bool) (pageTrackData, 
 	}
 	return resp.Results.Data, nil
 }
-func (client *Client) getSongFileName(trackInfo pageTrackData, trackQualityID int) string {
+func (client *Client) getSongFileName(trackInfo pageTrackData) string {
 	encoder := charmap.Windows1252.NewEncoder()
 	step1 := strings.Join([]string{trackInfo.MD5Origin, strconv.Itoa(trackQualityID), trackInfo.SNGId, trackInfo.MediaVersion}, "¤")
 	step1encoded, _ := encoder.Bytes([]byte(step1))
@@ -218,41 +279,65 @@ func (client *Client) getSongFileName(trackInfo pageTrackData, trackQualityID in
 	}
 	return fmt.Sprintf("%x", result)
 }
-func (client *Client) getBlowfishKey(trackInfo pageTrackData) []byte {
+func (client *Client) getBlowfishKey(trackInfo pageTrackData) (bfKey []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			bfKey = nil
+			err = errors.New("getBlowfishKey: Panicked")
+			log.Println(r)
+		}
+	}()
 	SECRET := "g4el58wc0zvf9na1"
 	encoder := charmap.Windows1252.NewEncoder()
 	sngid, _ := encoder.Bytes([]byte(trackInfo.SNGId))
 	idMd5 := fmt.Sprintf("%x", md5.Sum(sngid))
-	bfKey := make([]byte, 16)
+	bfKey = make([]byte, 16)
 	for i := range bfKey {
 		bfKey[i] = idMd5[i] ^ idMd5[i+16] ^ SECRET[i]
 	}
-	return bfKey
+	return
 }
-func (client *Client) getTrackDownloadURL(trackInfo pageTrackData, trackQualityID int) string {
+func (client *Client) getTrackDownloadURL(trackInfo pageTrackData) (url string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			url = ""
+			err = errors.New("getTrackDownloadURL Panicked")
+			log.Println(r)
+		}
+	}()
 	cdn := trackInfo.MD5Origin[0]
-	return strings.Join([]string{"https://e-cdns-proxy-", string(cdn), ".dzcdn.net/mobile/1/", client.getSongFileName(trackInfo, trackQualityID)}, "")
+	url = strings.Join([]string{"https://e-cdns-proxy-", string(cdn), ".dzcdn.net/mobile/1/", client.getSongFileName(trackInfo)}, "")
+	return
 }
 
-func (client *Client) downloadTrack(trackInfo pageTrackData, trackQualityID int) (io.ReadCloser, error) {
-	trackurl := client.getTrackDownloadURL(trackInfo, trackQualityID)
-	// fmt.Printf("%x\n", trackurl)
-	response, err := client.httpClient.Get(trackurl)
+func (client *Client) PopulateMetadata(dTrack *Track) (err error) {
+	trackInfo, err := client.getTrackInfo(dTrack.deezerTrack.ID, false)
 	if err != nil {
-		return nil, err
+		return
 	}
-	return &trackDecrypter{r: response.Body, BlowfishKey: client.getBlowfishKey(trackInfo)}, nil
+	dTrack.StreamURL, err = client.getTrackDownloadURL(trackInfo)
+	if err != nil {
+		return
+	}
+	dTrack.BlowfishKey, err = client.getBlowfishKey(trackInfo)
+	if err != nil {
+		return
+	}
+	return
 }
 
 func (client *Client) GetTrackByID(trackID int) (track common.Track, err error) {
 	var url string
+	var dTrack deezerTrack
 	url = fmt.Sprintf("https://api.deezer.com/track/%d", trackID)
 	response, err := http.Get(url)
 	if err != nil {
 		return
 	}
-	err = json.NewDecoder(response.Body).Decode(&track)
-	track.GetArtists()
+	err = json.NewDecoder(response.Body).Decode(&dTrack)
+	itrack := Track{deezerTrack: dTrack}
+	err = client.PopulateMetadata(&itrack)
+	track = itrack
 	return
 }
 
@@ -274,19 +359,12 @@ func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) 
 	if err != nil {
 		return nil, err
 	}
-	tracks := resp.Data
-	// if !strings.Contains(track, ":") {
-	// 	sort.Sort(byRank(tracks))
-	// }
-	return tracks, nil
-}
-
-func (client *Client) DownloadTrack(trackID int, trackQualityID int) (io.ReadCloser, error) {
-	trackInfo, err := client.getTrackInfo(trackID, false)
-	if err != nil {
-		return nil, err
+	itracks := resp.Data
+	tracks := make([]common.Track, len(itracks))
+	for i, v := range itracks {
+		tracks[i] = Track{deezerTrack: v}
 	}
-	return client.downloadTrack(trackInfo, trackQualityID)
+	return tracks, nil
 }
 
 const trackQualityID = 3
