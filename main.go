@@ -682,7 +682,12 @@ func fileServer(fs http.Dir) func(w http.ResponseWriter, r *http.Request) {
 		}
 		etag := sha1.Sum(content)
 		w.Header().Set("ETag", "W/"+fmt.Sprintf("%x", etag))
-		// This should handle Etag
+		if match := r.Header.Get("If-None-Match"); match != "" {
+			if strings.Contains(match, w.Header().Get("ETag")) {
+				w.WriteHeader(http.StatusNotModified)
+				return
+			}
+		}
 		http.ServeContent(w, r, d.Name(), d.ModTime(), f)
 		return
 
