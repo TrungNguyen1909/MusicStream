@@ -137,8 +137,13 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 		log.Fatal(err)
 	}
 	defer streamer.Close()
-	resampled := beep.Resample(4, format.SampleRate, beep.SampleRate(48000), streamer)
-	format.SampleRate = beep.SampleRate(48000)
+	var needResampling bool
+	var resampled *beep.Resampler
+	if format.SampleRate != beep.SampleRate(48000) {
+		resampled = beep.Resample(4, format.SampleRate, beep.SampleRate(48000), streamer)
+		format.SampleRate = beep.SampleRate(48000)
+		needResampling = true
+	}
 	encoder := vorbisencoder.NewEncoder(2, 48000)
 	encoder.Encode(oggHeader, make([]byte, 0))
 	bufferingChannel <- chunk{buffer: oggHeader, encoderTime: encodedTime}
@@ -173,7 +178,13 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 		default:
 		}
 		samples := make([][2]float64, 960)
-		n, ok := resampled.Stream(samples)
+		var n int
+		var ok bool
+		if needResampling {
+			n, ok = resampled.Stream(samples)
+		} else {
+			n, ok = streamer.Stream(samples)
+		}
 		if !ok {
 			break
 		}
