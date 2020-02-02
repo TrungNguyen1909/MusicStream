@@ -5,10 +5,8 @@ import (
 	"common"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -137,7 +135,6 @@ func (track *Track) Populate() (err error) {
 	if err != nil {
 		return
 	}
-	fmt.Println(csnResults)
 	var streamURL string
 	for i := len(csnResults) - 1; i >= 0; i-- {
 		if csnResults[i].Type == "mp3" && csnResults[i].File != "" && strings.HasSuffix(csnResults[i].File, ".mp3") {
@@ -152,8 +149,6 @@ func (track *Track) Populate() (err error) {
 	doc := soup.HTMLParse(string(buf))
 	card := doc.Find("div", "id", "companion_cover").FindNextElementSibling()
 	cardTitle := card.Find("h2", "class", "card-title")
-	title := cardTitle.Text()
-	log.Println(title)
 	list := cardTitle.FindNextElementSibling()
 	artists := make([]string, 0)
 	var album string
