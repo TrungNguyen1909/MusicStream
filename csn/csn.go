@@ -68,7 +68,7 @@ func (track Track) Download() (stream io.ReadCloser, err error) {
 		err = errors.New("Metadata not populated")
 		return
 	}
-	response, err := http.DefaultClient.Get(track.StreamURL)
+	response, err := http.Get(track.StreamURL)
 	if err != nil {
 		return
 	}
@@ -100,7 +100,7 @@ func Search(query string) (tracks []common.Track, err error) {
 	queries.Add("view_all", "true")
 	queries.Add("q", query)
 	queryURL.RawQuery = queries.Encode()
-	resp, err := http.DefaultClient.Get(queryURL.String())
+	resp, err := http.Get(queryURL.String())
 	if err != nil {
 		return
 	}
@@ -118,7 +118,7 @@ func Search(query string) (tracks []common.Track, err error) {
 }
 func (track *Track) Populate() (err error) {
 	url := track.Link
-	resp, err := http.DefaultClient.Get(url)
+	resp, err := http.Get(url)
 	if err != nil {
 		return
 	}

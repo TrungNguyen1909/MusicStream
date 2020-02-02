@@ -89,7 +89,7 @@ func (track Track) Download() (io.ReadCloser, error) {
 	if track.StreamURL == "" || len(track.BlowfishKey) == 0 {
 		return nil, errors.New("Metadata not yet populated")
 	}
-	response, err := http.DefaultClient.Get(track.StreamURL)
+	response, err := http.Get(track.StreamURL)
 	if err != nil {
 		return nil, err
 	}
