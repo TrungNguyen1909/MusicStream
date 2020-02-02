@@ -58,7 +58,7 @@ function initSelector() {
     applySelector();
     return;
   } else {
-    mode = +(selector);
+    mode = +selector;
     applySelector();
   }
 }
@@ -76,6 +76,14 @@ csnSel.addEventListener("click", () => {
 function enqueue() {
   q = document.getElementById("query").value.trim();
   if (!ws) return;
+  var subBox = document.getElementById("sub");
+  var artistBox = subBox.getElementsByClassName("artist")[0];
+  var titleBox = subBox.getElementsByClassName("name")[0];
+  artistBox.innerText = `Query: ${q}`;
+  titleBox.innerText = "Requesting song...";
+  clearTimeout(subBoxTimeout);
+  showSubBox();
+  subBoxTimeout = setTimeout(hideSubBox, 2000);
   ws.send(JSON.stringify({ op: 3, query: q, selector: mode }));
 }
 function setTrack(track) {
