@@ -346,7 +346,7 @@ func audioManager() {
 	for i := range channels {
 		channels[i] = make(chan chan chunk, 1000)
 	}
-	bufferingChannel = make(chan chunk, 1000)
+	bufferingChannel = make(chan chunk, 5000)
 	skipChannel = make(chan int, 500)
 	encoder := vorbisencoder.NewEncoder(2, 48000)
 	oggHeader = make([]byte, 5000)
