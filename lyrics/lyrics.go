@@ -4,13 +4,17 @@ import (
 	"common"
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"strconv"
 )
+
+var userToken = os.Getenv("MUSIXMATCH_USER_TOKEN")
 
 type mxmResponse struct {
 	Message struct {
@@ -219,7 +223,7 @@ func GetLyrics(track, artist, album, artists string, duration int) (result commo
 	}()
 	cookiesJar, _ := cookiejar.New(nil)
 	client := &http.Client{Jar: cookiesJar}
-	reqURL, _ := url.Parse("http://apic.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&user_language=en&tags=playing&namespace=lyrics_synched&f_subtitle_length_max_deviation=1&subtitle_format=mxm&app_id=mac-ios-v2.0&part=subtitle_translated%2Clyrics_translated&selected_language=en&usertoken=***REMOVED***")
+	reqURL, _ := url.Parse(fmt.Sprintf("http://apic.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&user_language=en&tags=playing&namespace=lyrics_synched&f_subtitle_length_max_deviation=1&subtitle_format=mxm&app_id=mac-ios-v2.0&part=subtitle_translated%2Clyrics_translated&selected_language=en&usertoken=%s", userToken))
 	queries := reqURL.Query()
 	queries.Add("q_track", track)
 	queries.Add("q_artist", artist)

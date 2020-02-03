@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
@@ -31,7 +32,7 @@ const (
 	unofficialAPIURL = "https://www.deezer.com/ajax/gw-light.php"
 )
 
-var arlCookie = "***REMOVED***"
+var arlCookie = os.Getenv("DEEZER_ARL")
 
 type Artist struct {
 	Name string `json:"name"`
