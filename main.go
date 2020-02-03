@@ -150,7 +150,7 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	}
 	// encoder := vorbisencoder.NewEncoder(2, 48000)
 	// encoder.Encode(oggHeader, make([]byte, 0))
-	bufferingChannel <- chunk{buffer: oggHeader, encoderTime: encodedTime}
+	//bufferingChannel <- chunk{buffer: oggHeader, encoderTime: encodedTime}
 	for j := 0; j < 2; j++ {
 		for i := 0; i < 2; i++ {
 			silenceFrame := make([]byte, 20000)
@@ -214,44 +214,22 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 		}
 	}
 }
-func preloadRadio(quit chan int) {
-	var encodedTime time.Duration
-	time.Sleep(time.Until(etaDone))
-	log.Println("Radio preloading started!")
-	stream, _ := radio.Download()
-	defer func() {
-		bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
-	}()
-	defer log.Println("Radio preloading stopped!")
-	//encoder := vorbisencoder.NewEncoder(2, 48000)
-	// encoder.Encode(oggHeader, make([]byte, 0))
-	bufferingChannel <- chunk{buffer: oggHeader, encoderTime: encodedTime}
-	defer func() {
-
-		// lastBuffer := make([]byte, 20000)
-		// n := encoder.EndStream(lastBuffer)
-		// bufferingChannel <- chunk{buffer: lastBuffer[:n], encoderTime: encodedTime}
-	}()
-	pos := int64(encoder.GranulePos())
-	atomic.StoreInt64(&startPos, pos)
-	deltaChannel <- pos
-start:
+func encodeRadio(stream io.ReadCloser, encodedTime *time.Duration, quit chan int) bool {
 	streamer, format, err := vorbis.Decode(stream)
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	defer streamer.Close()
 	for {
 		select {
 		case <-quit:
-			return
+			return true
 		default:
 		}
 		samples := make([][2]float64, 960)
 		n, ok := streamer.Stream(samples)
 		if !ok {
-			goto start
+			return false
 		}
 		var buf bytes.Buffer
 		for _, sample := range samples {
@@ -263,13 +241,38 @@ start:
 		}
 		output := make([]byte, 20000)
 		encodedLen := encoder.Encode(output, buf.Bytes())
-		encodedTime += 20 * time.Millisecond
+		*encodedTime += 20 * time.Millisecond
 		if encodedLen > 0 {
-			bufferingChannel <- chunk{buffer: output[:encodedLen], encoderTime: encodedTime}
+			bufferingChannel <- chunk{buffer: output[:encodedLen], encoderTime: *encodedTime}
 		}
 		if 0 <= n && n < 960 && ok {
-			goto start
+			return false
 		}
+	}
+}
+func preloadRadio(quit chan int) {
+	var encodedTime time.Duration
+	time.Sleep(time.Until(etaDone))
+	log.Println("Radio preloading started!")
+	defer func() {
+		bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
+	}()
+	defer log.Println("Radio preloading stopped!")
+	//encoder := vorbisencoder.NewEncoder(2, 48000)
+	// encoder.Encode(oggHeader, make([]byte, 0))
+	//bufferingChannel <- chunk{buffer: oggHeader, encoderTime: encodedTime}
+	defer func() {
+
+		// lastBuffer := make([]byte, 20000)
+		// n := encoder.EndStream(lastBuffer)
+		// bufferingChannel <- chunk{buffer: lastBuffer[:n], encoderTime: encodedTime}
+	}()
+	pos := int64(encoder.GranulePos())
+	atomic.StoreInt64(&startPos, pos)
+	deltaChannel <- pos
+	stream, _ := radio.Download()
+	for !encodeRadio(stream, &encodedTime, quit) {
+		stream, _ = radio.Download()
 	}
 }
 func processRadio(quit chan int) {
@@ -362,7 +365,7 @@ func audioManager() {
 	}
 	bufferingChannel = make(chan chunk, 5000)
 	skipChannel = make(chan int, 500)
-	deltaChannel = make(chan int64, 2)
+	deltaChannel = make(chan int64, 1)
 	encoder = vorbisencoder.NewEncoder(2, 48000)
 	oggHeader = make([]byte, 5000)
 	n := encoder.Encode(oggHeader, make([]byte, 0))
