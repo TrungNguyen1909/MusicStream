@@ -27,7 +27,7 @@ struct tEncoderState
 	int rate;
 	int num_channels;
 	int sample_rate;
-	int granulepos;
+	int64_t granulepos;
 
 	int encoded_max_size;
 	int encoded_length;
@@ -123,6 +123,7 @@ long encode(Encoder* state, char* outputSlice, char* inputSlice){
 			while(ogg_stream_pageout(&state->os, &og) || (state->op.e_o_s && ogg_stream_flush(&state->os, &og)))
 			{
 				write_page(state, &og);
+				state->granulepos = ogg_page_granulepos(&og);
 			}
 		}
 	}
@@ -153,7 +154,10 @@ long encoder_finish(Encoder* state, char* outputSlice)
 			ogg_stream_packetin(&state->os, &state->op);
 
 			while(ogg_stream_flush(&state->os, &og))
+			{
 				write_page(state, &og);
+				state->granulepos = ogg_page_granulepos(&og);
+			}
 		}
 	}
 
@@ -190,4 +194,8 @@ func (encoder *Encoder) Encode(out []byte, data []byte) int {
 }
 func (encoder *Encoder) EndStream(out []byte) int {
 	return int(C.encoder_finish((*C.struct_tEncoderState)(encoder), (*C.char)(unsafe.Pointer(&out))))
+}
+
+func (encoder *Encoder) GranulePos() int {
+	return int((*C.struct_tEncoderState)(encoder).granulepos)
 }

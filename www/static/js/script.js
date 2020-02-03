@@ -3,6 +3,7 @@ var ctrack = null;
 var wsInterval = null;
 var lyricsInterval = null;
 var subBoxTimeout = null;
+var delta = 0;
 class musicPlayer {
   constructor() {
     this.play = this.play.bind(this);
@@ -94,7 +95,7 @@ function setTrack(track) {
   ctrack = track;
   document.getElementById("artist").innerText = ctrack.artists;
   document.getElementById("name").innerText = ctrack.title;
-  window.player.src = `/audio`;
+  // window.player.src = `/audio`;
   setTimeout(lyricsControl, 0);
   //let artworkBox = document.getElementsByClassName("album-art")[0];
   //artworkBox.style.backgroundImage = `url(${ctrack.album.cover})`;
@@ -160,7 +161,13 @@ function initWebSocket() {
     var msg = JSON.parse(event.data);
     switch (msg.op) {
       case 1:
+        delta = msg.pos / 48000.0;
+        if (Math.abs(delta - player.currentTime) > 3) {
+          // We are too slow ... syncing.
+          player.src = `/audio`;
+        }
         setTrack(msg.track);
+        setListeners(msg.listeners);
         break;
       case 3:
         var subBox = document.getElementById("sub");
@@ -218,6 +225,9 @@ search.addEventListener("keydown", function(event) {
 window.onload = function() {
   this.initSelector();
   this.player = document.getElementById("audio-player");
+  this.player.onload = ()=>{
+    this.fetch("/listeners").then((response)=>response.json()).then((msg)=>this.setListeners(msg.listeners))
+  }
   this.initWebSocket();
 };
 
@@ -243,7 +253,7 @@ function lyricsControl() {
   let idx = 0;
   lyricsInterval = setInterval(() => {
     try {
-      if (ctrack.lyrics.lrc[idx].time.total < player.currentTime - 1.584) {
+      if (ctrack.lyrics.lrc[idx].time.total + delta < player.currentTime) {
         originalBox.innerText = "";
         translatedBox.innerText = "";
         originalBox.style.transitionDuration = "0s";

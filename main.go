@@ -64,6 +64,9 @@ var isRadioStreaming int32
 var currentTrackID int
 var watchDog int
 var radio common.RadioTrack
+var startPos int64
+var encoder *vorbisencoder.Encoder
+var deltaChannel chan int64
 
 func (socket *webSocket) WriteMessage(messageType int, data []byte) error {
 	socket.mux.Lock()
@@ -144,8 +147,8 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 		format.SampleRate = beep.SampleRate(48000)
 		needResampling = true
 	}
-	encoder := vorbisencoder.NewEncoder(2, 48000)
-	encoder.Encode(oggHeader, make([]byte, 0))
+	// encoder := vorbisencoder.NewEncoder(2, 48000)
+	// encoder.Encode(oggHeader, make([]byte, 0))
 	bufferingChannel <- chunk{buffer: oggHeader, encoderTime: encodedTime}
 	for j := 0; j < 2; j++ {
 		for i := 0; i < 2; i++ {
@@ -166,11 +169,14 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 				bufferingChannel <- chunk{buffer: silenceFrame, encoderTime: encodedTime}
 			}
 		}
-		lastBuffer := make([]byte, 20000)
-		n := encoder.EndStream(lastBuffer)
-		bufferingChannel <- chunk{buffer: lastBuffer[:n], encoderTime: encodedTime}
+		// lastBuffer := make([]byte, 20000)
+		// n := encoder.EndStream(lastBuffer)
+		// bufferingChannel <- chunk{buffer: lastBuffer[:n], encoderTime: encodedTime}
 		bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
 	}()
+	pos := int64(encoder.GranulePos())
+	atomic.StoreInt64(&startPos, pos)
+	deltaChannel <- pos
 	for {
 		select {
 		case <-quit:
@@ -217,14 +223,14 @@ func preloadRadio(quit chan int) {
 		bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
 	}()
 	defer log.Println("Radio preloading stopped!")
-	encoder := vorbisencoder.NewEncoder(2, 48000)
-	encoder.Encode(oggHeader, make([]byte, 0))
+	//encoder := vorbisencoder.NewEncoder(2, 48000)
+	// encoder.Encode(oggHeader, make([]byte, 0))
 	bufferingChannel <- chunk{buffer: oggHeader, encoderTime: encodedTime}
 	defer func() {
 
-		lastBuffer := make([]byte, 20000)
-		n := encoder.EndStream(lastBuffer)
-		bufferingChannel <- chunk{buffer: lastBuffer[:n], encoderTime: encodedTime}
+		// lastBuffer := make([]byte, 20000)
+		// n := encoder.EndStream(lastBuffer)
+		// bufferingChannel <- chunk{buffer: lastBuffer[:n], encoderTime: encodedTime}
 	}()
 start:
 	streamer, format, err := vorbis.Decode(stream)
@@ -233,6 +239,9 @@ start:
 	}
 
 	defer streamer.Close()
+	pos := int64(encoder.GranulePos())
+	atomic.StoreInt64(&startPos, pos)
+	deltaChannel <- pos
 	for {
 		select {
 		case <-quit:
@@ -267,8 +276,8 @@ func processRadio(quit chan int) {
 	quitPreload := make(chan int, 10)
 	time.Sleep(time.Until(etaDone))
 	currentTrack = radio
-	setTrack(common.GetMetadata(radio))
 	go preloadRadio(quitPreload)
+	setTrack(common.GetMetadata(radio))
 	atomic.StoreInt32(&isRadioStreaming, 1)
 	defer atomic.StoreInt32(&isRadioStreaming, 0)
 	defer log.Println("Radio stream ended")
@@ -353,11 +362,12 @@ func audioManager() {
 	}
 	bufferingChannel = make(chan chunk, 5000)
 	skipChannel = make(chan int, 500)
-	encoder := vorbisencoder.NewEncoder(2, 48000)
+	deltaChannel = make(chan int64, 2)
+	encoder = vorbisencoder.NewEncoder(2, 48000)
 	oggHeader = make([]byte, 5000)
 	n := encoder.Encode(oggHeader, make([]byte, 0))
 	oggHeader = oggHeader[:n]
-	encoder.EndStream(nil)
+	//encoder.EndStream(nil)
 	playQueue = queue.NewQueue()
 	dzClient = deezer.NewClient()
 	radio = common.RadioTrack{}
@@ -367,12 +377,13 @@ func audioManager() {
 	}
 }
 func setTrack(trackMeta common.TrackMetadata) {
-	time.Sleep(1 * time.Second)
 	currentTrackMeta = trackMeta
 	log.Printf("Setting track on all clients %v - %v\n", trackMeta.Title, trackMeta.Artist)
 	data, err := json.Marshal(map[string]interface{}{
-		"op":    1,
-		"track": trackMeta,
+		"op":        1,
+		"track":     trackMeta,
+		"pos":       <-deltaChannel,
+		"listeners": atomic.LoadInt32(&listenersCount),
 	})
 	connections.Range(func(key, value interface{}) bool {
 		ws := value.(*webSocket)
@@ -433,8 +444,10 @@ func audioHandler(w http.ResponseWriter, r *http.Request) {
 
 func getPlaying() []byte {
 	data, _ := json.Marshal(map[string]interface{}{
-		"op":    1,
-		"track": currentTrackMeta,
+		"op":        1,
+		"track":     currentTrackMeta,
+		"pos":       atomic.LoadInt64(&startPos),
+		"listeners": atomic.LoadInt32(&listenersCount),
 	})
 	return data
 }
