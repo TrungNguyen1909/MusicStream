@@ -26,6 +26,7 @@ import (
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/vorbis"
 	"github.com/gorilla/websocket"
+	_ "github.com/joho/godotenv/autoload"
 )
 
 const (
@@ -726,6 +727,14 @@ func logRequest(handler http.Handler) http.Handler {
 	})
 }
 func main() {
+	_, ok := os.LookupEnv("DEEZER_ARL")
+	if !ok {
+		panic("Deezer token not found")
+	}
+	_, ok = os.LookupEnv("MUSIXMATCH_USER_TOKEN")
+	if !ok {
+		panic("Musixmatch token not found")
+	}
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
 		port = "8890"

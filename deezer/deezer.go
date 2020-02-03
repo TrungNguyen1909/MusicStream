@@ -32,8 +32,6 @@ const (
 	unofficialAPIURL = "https://www.deezer.com/ajax/gw-light.php"
 )
 
-var arlCookie = os.Getenv("DEEZER_ARL")
-
 type Artist struct {
 	Name string `json:"name"`
 }
@@ -203,7 +201,7 @@ func NewClient() (client *Client) {
 	client.unofficialAPIQuery.Set("api_version", "1.0")
 	client.unofficialAPIQuery.Set("input", "3")
 	client.unofficialAPIQuery.Set("api_token", "")
-	client.arlCookie = &http.Cookie{Name: "arl", Value: arlCookie}
+	client.arlCookie = &http.Cookie{Name: "arl", Value: os.Getenv("DEEZER_ARL")}
 	client.deezerURL, _ = url.Parse(deezerURL)
 	client.initDeezerAPI()
 	return
