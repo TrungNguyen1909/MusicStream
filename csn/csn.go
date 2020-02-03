@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+
+	"github.com/anaskhan96/soup"
 )
 
 type csnTrack struct {
@@ -149,27 +151,20 @@ func (track *Track) Populate() (err error) {
 		err = errors.New("no stream URL found!")
 		return
 	}
-	// doc := soup.HTMLParse(string(buf))
-	// card := doc.Find("div", "id", "companion_cover").FindNextElementSibling()
-	// cardTitle := card.Find("h2", "class", "card-title")
-	// list := cardTitle.FindNextElementSibling()
-	// artists := make([]string, 0)
-	// var album string
-	// for _, child := range list.Children() {
-	// 	span := child.Find("span")
-	// 	if span.Pointer == nil {
-	// 		continue
-	// 	}
-	// 	if span.Text() == "Ca sĩ: " {
-	// 		for _, artist := range child.FindAll("a") {
-	// 			artists = append(artists, artist.Text())
-	// 		}
-	// 	} else if span.Text() == "Album: " {
-	// 		album = child.Find("a").Text()
-	// 	}
-	// }
-	// track.csnTrack.Artists = artists
-	// track.csnTrack.Album = album
+	doc := soup.HTMLParse(string(buf))
+	list := doc.Find("div", "id", "companion_cover").FindNextElementSibling().Find("h2", "class", "card-title").FindNextElementSibling()
+	var album string
+	for _, child := range list.Children() {
+		span := child.Find("span")
+		if span.Pointer == nil {
+			continue
+		}
+		if span.Text() == "Album: " {
+			album = child.Find("a").Text()
+			break
+		}
+	}
+	track.csnTrack.Album = album
 	track.StreamURL = streamURL
 	return
 }
