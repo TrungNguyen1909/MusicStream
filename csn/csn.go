@@ -11,8 +11,6 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
-
-	"github.com/anaskhan96/soup"
 )
 
 type csnTrack struct {
@@ -111,6 +109,10 @@ func Search(query string) (tracks []common.Track, err error) {
 	}
 	result := results[0]
 	tracks = make([]common.Track, len(result.Music.Data))
+	for i := range result.Music.Data {
+		result.Music.Data[i].Artists = strings.Split(result.Music.Data[i].Artist, "; ")
+		result.Music.Data[i].Artist = result.Music.Data[i].Artists[0]
+	}
 	for i, v := range result.Music.Data {
 		tracks[i] = Track{csnTrack: v}
 	}
@@ -147,27 +149,27 @@ func (track *Track) Populate() (err error) {
 		err = errors.New("no stream URL found!")
 		return
 	}
-	doc := soup.HTMLParse(string(buf))
-	card := doc.Find("div", "id", "companion_cover").FindNextElementSibling()
-	cardTitle := card.Find("h2", "class", "card-title")
-	list := cardTitle.FindNextElementSibling()
-	artists := make([]string, 0)
-	var album string
-	for _, child := range list.Children() {
-		span := child.Find("span")
-		if span.Pointer == nil {
-			continue
-		}
-		if span.Text() == "Ca sĩ: " {
-			for _, artist := range child.FindAll("a") {
-				artists = append(artists, artist.Text())
-			}
-		} else if span.Text() == "Album: " {
-			album = child.Find("a").Text()
-		}
-	}
-	track.csnTrack.Artists = artists
-	track.csnTrack.Album = album
+	// doc := soup.HTMLParse(string(buf))
+	// card := doc.Find("div", "id", "companion_cover").FindNextElementSibling()
+	// cardTitle := card.Find("h2", "class", "card-title")
+	// list := cardTitle.FindNextElementSibling()
+	// artists := make([]string, 0)
+	// var album string
+	// for _, child := range list.Children() {
+	// 	span := child.Find("span")
+	// 	if span.Pointer == nil {
+	// 		continue
+	// 	}
+	// 	if span.Text() == "Ca sĩ: " {
+	// 		for _, artist := range child.FindAll("a") {
+	// 			artists = append(artists, artist.Text())
+	// 		}
+	// 	} else if span.Text() == "Album: " {
+	// 		album = child.Find("a").Text()
+	// 	}
+	// }
+	// track.csnTrack.Artists = artists
+	// track.csnTrack.Album = album
 	track.StreamURL = streamURL
 	return
 }

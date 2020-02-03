@@ -312,6 +312,11 @@ func processTrack() {
 	if radioStarted {
 		quitRadio <- 0
 	}
+	if track.Source() == common.CSN {
+		cTrack := track.(csn.Track)
+		err = cTrack.Populate()
+		track = cTrack
+	}
 	log.Printf("Playing %v - %v\n", track.Title(), track.Artist())
 	trackDict := common.GetMetadata(track)
 	var mxmlyrics common.LyricsResult
@@ -477,10 +482,6 @@ func enqueue(msg wsMessage) []byte {
 		track := tracks[0]
 		if track.Source() == common.Deezer {
 			track, err = dzClient.GetTrackByID(track.ID())
-		} else if track.Source() == common.CSN {
-			cTrack := track.(csn.Track)
-			err = cTrack.Populate()
-			track = cTrack
 		}
 		playQueue.Enqueue(track)
 		log.Printf("Track enqueued: %v - %v\n", track.Title(), track.Artist())
