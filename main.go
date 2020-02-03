@@ -327,6 +327,9 @@ func processTrack() {
 	if track.Source() == common.CSN {
 		cTrack := track.(csn.Track)
 		err = cTrack.Populate()
+		if err != nil {
+			log.Fatal(err)
+		}
 		track = cTrack
 	}
 	log.Printf("Playing %v - %v\n", track.Title(), track.Artist())

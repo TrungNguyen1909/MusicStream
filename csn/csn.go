@@ -7,7 +7,9 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"regexp"
 	"strings"
@@ -91,6 +93,7 @@ type csnSearchResult struct {
 }
 
 var pattern *regexp.Regexp
+var client *http.Client
 
 func Search(query string) (tracks []common.Track, err error) {
 	queryURL, _ := url.Parse("https://chiasenhac.vn/search/real")
@@ -100,7 +103,11 @@ func Search(query string) (tracks []common.Track, err error) {
 	queries.Add("view_all", "true")
 	queries.Add("q", query)
 	queryURL.RawQuery = queries.Encode()
-	resp, err := http.Get(queryURL.String())
+	if client == nil {
+		cookiesJar, _ := cookiejar.New(nil)
+		client = &http.Client{Jar: cookiesJar}
+	}
+	resp, err := client.Get(queryURL.String())
 	if err != nil {
 		return
 	}
@@ -122,7 +129,11 @@ func Search(query string) (tracks []common.Track, err error) {
 }
 func (track *Track) Populate() (err error) {
 	url := track.Link
-	resp, err := http.Get(url)
+	if client == nil {
+		cookiesJar, _ := cookiejar.New(nil)
+		client = &http.Client{Jar: cookiesJar}
+	}
+	resp, err := client.Get(url)
 	if err != nil {
 		return
 	}
@@ -130,16 +141,20 @@ func (track *Track) Populate() (err error) {
 	if err != nil {
 		return
 	}
+	log.Println("csnTrack.Populate: got buf")
 	if pattern == nil {
 		pattern, _ = regexp.Compile("sources: \\[([^\\]]*)\\]")
 	}
 	m := pattern.FindSubmatch(buf)
+	log.Println("csnTrack.Populate: got match")
 	res := bytes.Join([][]byte{[]byte("["), bytes.Trim(m[1], ", \n"), []byte("]")}, []byte(""))
+	log.Printf("res: %s\n", res)
 	var csnResults []csnResult
 	err = json.Unmarshal(res, &csnResults)
 	if err != nil {
 		return
 	}
+	log.Println("csnTrack.Populate: got csnResults")
 	var streamURL string
 	for i := len(csnResults) - 1; i >= 0; i-- {
 		if csnResults[i].Type == "mp3" && csnResults[i].File != "" && strings.HasSuffix(csnResults[i].File, ".mp3") {
@@ -151,7 +166,11 @@ func (track *Track) Populate() (err error) {
 		err = errors.New("no stream URL found!")
 		return
 	}
+	log.Println("csnTrack.Populate: got streamURL")
+	track.StreamURL = streamURL
+
 	doc := soup.HTMLParse(string(buf))
+	log.Println("csnTrack.Populate: got doc parsed")
 	list := doc.Find("div", "id", "companion_cover").FindNextElementSibling().Find("h2", "class", "card-title").FindNextElementSibling()
 	var album string
 	for _, child := range list.Children() {
@@ -165,6 +184,6 @@ func (track *Track) Populate() (err error) {
 		}
 	}
 	track.csnTrack.Album = album
-	track.StreamURL = streamURL
+	log.Println("csnTrack.Populate: got album")
 	return
 }
