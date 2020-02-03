@@ -219,7 +219,6 @@ func preloadRadio(quit chan int) {
 	time.Sleep(time.Until(etaDone))
 	log.Println("Radio preloading started!")
 	stream, _ := radio.Download()
-	defer stream.Close()
 	defer func() {
 		bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
 	}()
@@ -233,6 +232,9 @@ func preloadRadio(quit chan int) {
 		// n := encoder.EndStream(lastBuffer)
 		// bufferingChannel <- chunk{buffer: lastBuffer[:n], encoderTime: encodedTime}
 	}()
+	pos := int64(encoder.GranulePos())
+	atomic.StoreInt64(&startPos, pos)
+	deltaChannel <- pos
 start:
 	streamer, format, err := vorbis.Decode(stream)
 	if err != nil {
@@ -240,9 +242,6 @@ start:
 	}
 
 	defer streamer.Close()
-	pos := int64(encoder.GranulePos())
-	atomic.StoreInt64(&startPos, pos)
-	deltaChannel <- pos
 	for {
 		select {
 		case <-quit:
