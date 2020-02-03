@@ -303,5 +303,6 @@ div.background {
 .btn-group div:hover,
 .btn-group div:focus,
 .btn-group .active {
-  background-color: #04060d;
+  background-color: #c2c6cf;
+  color: #1b2b40;
 }
