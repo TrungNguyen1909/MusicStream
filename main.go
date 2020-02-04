@@ -16,16 +16,19 @@ import (
 	"os"
 	"path"
 	"queue"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+	"unsafe"
 	"vorbisencoder"
 
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/vorbis"
 	"github.com/gorilla/websocket"
+	"github.com/jfreymuth/oggvorbis"
 	_ "github.com/joho/godotenv/autoload"
 )
 
@@ -214,11 +217,38 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 		}
 	}
 }
+func fillRadioMetadataFromVorbisStream(radio *common.RadioTrack, stream beep.StreamSeekCloser) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("fillRadioMetadataFromVorbisStream failed: %v", r)
+		}
+	}()
+	v := reflect.ValueOf(stream)
+	internalDecoderField := v.Elem().FieldByName("d")
+	internalDecoderInterface := reflect.NewAt(internalDecoderField.Type(), unsafe.Pointer(internalDecoderField.UnsafeAddr())).Elem().Interface()
+	internalDecoder := internalDecoderInterface.(*oggvorbis.Reader)
+	for _, comment := range internalDecoder.CommentHeader().Comments {
+		switch {
+		case strings.HasPrefix(comment, "title="):
+			radio.SetTitle(strings.TrimPrefix(comment, "title="))
+		case strings.HasPrefix(comment, "artist="):
+			radio.SetArtist(strings.TrimPrefix(comment, "artist="))
+		case strings.HasPrefix(comment, "album="):
+			radio.SetAlbum(strings.TrimPrefix(comment, "album="))
+		}
+	}
+}
 func encodeRadio(stream io.ReadCloser, encodedTime *time.Duration, quit chan int) bool {
 	streamer, format, err := vorbis.Decode(stream)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	radio.SetTitle("listen.moe")
+	radio.SetArtist("")
+	radio.SetAlbum("")
+	fillRadioMetadataFromVorbisStream(&radio, streamer)
+	setTrack(common.GetMetadata(radio))
 	defer streamer.Close()
 	for {
 		select {
@@ -270,6 +300,7 @@ func preloadRadio(quit chan int) {
 	pos := int64(encoder.GranulePos())
 	atomic.StoreInt64(&startPos, pos)
 	deltaChannel <- pos
+	radio = common.RadioTrack{}
 	stream, _ := radio.Download()
 	for !encodeRadio(stream, &encodedTime, quit) {
 		stream, _ = radio.Download()
@@ -280,7 +311,6 @@ func processRadio(quit chan int) {
 	time.Sleep(time.Until(etaDone))
 	currentTrack = radio
 	go preloadRadio(quitPreload)
-	setTrack(common.GetMetadata(radio))
 	atomic.StoreInt32(&isRadioStreaming, 1)
 	defer atomic.StoreInt32(&isRadioStreaming, 0)
 	defer log.Println("Radio stream ended")
@@ -376,7 +406,6 @@ func audioManager() {
 	//encoder.EndStream(nil)
 	playQueue = queue.NewQueue()
 	dzClient = deezer.NewClient()
-	radio = common.RadioTrack{}
 	currentTrackID = -1
 	for {
 		processTrack()

@@ -66,6 +66,21 @@ type LyricsResult struct {
 }
 
 type RadioTrack struct {
+	title  string
+	artist string
+	album  string
+}
+
+func (track *RadioTrack) SetTitle(title string) {
+	track.title = title
+}
+
+func (track *RadioTrack) SetArtist(artist string) {
+	track.artist = artist
+}
+
+func (track *RadioTrack) SetAlbum(album string) {
+	track.album = album
 }
 
 func (track RadioTrack) ID() int {
@@ -73,11 +88,11 @@ func (track RadioTrack) ID() int {
 }
 
 func (track RadioTrack) Title() string {
-	return "listen.moe"
+	return track.title
 }
 
 func (track RadioTrack) Album() string {
-	return ""
+	return track.album
 }
 
 func (track RadioTrack) Source() int {
@@ -85,10 +100,10 @@ func (track RadioTrack) Source() int {
 }
 
 func (track RadioTrack) Artist() string {
-	return ""
+	return track.artist
 }
 func (track RadioTrack) Artists() string {
-	return ""
+	return track.artist
 }
 func (track RadioTrack) Duration() int {
 	return 0

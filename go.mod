@@ -12,6 +12,7 @@ require (
 	github.com/gorilla/websocket v1.4.1
 	github.com/hajimehoshi/go-mp3 v0.2.1
 	github.com/hajimehoshi/oto v0.5.4
+	github.com/jfreymuth/oggvorbis v1.0.0
 	github.com/joho/godotenv v1.3.0
 	github.com/pkg/errors v0.8.1
 	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876
