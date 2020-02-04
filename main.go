@@ -248,6 +248,9 @@ func encodeRadio(stream io.ReadCloser, encodedTime *time.Duration, quit chan int
 	radio.SetArtist("")
 	radio.SetAlbum("")
 	fillRadioMetadataFromVorbisStream(&radio, streamer)
+	pos := int64(encoder.GranulePos())
+	atomic.StoreInt64(&startPos, pos)
+	deltaChannel <- pos
 	setTrack(common.GetMetadata(radio))
 	defer streamer.Close()
 	for {
@@ -297,9 +300,6 @@ func preloadRadio(quit chan int) {
 		// n := encoder.EndStream(lastBuffer)
 		// bufferingChannel <- chunk{buffer: lastBuffer[:n], encoderTime: encodedTime}
 	}()
-	pos := int64(encoder.GranulePos())
-	atomic.StoreInt64(&startPos, pos)
-	deltaChannel <- pos
 	radio = common.RadioTrack{}
 	stream, _ := radio.Download()
 	for !encodeRadio(stream, &encodedTime, quit) {
