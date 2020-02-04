@@ -1,20 +1,42 @@
 @import url("https://fonts.googleapis.com/css?family=Fira+Sans");
-html,
-body {
+html {
+  display: inline-flex;
+  height: 100%;
   overflow: hidden;
   position: relative;
   min-height: 100vh;
-  display: flex;
   align-items: center;
   justify-content: center;
   font-family: "Fira Sans", Helvetica, Arial, sans-serif;
   z-index: -10;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: no-repeat scroll 50% 50%;
+  background-size: cover;
+  pointer-events: none;
+  background-image: url("/static/media/cfa71cb20e36187a28ba59df1613fe02e8433a41.jpg");
+  filter: blur(0px);
+  -webkit-filter: blur(0px);
+}
+body {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  pointer-events: initial;
+  width: 100%;
+  max-width: 500px;
+  justify-content: center;
+  font-family: "Fira Sans", Helvetica, Arial, sans-serif;
+  z-index: -8;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .player {
   position: relative;
+  align-self: center;
+  width: 100%;
 }
 
 .player .sub {
@@ -63,7 +85,7 @@ body {
   position: relative;
   background-color: #1b2b40;
   border-radius: 15px;
-  width: 500px;
+  width: 100%;
   height: 90px;
   z-index: 5;
 }
@@ -76,12 +98,15 @@ body {
 }
 
 .player .control-panel .controls .info {
-  width: 390px;
+  width: calc(100% - 110px);
+  width: -moz-calc(100% - 110px);
+  width: -webkit-calc(100% - 110px);
   height: auto;
 }
 
 .player .control-panel .controls .prev,
 .player .control-panel .controls .play,
+.player .control-panel .controls .pause,
 .player .control-panel .controls .next {
   width: 55px;
   height: auto;
@@ -99,26 +124,39 @@ body {
   margin-top: auto;
   margin-bottom: auto;
   fill: transparent;
-  stroke: #c2c6cf;
   stroke-width: 15px;
 }
 
-.player .control-panel .controls .prev .svg :hover,
-.player .control-panel .controls .play .svg :hover,
-.player .control-panel .controls .next .svg :hover {
+.player .control-panel .controls .prev .svg,
+.player .control-panel .controls .next .svg {
+  stroke: #c2c6cf;
+}
+
+.player .control-panel .controls .play .svg .playIcon {
+  stroke: #c2c6cf;
+}
+
+.player .control-panel .controls .play .svg:hover .playIcon {
   stroke: #d92b3a;
 }
 
-.player .control-panel .controls .play .svg g path {
-  d: path(
-    "M203.791,99.628L49.307,2.294c-4.567-2.719-10.238-2.266-14.521-2.266   c-17.132,0-17.056,13.227-17.056,16.578v198.94c0,2.833-0.075,16.579,17.056,16.579c4.283,0,9.955,0.451,14.521-2.267   l154.483-97.333c12.68-7.545,10.489-16.449,10.489-16.449S216.471,107.172,203.791,99.628z"
-  );
+.player .control-panel .controls .play .svg .pauseIcon {
+  stroke: transparent;
 }
 
-.player .control-panel .controls .play.playing .svg g path {
-  d: path(
-    "M80.543,0H35.797c-9.885,0-17.898,8.014-17.898,17.898v196.883   c0,9.885,8.013,17.898,17.898,17.898h44.746c9.885,0,17.898-8.013,17.898-17.898V17.898C98.44,8.014,90.427,0,80.543,0z M196.882,0   h-44.746c-9.886,0-17.899,8.014-17.899,17.898v196.883c0,9.885,8.013,17.898,17.899,17.898h44.746   c9.885,0,17.898-8.013,17.898-17.898V17.898C214.781,8.014,206.767,0,196.882,0z"
-  );
+.player .control-panel.playing .controls .play .svg .playIcon {
+  stroke: transparent;
+}
+.player .control-panel.playing .controls .play .svg .pauseIcon {
+  stroke: #c2c6cf;
+}
+.player .control-panel.playing .controls .play .svg:hover .pauseIcon {
+  stroke: #d92b3a;
+}
+
+.player .control-panel .controls .prev .svg :hover,
+.player .control-panel .controls .next .svg :hover {
+  stroke: #d92b3a;
 }
 
 .player .control-panel .controls .info .artist,
@@ -205,21 +243,6 @@ body {
   text-indent: 0%;
 }
 
-div.background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  background: no-repeat scroll 50% 50%;
-  background-size: cover;
-  z-index: -1;
-  height: 100vh;
-  width: 100%;
-  pointer-events: none;
-  background-image: url("/static/media/cfa71cb20e36187a28ba59df1613fe02e8433a41.jpg");
-  filter: blur(0px);
-  -webkit-filter: blur(0px);
-}
-
 ::-moz-selection {
   background: #c2c6cf;
 }
@@ -232,17 +255,18 @@ div.background {
   z-index: 4;
   position: absolute;
   top: 0;
-  width: 500px;
-  display: block;
+  width: 100%;
+  margin-top: 10px;
 }
 
 .search__input {
-  margin-left: 100px;
+  margin-top: 0;
+  float: left;
   position: relative;
-  width: 350px;
-  padding: 12px 24px;
-  background-color: #c2c6cf;
-  transition: transform 250ms ease-in-out;
+  width: calc(100% - 103px - 41px);
+  width: -webkit-calc(100% - 103px - 41px);
+  width: -moz-calc(100% - 103px - 41px);
+  padding: 12px 20px;
   font-size: 15px;
   line-height: 18px;
 
@@ -253,7 +277,6 @@ div.background {
   border-bottom-right-radius: 15px;
   border-left: none;
   transition: all 250ms ease-in-out;
-  backface-visibility: hidden;
   transform-style: preserve-3d;
 }
 
@@ -273,10 +296,11 @@ div.background {
   background-position: 100% center;
 }
 .btn-group {
-  position: absolute;
+  position: relative;
   top: 0;
 }
 .btn-group div {
+  position: relative;
   line-height: 42px;
   height: 42px;
   width: 50px;
@@ -293,11 +317,6 @@ div.background {
 }
 .btn-group div:not(:last-child) {
   border-right: none; /* Prevent double borders */
-}
-.btn-group:after {
-  content: "";
-  clear: both;
-  display: table;
 }
 /* Add a background color on hover */
 .btn-group div:hover,

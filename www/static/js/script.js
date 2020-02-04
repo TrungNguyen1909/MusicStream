@@ -7,11 +7,14 @@ var delta = 0;
 class musicPlayer {
   constructor() {
     this.play = this.play.bind(this);
+    //this.pause = this.pause.bind(this);
     this.skip = this.skip.bind(this);
     this.skipBtn = document.getElementById("skip");
     this.skipBtn.addEventListener("click", this.skip);
     this.playBtn = document.getElementById("play");
     this.playBtn.addEventListener("click", this.play);
+    //this.pauseBtn = document.getElementById("pause");
+    //this.pauseBtn.addEventListener("click", this.pause);
     this.controlPanel = document.getElementById("control-panel");
     this.isPlaying = false;
   }
@@ -23,16 +26,20 @@ class musicPlayer {
     }, 1000);
   }
   play() {
-    if (!this.isPlaying) {
-      this.playBtn.classList.add("playing");
-      window.player.muted = false;
-      window.player.play();
-    } else {
-      this.playBtn.classList.remove("playing");
-      window.player.muted = true;
+    if (!this.isPlaying){
+    this.controlPanel.classList.add("playing");
+    window.player.muted = false;
+    window.player.play();
+    this.isPlaying = 1;
     }
+    else{
 
-    this.isPlaying = !this.isPlaying;
+    this.controlPanel.classList.remove("playing");
+    window.player.muted = true;
+    this.isPlaying = 0;
+    }
+  }
+  pause() {
   }
 }
 
