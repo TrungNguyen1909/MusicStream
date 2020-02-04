@@ -59,6 +59,7 @@ body {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  width: 95%;
 }
 
 .player .sub .name {
@@ -204,12 +205,14 @@ body {
   border-top-left-radius: 15px;
   border-top-right-radius: 15px;
   transition: all 0.5s ease;
+  align-content: center;
+  justify-content: center;
 }
 
 .player .lyrics .original,
 .player .lyrics .translated {
   display: block;
-  width: 450px;
+  width: 95%;
   overflow: hidden;
   white-space: nowrap;
 }
