@@ -163,9 +163,21 @@ function initWebSocket() {
       case 1:
         delta = msg.pos / 48000.0;
         diff = delta - player.currentTime;
-        if (Math.abs(diff) > 3) {
-          // We are too slow ... syncing.
-          player.src = `/audio`;
+        if (Math.abs(diff) > 6) {
+          if (!ctrack || ctrack.source == 3) {
+            player.src = `/audio`;
+          } else {
+            if (msg.track.source != 3) {
+              // We are too slow ... syncing.
+              setTimeout(() => {
+                player.src = `/audio`;
+              }, 6000 - 1584);
+            } else {
+              setTimeout(() => {
+                player.src = `/audio`;
+              }, diff);
+            }
+          }
         }
         console.log(`Audio diff: ${diff}`);
         setTrack(msg.track);
