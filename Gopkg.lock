@@ -2,12 +2,19 @@
 
 
 [[projects]]
-  digest = "1:6e7db426c1cce1f5d48023c5e64733d61239a78e6dedfacd1ef5e1d667a9694d"
+  digest = "1:523bc7481dfb86593d3c3e18bdf98359b678181efa59976bfcb3a6f93fe59ad7"
+  name = "github.com/anaskhan96/soup"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "2dc040128ecbc29b5280943ecc61b28642f9c4b2"
+  version = "v1.2"
+
+[[projects]]
+  digest = "1:b0137ade968938be440649ea74294c46e95d0f025c74e92b8f4b377d30e8b571"
   name = "github.com/faiface/beep"
   packages = [
     ".",
     "mp3",
-    "speaker",
     "vorbis",
   ]
   pruneopts = "UT"
@@ -41,17 +48,6 @@
   version = "v0.2.1"
 
 [[projects]]
-  digest = "1:d7631d703348a25589052b6dc1b5c7c8f8ddc1ba721b4437a356f19d21aa9d3b"
-  name = "github.com/hajimehoshi/oto"
-  packages = [
-    ".",
-    "internal/mux",
-  ]
-  pruneopts = "UT"
-  revision = "0644fbe4140cab93ffb80332978e292f2676c1fe"
-  version = "v0.5.4"
-
-[[projects]]
   digest = "1:6b41ce6c4a63bab113c3b8c63c394f5eaf57e75dbc1a11baa3a37ef2ee8a4e8a"
   name = "github.com/jfreymuth/oggvorbis"
   packages = ["."]
@@ -66,6 +62,17 @@
   pruneopts = "UT"
   revision = "2f16367d086d143e8e946cc5ee24618147d673dc"
   version = "v1.0.0"
+
+[[projects]]
+  digest = "1:1f4b55d7c57681ad91b7ce3ac7c8e7b139e6dd2f477c5f87e6a7749d298645dc"
+  name = "github.com/joho/godotenv"
+  packages = [
+    ".",
+    "autoload",
+  ]
+  pruneopts = "UT"
+  revision = "23d116af351c84513e1946b527c88823e476be13"
+  version = "v1.3.0"
 
 [[projects]]
   digest = "1:9e1d37b58d17113ec3cb5608ac0382313c5b59470b94ed97d0976e69c7022314"
@@ -85,56 +92,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bd0386f82340fd1d7aa5a0046af0c39a7de15dadcddc1688e64255aba372a600"
-  name = "golang.org/x/exp"
+  digest = "1:ca901dc31bf65bcdf4ceb1b9b83292ea7b71bf9e4e22a807093900c737e1d960"
+  name = "golang.org/x/net"
   packages = [
-    "shiny/driver/gldriver",
-    "shiny/driver/internal/drawer",
-    "shiny/driver/internal/errscreen",
-    "shiny/driver/internal/event",
-    "shiny/driver/internal/lifecycler",
-    "shiny/driver/internal/win32",
-    "shiny/driver/internal/x11key",
-    "shiny/screen",
+    "html",
+    "html/atom",
   ]
   pruneopts = "UT"
-  revision = "0405dc783f0a9c4dbf56901f56e49fa485943f4c"
-
-[[projects]]
-  branch = "master"
-  digest = "1:b92d5f74778f4766055011db9abc4bba54edbe5e690a544e6dbfe4dd90824719"
-  name = "golang.org/x/image"
-  packages = ["math/f64"]
-  pruneopts = "UT"
-  revision = "58c23975cae11f062d4b3b0c143fe248faac195d"
-
-[[projects]]
-  branch = "master"
-  digest = "1:d807461ebc1db99e4ee12e1dd49de4a121b01edfbfe0b94e2b7de4b65ec7904e"
-  name = "golang.org/x/mobile"
-  packages = [
-    "app",
-    "app/internal/callfn",
-    "event/key",
-    "event/lifecycle",
-    "event/mouse",
-    "event/paint",
-    "event/size",
-    "event/touch",
-    "geom",
-    "gl",
-    "internal/mobileinit",
-  ]
-  pruneopts = "UT"
-  revision = "82c397c4c5279f331dce14d734fda7060e4a3691"
-
-[[projects]]
-  branch = "master"
-  digest = "1:181b0f31060ef04339c16e7bba946726dc4801a547f06edbd26d2b72a09df98c"
-  name = "golang.org/x/sys"
-  packages = ["windows"]
-  pruneopts = "UT"
-  revision = "9fbb57f87de9ccfe3a99d4e3270ce8a926ebba4f"
+  revision = "16171245cfb220d5317888b716d69c1fb4e7992b"
 
 [[projects]]
   digest = "1:7093ab359f15c3663a7cfdc539e9eaf44635bc46376d8b888fe480b3ccfbad4d"
@@ -156,11 +121,12 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/anaskhan96/soup",
     "github.com/faiface/beep",
     "github.com/faiface/beep/mp3",
-    "github.com/faiface/beep/speaker",
     "github.com/faiface/beep/vorbis",
     "github.com/gorilla/websocket",
+    "github.com/joho/godotenv/autoload",
     "golang.org/x/crypto/blowfish",
     "golang.org/x/text/encoding/charmap",
   ]
