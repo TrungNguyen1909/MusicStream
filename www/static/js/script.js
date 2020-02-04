@@ -162,10 +162,12 @@ function initWebSocket() {
     switch (msg.op) {
       case 1:
         delta = msg.pos / 48000.0;
-        if (Math.abs(delta - player.currentTime) > 3) {
+        diff = delta - player.currentTime;
+        if (Math.abs(diff) > 3) {
           // We are too slow ... syncing.
           player.src = `/audio`;
         }
+        console.log(`Audio diff: ${diff}`)
         setTrack(msg.track);
         setListeners(msg.listeners);
         break;
