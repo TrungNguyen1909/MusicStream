@@ -167,7 +167,7 @@ function initWebSocket() {
           // We are too slow ... syncing.
           player.src = `/audio`;
         }
-        console.log(`Audio diff: ${diff}`)
+        console.log(`Audio diff: ${diff}`);
         setTrack(msg.track);
         setListeners(msg.listeners);
         break;
@@ -227,9 +227,14 @@ search.addEventListener("keydown", function(event) {
 window.onload = function() {
   this.initSelector();
   this.player = document.getElementById("audio-player");
-  this.player.onload = ()=>{
-    this.fetch("/listeners").then((response)=>response.json()).then((msg)=>this.setListeners(msg.listeners))
-  }
+  this.player.onload = () => {
+    this.fetch("/listeners")
+      .then(response => response.json())
+      .then(msg => this.setListeners(msg.listeners));
+  };
+  this.player.onerror = () => {
+    this.player.src = `/audio`;
+  };
   this.initWebSocket();
 };
 
