@@ -165,9 +165,8 @@ body {
 .player .control-panel .controls .info .listeners,
 .player .control-panel .controls .info .name {
   display: block;
-  overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .player .control-panel .controls .info .name {
@@ -175,7 +174,7 @@ body {
   font-size: 20px;
   margin-top: 10px;
   margin-left: 5px;
-  height: 24px;
+  height: 28px;
 }
 
 .player .control-panel .controls .info .artist {
@@ -396,4 +395,22 @@ body {
 }
 .queue .element:hover .artist::before{
   color: #1b2b40;
+}
+
+.marquee2 {
+  --indent-percent: 0%;
+  animation: 10s ease-in-out 1s infinite alternate bounce;
+  
+}
+@-webkit-keyframes bounce {
+  0%   { text-indent: 0%; }
+  100% { text-indent: (var(--indent-percent)); }
+}
+@-moz-keyframes bounce {
+  0%   { text-indent: 0%; }
+  100% { text-indent: var(--indent-percent); }
+}
+@keyframes bounce {
+  0%   { text-indent: 0%; }
+  100% { text-indent: var(--indent-percent); }
 }

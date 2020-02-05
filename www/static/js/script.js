@@ -96,8 +96,20 @@ function setTrack(track) {
     return;
   }
   ctrack = track;
-  document.getElementById("artist").innerText = ctrack.artists;
-  document.getElementById("name").innerText = ctrack.title;
+  artistBox = document.getElementById("artist")
+  titleBox = document.getElementById("name")
+  titleBox.style.setProperty('--indent-percent',"0%");
+  artistBox.style.setProperty('--indent-percent',"0%");
+  titleBox.style.textIndent = "0%";
+  artistBox.style.textIndent = "0%";
+  artistBox.innerText = ctrack.artists;
+  titleBox.innerText = ctrack.title;
+  if(isElementOverflowing(titleBox)){
+    titleBox.style.setProperty('--indent-percent',-(titleBox.scrollWidth / titleBox.offsetWidth) * 100 + "%")
+  }
+  if(isElementOverflowing(artistBox)){
+    artistBox.style.setProperty('--indent-percent',-(artistBox.scrollWidth / artistBox.offsetWidth) * 100 + "%")
+  }
   // window.player.src = `/audio`;
   setTimeout(lyricsControl, 0);
   //let artworkBox = document.getElementsByClassName("album-art")[0];
@@ -368,8 +380,7 @@ function lyricsControl() {
 }
 
 function isElementOverflowing(element) {
-  var overflowX = element.offsetWidth < element.scrollWidth,
-    overflowY = element.offsetHeight < element.scrollHeight;
+  var overflowX = element.offsetWidth < element.scrollWidth
 
-  return overflowX || overflowY;
+  return overflowX;
 }

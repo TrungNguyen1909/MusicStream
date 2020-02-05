@@ -844,6 +844,7 @@ func main() {
 		port = "8890"
 	}
 	port = ":" + port
+	go audioManager()
 	http.HandleFunc("/enqueue", enqueueHandler)
 	http.HandleFunc("/queue", queueHandler)
 	http.HandleFunc("/listeners", listenersHandler)
@@ -852,7 +853,6 @@ func main() {
 	http.HandleFunc("/playing", playingHandler)
 	http.HandleFunc("/skip", skipHandler)
 	http.HandleFunc("/", fileServer(http.Dir("www")))
-	go audioManager()
 	go selfPinger()
 	log.Fatal(http.ListenAndServe(port, logRequest(http.DefaultServeMux)))
 }
