@@ -96,23 +96,29 @@ function setTrack(track) {
     return;
   }
   ctrack = track;
-  artistBox = document.getElementById("artist")
-  titleBox = document.getElementById("name")
-  titleBox.classList.remove("marquee2")
-  artistBox.classList.remove("marquee2")
-  titleBox.style.setProperty('--indent-percent',"0%");
-  artistBox.style.setProperty('--indent-percent',"0%");
+  artistBox = document.getElementById("artist");
+  titleBox = document.getElementById("name");
+  titleBox.classList.remove("marquee2");
+  artistBox.classList.remove("marquee2");
+  titleBox.style.setProperty("--indent-percent", "0%");
+  artistBox.style.setProperty("--indent-percent", "0%");
   titleBox.style.textIndent = "0%";
   artistBox.style.textIndent = "0%";
   artistBox.innerText = ctrack.artists;
   titleBox.innerText = ctrack.title;
-  if(isElementOverflowing(titleBox)){
-    titleBox.style.setProperty('--indent-percent',-(titleBox.scrollWidth / titleBox.offsetWidth) * 100+100 + "%")
-    titleBox.classList.add("marquee2")
+  if (isElementOverflowing(titleBox)) {
+    titleBox.style.setProperty(
+      "--indent-percent",
+      -(titleBox.scrollWidth / titleBox.offsetWidth) * 100 + 100 + "%"
+    );
+    titleBox.classList.add("marquee2");
   }
-  if(isElementOverflowing(artistBox)){
-    artistBox.style.setProperty('--indent-percent',-(artistBox.scrollWidth / artistBox.offsetWidth) * 100+100 + "%")
-    artistBox.classList.add("marquee2")
+  if (isElementOverflowing(artistBox)) {
+    artistBox.style.setProperty(
+      "--indent-percent",
+      -(artistBox.scrollWidth / artistBox.offsetWidth) * 100 + 100 + "%"
+    );
+    artistBox.classList.add("marquee2");
   }
   // window.player.src = `/audio`;
   setTimeout(lyricsControl, 0);
@@ -384,7 +390,7 @@ function lyricsControl() {
 }
 
 function isElementOverflowing(element) {
-  var overflowX = element.offsetWidth < element.scrollWidth
+  var overflowX = element.offsetWidth < element.scrollWidth;
 
   return overflowX;
 }

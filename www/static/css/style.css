@@ -329,7 +329,6 @@ body {
   color: #1b2b40;
 }
 
-
 .queue {
   position: absolute;
   bottom: 0;
@@ -345,23 +344,22 @@ body {
   overflow-x: scroll;
   padding: 24px initial;
 }
-.queue .element{
+.queue .element {
   height: 20px;
   width: 100%;
   padding: 10px 10px;
   padding-bottom: 5px;
   line-height: 20px;
   border-bottom: 1px solid #c2c6cf;
-
 }
-.queue .element:hover{
+.queue .element:hover {
   background-color: #c2c6cf;
 }
-.queue .element:first-child{
+.queue .element:first-child {
   margin-top: 24px;
 }
-.queue .element div{
-  float:left;
+.queue .element div {
+  float: left;
   text-align: center;
   height: 20px;
 }
@@ -379,6 +377,7 @@ body {
   text-overflow: ellipsis;
   font-size: 15px;
   color: #c2c6cf;
+  max-width: 40%;
 }
 
 .queue .element:hover .title {
@@ -395,24 +394,35 @@ body {
   content: "-";
   width: 18px;
 }
-.queue .element:hover .artist::before{
+.queue .element:hover .artist::before {
   color: #1b2b40;
 }
 
 .marquee2 {
   --indent-percent: 0%;
   animation: 5s ease-in-out 1s infinite alternate bounce;
-  
 }
 @-webkit-keyframes bounce {
-  0%   { text-indent: 0%; }
-  100% { text-indent: (var(--indent-percent)); }
+  0% {
+    text-indent: 0%;
+  }
+  100% {
+    text-indent: (var(--indent-percent));
+  }
 }
 @-moz-keyframes bounce {
-  0%   { text-indent: 0%; }
-  100% { text-indent: var(--indent-percent); }
+  0% {
+    text-indent: 0%;
+  }
+  100% {
+    text-indent: var(--indent-percent);
+  }
 }
 @keyframes bounce {
-  0%   { text-indent: 0%; }
-  100% { text-indent: var(--indent-percent); }
+  0% {
+    text-indent: 0%;
+  }
+  100% {
+    text-indent: var(--indent-percent);
+  }
 }
