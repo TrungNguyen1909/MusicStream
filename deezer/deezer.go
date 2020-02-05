@@ -142,7 +142,7 @@ func (decrypter *trackDecrypter) createCipher() cipher.BlockMode {
 
 	blowfishEngine, err := blowfish.NewCipher(decrypter.BlowfishKey)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	blowfishCBC := cipher.NewCBCDecrypter(blowfishEngine, []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07})
 	return blowfishCBC
@@ -255,7 +255,7 @@ func (client *Client) getTrackInfo(trackID int, secondTry bool) (pageTrackData, 
 	json.NewDecoder(response.Body).Decode(&resp)
 	if len(resp.Results.Data.MD5Origin) <= 0 {
 		if secondTry {
-			panic("Failed to get trackInfo adequately")
+			log.Panic("Failed to get trackInfo adequately")
 		}
 		client.initDeezerAPI()
 		return client.getTrackInfo(trackID, true)

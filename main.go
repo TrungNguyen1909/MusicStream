@@ -145,7 +145,7 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	var encodedTime time.Duration
 	streamer, format, err := mp3.Decode(stream)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	defer streamer.Close()
 	var needResampling bool
@@ -239,7 +239,7 @@ func fillRadioMetadataFromVorbisStream(radio *common.RadioTrack, stream beep.Str
 func encodeRadio(stream io.ReadCloser, encodedTime *time.Duration, quit chan int) bool {
 	streamer, format, err := vorbis.Decode(stream)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	radio.SetTitle("listen.moe")
@@ -349,7 +349,7 @@ func processTrack() {
 		cTrack := track.(csn.Track)
 		err = cTrack.Populate()
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
 		}
 		track = cTrack
 	}
@@ -362,7 +362,7 @@ func processTrack() {
 	}
 	stream, err := track.Download()
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	quit := make(chan int, 10)
 	if radioStarted {
@@ -818,11 +818,11 @@ func logRequest(handler http.Handler) http.Handler {
 func main() {
 	_, ok := os.LookupEnv("DEEZER_ARL")
 	if !ok {
-		panic("Deezer token not found")
+		log.Panic("Deezer token not found")
 	}
 	_, ok = os.LookupEnv("MUSIXMATCH_USER_TOKEN")
 	if !ok {
-		panic("Musixmatch token not found")
+		log.Panic("Musixmatch token not found")
 	}
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
