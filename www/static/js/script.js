@@ -26,20 +26,16 @@ class musicPlayer {
     }, 1000);
   }
   play() {
-    if (!this.isPlaying){
-    this.controlPanel.classList.add("playing");
-    window.player.muted = false;
-    window.player.play();
-    this.isPlaying = 1;
+    if (!this.isPlaying) {
+      this.controlPanel.classList.add("playing");
+      window.player.muted = false;
+      window.player.play();
+      this.isPlaying = 1;
+    } else {
+      this.controlPanel.classList.remove("playing");
+      window.player.muted = true;
+      this.isPlaying = 0;
     }
-    else{
-
-    this.controlPanel.classList.remove("playing");
-    window.player.muted = true;
-    this.isPlaying = 0;
-    }
-  }
-  pause() {
   }
 }
 
