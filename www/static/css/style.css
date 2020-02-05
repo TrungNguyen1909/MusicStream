@@ -338,6 +338,8 @@ body {
   height: 200px;
   background-color: #1b2b40;
   border-radius: 15px;
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
   align-items: center;
   justify-content: center;
   overflow-x: scroll;
