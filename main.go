@@ -374,10 +374,10 @@ func processTrack() {
 		panic(err)
 	}
 	quit := make(chan int, 10)
-	go preloadTrack(stream, quit)
 	if radioStarted {
 		<-quitRadio
 	}
+	go preloadTrack(stream, quit)
 	for len(skipChannel) > 0 {
 		select {
 		case <-skipChannel:
@@ -566,6 +566,7 @@ func skip() []byte {
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	_c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
@@ -757,6 +758,7 @@ func logRequest(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
 		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		handler.ServeHTTP(w, r)
 	})
 }
