@@ -155,9 +155,6 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 		format.SampleRate = beep.SampleRate(48000)
 		needResampling = true
 	}
-	// encoder := vorbisencoder.NewEncoder(2, 48000)
-	// encoder.Encode(oggHeader, make([]byte, 0))
-	//bufferingChannel <- chunk{buffer: oggHeader, encoderTime: encodedTime}
 	for j := 0; j < 2; j++ {
 		for i := 0; i < 2; i++ {
 			silenceFrame := make([]byte, 20000)
@@ -177,9 +174,6 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 				bufferingChannel <- chunk{buffer: silenceFrame, encoderTime: encodedTime}
 			}
 		}
-		// lastBuffer := make([]byte, 20000)
-		// n := encoder.EndStream(lastBuffer)
-		// bufferingChannel <- chunk{buffer: lastBuffer[:n], encoderTime: encodedTime}
 		bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
 	}()
 	pos := int64(encoder.GranulePos())
@@ -295,15 +289,6 @@ func preloadRadio(quit chan int) {
 		bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
 	}()
 	defer log.Println("Radio preloading stopped!")
-	//encoder := vorbisencoder.NewEncoder(2, 48000)
-	// encoder.Encode(oggHeader, make([]byte, 0))
-	//bufferingChannel <- chunk{buffer: oggHeader, encoderTime: encodedTime}
-	defer func() {
-
-		// lastBuffer := make([]byte, 20000)
-		// n := encoder.EndStream(lastBuffer)
-		// bufferingChannel <- chunk{buffer: lastBuffer[:n], encoderTime: encodedTime}
-	}()
 	radio = common.RadioTrack{}
 	stream, _ := radio.Download()
 	for !encodeRadio(stream, &encodedTime, quit) {
@@ -344,6 +329,7 @@ func processTrack() {
 		}
 		track = playQueue.Pop().(common.Track)
 		dequeueCallback()
+		currentTrackID = -1
 		watchDog = 0
 	} else {
 		err = dzClient.PopulateMetadata(currentTrack.(*deezer.Track))
@@ -376,7 +362,7 @@ func processTrack() {
 	}
 	stream, err := track.Download()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	quit := make(chan int, 10)
 	if radioStarted {
@@ -409,7 +395,6 @@ func audioManager() {
 	oggHeader = make([]byte, 5000)
 	n := encoder.Encode(oggHeader, make([]byte, 0))
 	oggHeader = oggHeader[:n]
-	//encoder.EndStream(nil)
 	dzClient = deezer.NewClient()
 	cacheQueue = &list.List{}
 	playQueue = queue.NewQueue()
