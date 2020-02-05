@@ -71,6 +71,7 @@ var radio common.RadioTrack
 var startPos int64
 var encoder *vorbisencoder.Encoder
 var deltaChannel chan int64
+var startTime time.Time
 
 func (socket *webSocket) WriteMessage(messageType int, data []byte) error {
 	socket.mux.Lock()
@@ -385,6 +386,7 @@ func processTrack() {
 		}
 	}
 	time.Sleep(time.Until(etaDone))
+	startTime = time.Now()
 	setTrack(trackDict)
 	streamToClients(skipChannel, quit)
 	log.Println("Stream ended!")
@@ -552,6 +554,14 @@ func skip() []byte {
 			"reason":  "You can't skip a radio stream.",
 		})
 
+		return data
+	}
+	if time.Since(startTime) < 5*time.Second {
+		data, _ := json.Marshal(map[string]interface{}{
+			"op":      4,
+			"success": false,
+			"reason":  "Please wait until first 5 seconds has passed.",
+		})
 		return data
 	}
 	skipChannel <- 0
