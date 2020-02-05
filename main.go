@@ -343,6 +343,7 @@ func processTrack() {
 			go processRadio(quitRadio)
 		}
 		track = playQueue.Pop().(common.Track)
+		dequeueCallback()
 		watchDog = 0
 	} else {
 		err = dzClient.PopulateMetadata(currentTrack.(*deezer.Track))
@@ -411,10 +412,7 @@ func audioManager() {
 	//encoder.EndStream(nil)
 	dzClient = deezer.NewClient()
 	cacheQueue = &list.List{}
-	cacheQueueMux = sync.Mutex{}
 	playQueue = queue.NewQueue()
-	playQueue.EnqueueCallback = enqueueCallback
-	playQueue.DequeueCallback = dequeueCallback
 	currentTrackID = -1
 	for {
 		processTrack()
@@ -541,6 +539,7 @@ func enqueue(msg wsMessage) []byte {
 			track, err = dzClient.GetTrackByID(track.ID())
 		}
 		playQueue.Enqueue(track)
+		enqueueCallback(track)
 		log.Printf("Track enqueued: %v - %v\n", track.Title(), track.Artist())
 		data, _ := json.Marshal(map[string]interface{}{
 			"op":      3,
@@ -582,6 +581,7 @@ func skip() []byte {
 	return data
 }
 func enqueueCallback(value interface{}) {
+	log.Println("enqueueCallback")
 	cacheQueueMux.Lock()
 	defer cacheQueueMux.Unlock()
 	track := value.(common.Track)
