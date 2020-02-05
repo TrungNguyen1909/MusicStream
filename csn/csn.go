@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/anaskhan96/soup"
 )
@@ -105,7 +106,7 @@ func Search(query string) (tracks []common.Track, err error) {
 	queryURL.RawQuery = queries.Encode()
 	if client == nil {
 		cookiesJar, _ := cookiejar.New(nil)
-		client = &http.Client{Jar: cookiesJar}
+		client = &http.Client{Jar: cookiesJar, Timeout: 9 * time.Second}
 	}
 	resp, err := client.Get(queryURL.String())
 	if err != nil {
@@ -131,7 +132,7 @@ func (track *Track) Populate() (err error) {
 	url := track.Link
 	if client == nil {
 		cookiesJar, _ := cookiejar.New(nil)
-		client = &http.Client{Jar: cookiesJar}
+		client = &http.Client{Jar: cookiesJar, Timeout: 9 * time.Second}
 	}
 	resp, err := client.Get(url)
 	if err != nil {
