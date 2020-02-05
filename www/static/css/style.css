@@ -364,17 +364,18 @@ body {
   text-align: center;
   height: 20px;
 }
-.queue .element div:first-child{
-  margin-left: 12px;
-}
 .queue .element .title {
   color: #d92b3a;
   overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   max-width: 60%;
   font-size: 18px;
 }
 .queue .element .artist {
   overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-size: 15px;
   color: #c2c6cf;
 }
