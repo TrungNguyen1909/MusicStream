@@ -151,6 +151,7 @@ function initWebSocket() {
   ws.onopen = event => {
     console.log("[WS] opened");
     ws.send(JSON.stringify({ op: 1 }));
+    ws.send(JSON.stringify({ op: 7 }));
     wsInterval = setInterval(() => {
       ws.send(JSON.stringify({ op: 8 }));
     }, 30000);
@@ -164,6 +165,11 @@ function initWebSocket() {
     var msg = JSON.parse(event.data);
     switch (msg.op) {
       case 1:
+        if (document.getElementById("queue").childElementCount > 0) {
+          document
+            .getElementById("queue")
+            .removeChild(document.getElementById("queue").firstChild);
+        }
         delta = msg.pos / 48000.0;
         diff = delta - player.currentTime;
         if (Math.abs(diff) > 6) {
@@ -221,6 +227,42 @@ function initWebSocket() {
         break;
       case 5:
         setListeners(msg.listeners);
+        break;
+      case 6:
+        {
+          let ele = document.createElement("div");
+          ele.className = "element";
+          let titleBox = document.createElement("div");
+          titleBox.className = "title";
+          titleBox.innerText = msg.track.title;
+          ele.appendChild(titleBox);
+          let artistBox = document.createElement("div");
+          artistBox.className = "artist";
+          artistBox.innerText = msg.track.artists;
+          ele.appendChild(artistBox);
+          document.getElementById("queue").appendChild(ele);
+        }
+        break;
+      case 7:
+        while (document.getElementById("queue").firstChild) {
+          document
+            .getElementById("queue")
+            .removeChild(document.getElementById("queue").firstChild);
+        }
+        msg.queue.forEach(track => {
+          let ele = document.createElement("div");
+          ele.className = "element";
+          let titleBox = document.createElement("div");
+          titleBox.className = "title";
+          titleBox.innerText = track.title;
+          ele.appendChild(titleBox);
+          let artistBox = document.createElement("div");
+          artistBox.className = "artist";
+          artistBox.innerText = track.artists;
+          ele.appendChild(artistBox);
+          document.getElementById("queue").appendChild(ele);
+        });
+
         break;
       default:
         break;

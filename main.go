@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"common"
+	"container/list"
 	"crypto/sha1"
 	"csn"
 	"deezer"
@@ -72,6 +73,8 @@ var startPos int64
 var encoder *vorbisencoder.Encoder
 var deltaChannel chan int64
 var startTime time.Time
+var cacheQueue *list.List
+var cacheQueueMux sync.Mutex
 
 func (socket *webSocket) WriteMessage(messageType int, data []byte) error {
 	socket.mux.Lock()
@@ -406,8 +409,12 @@ func audioManager() {
 	n := encoder.Encode(oggHeader, make([]byte, 0))
 	oggHeader = oggHeader[:n]
 	//encoder.EndStream(nil)
-	playQueue = queue.NewQueue()
 	dzClient = deezer.NewClient()
+	cacheQueue = &list.List{}
+	cacheQueueMux = sync.Mutex{}
+	playQueue = queue.NewQueue()
+	playQueue.EnqueueCallback = enqueueCallback
+	playQueue.DequeueCallback = dequeueCallback
 	currentTrackID = -1
 	for {
 		processTrack()
@@ -574,6 +581,49 @@ func skip() []byte {
 
 	return data
 }
+func enqueueCallback(value interface{}) {
+	cacheQueueMux.Lock()
+	defer cacheQueueMux.Unlock()
+	track := value.(common.Track)
+	metadata := common.GetMetadata(track)
+	cacheQueue.PushBack(&metadata)
+	go func(metadata *common.TrackMetadata) {
+		log.Printf("Enqueuing track on all clients %v - %v\n", metadata.Title, metadata.Artist)
+		data, err := json.Marshal(map[string]interface{}{
+			"op":    6,
+			"track": *metadata,
+		})
+		connections.Range(func(key, value interface{}) bool {
+			ws := value.(*webSocket)
+			if err != nil {
+				return true
+			}
+			ws.WriteMessage(websocket.TextMessage, data)
+			return true
+		})
+	}(&metadata)
+}
+func dequeueCallback() {
+	cacheQueueMux.Lock()
+	defer cacheQueueMux.Unlock()
+	cacheQueue.Remove(cacheQueue.Front())
+}
+func getQueue() []byte {
+	cacheQueueMux.Lock()
+	defer cacheQueueMux.Unlock()
+	tracks := make([]common.TrackMetadata, 0, cacheQueue.Len())
+	ele := cacheQueue.Front()
+	for ele != nil {
+		tracks = append(tracks, *ele.Value.(*common.TrackMetadata))
+		ele = ele.Next()
+	}
+	data, _ := json.Marshal(map[string]interface{}{
+		"op":    7,
+		"queue": tracks,
+	})
+
+	return data
+}
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
@@ -601,6 +651,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 			c.WriteMessage(websocket.TextMessage, skip())
 		case 5:
 			c.WriteMessage(websocket.TextMessage, getListenersCount())
+		case 7:
+			c.WriteMessage(websocket.TextMessage, getQueue())
 		case 8:
 			data, _ := json.Marshal(map[string]interface{}{
 				"op": 8,
@@ -651,6 +703,12 @@ func skipHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 	w.Write(skip())
+}
+func queueHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	w.Write(getQueue())
 }
 func redirectToRoot(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -787,6 +845,7 @@ func main() {
 	}
 	port = ":" + port
 	http.HandleFunc("/enqueue", enqueueHandler)
+	http.HandleFunc("/queue", queueHandler)
 	http.HandleFunc("/listeners", listenersHandler)
 	http.HandleFunc("/audio", audioHandler)
 	http.HandleFunc("/status", wsHandler)

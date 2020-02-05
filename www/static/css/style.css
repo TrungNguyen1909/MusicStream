@@ -35,7 +35,8 @@ body {
 
 .player {
   position: relative;
-  align-self: center;
+  margin-top: 200px;
+  height: 90px;
   width: 100%;
 }
 
@@ -326,5 +327,72 @@ body {
 .btn-group div:focus,
 .btn-group .active {
   background-color: #c2c6cf;
+  color: #1b2b40;
+}
+
+
+.queue {
+  position: absolute;
+  bottom: 0;
+  display: block;
+  width: 100%;
+  height: 200px;
+  background-color: #1b2b40;
+  border-radius: 15px;
+  align-items: center;
+  justify-content: center;
+  overflow-x: scroll;
+  padding: 24px initial;
+}
+.queue .element{
+  height: 20px;
+  width: 100%;
+  padding: 10px 10px;
+  padding-bottom: 5px;
+  line-height: 20px;
+  border-bottom: 1px solid #c2c6cf;
+
+}
+.queue .element:hover{
+  background-color: #c2c6cf;
+}
+.queue .element:first-child{
+  margin-top: 24px;
+}
+.queue .element div{
+  float:left;
+  text-align: center;
+  height: 20px;
+}
+.queue .element div:first-child{
+  margin-left: 12px;
+}
+.queue .element .title {
+  color: #d92b3a;
+  overflow: hidden;
+  max-width: 60%;
+  font-size: 18px;
+}
+.queue .element .artist {
+  overflow: hidden;
+  font-size: 15px;
+  color: #c2c6cf;
+}
+
+.queue .element:hover .title {
+  color: #d92b3a;
+}
+.queue .element:hover .artist {
+  color: #1b2b40;
+}
+
+.queue .element .artist::before {
+  color: #c2c6cf;
+  padding-left: 5px;
+  padding-right: 5px;
+  content: "-";
+  width: 18px;
+}
+.queue .element:hover .artist::before{
   color: #1b2b40;
 }

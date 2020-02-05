@@ -6,9 +6,11 @@ import (
 )
 
 type Queue struct {
-	queue    *list.List
-	mux      sync.RWMutex
-	enqueued *sync.Cond
+	queue           *list.List
+	mux             sync.RWMutex
+	enqueued        *sync.Cond
+	EnqueueCallback func(interface{})
+	DequeueCallback func()
 }
 
 func (c *Queue) Enqueue(value interface{}) {
@@ -16,6 +18,9 @@ func (c *Queue) Enqueue(value interface{}) {
 	defer c.mux.Unlock()
 	c.queue.PushBack(value)
 	c.enqueued.Signal()
+	if c.EnqueueCallback != nil {
+		go c.EnqueueCallback(value)
+	}
 }
 
 func (c *Queue) Dequeue() {
@@ -28,6 +33,9 @@ func (c *Queue) Dequeue() {
 	}
 	ele := c.queue.Front()
 	c.queue.Remove(ele)
+	if c.DequeueCallback != nil {
+		go c.DequeueCallback()
+	}
 }
 
 func (c *Queue) Front() interface{} {
@@ -51,6 +59,9 @@ func (c *Queue) Pop() interface{} {
 	}
 	ele := c.queue.Front()
 	c.queue.Remove(ele)
+	if c.DequeueCallback != nil {
+		go c.DequeueCallback()
+	}
 	return ele.Value
 }
 func (c *Queue) Size() int {
