@@ -399,7 +399,7 @@ body {
 
 .marquee2 {
   --indent-percent: 0%;
-  animation: 10s ease-in-out 1s infinite alternate bounce;
+  animation: 5s ease-in-out 1s infinite alternate bounce;
   
 }
 @-webkit-keyframes bounce {
