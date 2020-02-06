@@ -286,6 +286,15 @@ func preloadRadio(quit chan int) {
 	time.Sleep(time.Until(etaDone))
 	log.Println("Radio preloading started!")
 	defer func() {
+		for j := 0; j < 2; j++ {
+			for i := 0; i < 2; i++ {
+				silenceFrame := make([]byte, 20000)
+				n := encoder.Encode(silenceFrame, make([]byte, 76032))
+				silenceFrame = silenceFrame[:n]
+				encodedTime += 396 * time.Millisecond
+				bufferingChannel <- chunk{buffer: silenceFrame, encoderTime: encodedTime}
+			}
+		}
 		bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
 	}()
 	defer log.Println("Radio preloading stopped!")
@@ -562,7 +571,17 @@ func skip() []byte {
 		"success": true,
 		"reason":  "",
 	})
-
+	data, err := json.Marshal(map[string]interface{}{
+		"op": 2,
+	})
+	connections.Range(func(key, value interface{}) bool {
+		ws := value.(*webSocket)
+		if err != nil {
+			return true
+		}
+		ws.WriteMessage(websocket.TextMessage, data)
+		return true
+	})
 	return data
 }
 func enqueueCallback(value interface{}) {

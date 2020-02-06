@@ -4,6 +4,7 @@ var wsInterval = null;
 var lyricsInterval = null;
 var subBoxTimeout = null;
 var delta = 0;
+var isSkipped = false;
 class musicPlayer {
   constructor() {
     this.play = this.play.bind(this);
@@ -194,25 +195,26 @@ function initWebSocket() {
         }
         delta = msg.pos / 48000.0;
         diff = delta - player.currentTime;
-        if (Math.abs(diff) > 6) {
+        if (diff > 8) {
           if (!ctrack || ctrack.source == 3) {
             player.src = `/audio`;
           } else {
-            if (msg.track.source != 3) {
-              // We are too slow ... syncing.
-              setTimeout(() => {
+            if (msg.track.source != 3 || isSkipped) {
                 player.src = `/audio`;
-              }, 6000 - 1584);
             } else {
               setTimeout(() => {
                 player.src = `/audio`;
-              }, diff);
+              }, diff - 1584);
             }
           }
         }
         console.log(`Audio diff: ${diff}`);
+        isSkipped = false;
         setTrack(msg.track);
         setListeners(msg.listeners);
+        break;
+      case 2:
+        isSkipped = true;
         break;
       case 3:
         var subBox = document.getElementById("sub");
