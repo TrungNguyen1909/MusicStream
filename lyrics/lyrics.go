@@ -226,7 +226,7 @@ func GetLyrics(track, artist, album, artists string, duration int) (result commo
 	queries.Add("q_track", track)
 	queries.Add("q_artist", artist)
 	if len(artists) > 0 {
-		queries.Add("q_artists", "Bruno Mars")
+		queries.Add("q_artists", artists)
 	} else {
 		queries.Add("q_artists", artist)
 	}
