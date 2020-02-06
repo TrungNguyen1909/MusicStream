@@ -63,7 +63,7 @@ var currentChannel int
 var oggHeader []byte
 var listenersCount int32
 var bufferingChannel chan chunk
-var etaDone time.Time
+var etaDone atomic.Value
 var skipChannel chan int
 var isRadioStreaming int32
 var currentTrackID int
@@ -75,6 +75,7 @@ var deltaChannel chan int64
 var startTime time.Time
 var cacheQueue *list.List
 var cacheQueueMux sync.Mutex
+var streamMux sync.Mutex
 
 func (socket *webSocket) WriteMessage(messageType int, data []byte) error {
 	socket.mux.Lock()
@@ -90,9 +91,10 @@ func (socket *webSocket) ReadJSON(v interface{}) error {
 	return socket.conn.ReadJSON(v)
 }
 func streamToClients(quit chan int, quitPreload chan int) {
-
+	streamMux.Lock()
+	defer streamMux.Unlock()
 	start := time.Now()
-	etaDone = start
+	etaDone.Store(start)
 	interrupted := false
 	for {
 		select {
@@ -127,7 +129,7 @@ func streamToClients(quit chan int, quitPreload chan int) {
 					done = true
 				}
 			}
-			etaDone = start.Add(Chunk.encoderTime)
+			etaDone.Store(start.Add(Chunk.encoderTime))
 			time.Sleep(Chunk.encoderTime - time.Since(start) - chunkDelayMS*time.Millisecond)
 		} else {
 			for {
@@ -283,7 +285,7 @@ func encodeRadio(stream io.ReadCloser, encodedTime *time.Duration, quit chan int
 }
 func preloadRadio(quit chan int) {
 	var encodedTime time.Duration
-	time.Sleep(time.Until(etaDone))
+	time.Sleep(time.Until(etaDone.Load().(time.Time)))
 	log.Println("Radio preloading started!")
 	defer func() {
 		for j := 0; j < 2; j++ {
@@ -306,7 +308,7 @@ func preloadRadio(quit chan int) {
 }
 func processRadio(quit chan int) {
 	quitPreload := make(chan int, 10)
-	time.Sleep(time.Until(etaDone))
+	time.Sleep(time.Until(etaDone.Load().(time.Time)))
 	currentTrack = radio
 	go preloadRadio(quitPreload)
 	atomic.StoreInt32(&isRadioStreaming, 1)
@@ -384,7 +386,7 @@ func processTrack() {
 		default:
 		}
 	}
-	time.Sleep(time.Until(etaDone))
+	time.Sleep(time.Until(etaDone.Load().(time.Time)))
 	startTime = time.Now()
 	setTrack(trackDict)
 	streamToClients(skipChannel, quit)
@@ -408,6 +410,7 @@ func audioManager() {
 	cacheQueue = &list.List{}
 	playQueue = queue.NewQueue()
 	currentTrackID = -1
+	etaDone.Store(time.Now())
 	for {
 		processTrack()
 	}
@@ -590,12 +593,12 @@ func enqueueCallback(value interface{}) {
 	defer cacheQueueMux.Unlock()
 	track := value.(common.Track)
 	metadata := common.GetMetadata(track)
-	cacheQueue.PushBack(&metadata)
-	go func(metadata *common.TrackMetadata) {
+	cacheQueue.PushBack(metadata)
+	go func(metadata common.TrackMetadata) {
 		log.Printf("Enqueuing track on all clients %v - %v\n", metadata.Title, metadata.Artist)
 		data, err := json.Marshal(map[string]interface{}{
 			"op":    6,
-			"track": *metadata,
+			"track": metadata,
 		})
 		connections.Range(func(key, value interface{}) bool {
 			ws := value.(*webSocket)
@@ -605,9 +608,10 @@ func enqueueCallback(value interface{}) {
 			ws.WriteMessage(websocket.TextMessage, data)
 			return true
 		})
-	}(&metadata)
+	}(metadata)
 }
 func dequeueCallback() {
+	log.Println("dequeueCallback")
 	cacheQueueMux.Lock()
 	defer cacheQueueMux.Unlock()
 	cacheQueue.Remove(cacheQueue.Front())
