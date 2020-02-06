@@ -341,7 +341,7 @@ function lyricsControl() {
   let idx = 0;
   lyricsInterval = setInterval(() => {
     try {
-      if (ctrack.lyrics.lrc[idx].time.total + delta < player.currentTime) {
+      while (ctrack.lyrics.lrc[idx].time.total + delta < player.currentTime) {
         originalBox.innerText = "";
         translatedBox.innerText = "";
         originalBox.style.transitionDuration = "0s";
