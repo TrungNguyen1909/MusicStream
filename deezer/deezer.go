@@ -19,6 +19,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"spotify"
 	"strconv"
 	"strings"
 
@@ -183,6 +184,7 @@ type Client struct {
 	unofficialAPIURL   *url.URL
 	unofficialAPIQuery url.Values
 	deezerURL          *url.URL
+	spotifyClient      *spotify.Client
 }
 
 func NewClient() (client *Client) {
@@ -203,6 +205,12 @@ func NewClient() (client *Client) {
 	client.unofficialAPIQuery.Set("api_token", "")
 	client.arlCookie = &http.Cookie{Name: "arl", Value: os.Getenv("DEEZER_ARL")}
 	client.deezerURL, _ = url.Parse(deezerURL)
+	spotifyClient, err := spotify.NewClient()
+	if err != nil {
+		log.Printf("spotify.NewClient() failed: %v\n", err)
+	} else {
+		client.spotifyClient = spotifyClient
+	}
 	client.initDeezerAPI()
 	return
 }
@@ -342,13 +350,29 @@ func (client *Client) GetTrackByID(trackID int) (track common.Track, err error) 
 
 func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) {
 	var url string
-	if len(artist) == 0 {
-		url = fmt.Sprintf("https://api.deezer.com/search/track/?q=\"%s\"", template.URLQueryEscaper(track))
+	withSpotify := client.spotifyClient != nil
+start:
+	if len(artist) == 0 && withSpotify {
+		sTrack, sArtist, err := client.spotifyClient.SearchTrack(track)
+		if err != nil {
+			log.Printf("spotifyClient.SearchTrack() failed: %v\n", err)
+
+		} else {
+			url = fmt.Sprintf("https://api.deezer.com/search/track/?q=track:\"%s\"artist:\"%s\"", template.URLQueryEscaper(sTrack), template.URLQueryEscaper(sArtist))
+		}
 	} else {
-		url = fmt.Sprintf("https://api.deezer.com/search/track/?q=track:\"%s\"artist:\"%s\"", template.URLQueryEscaper(track), template.URLQueryEscaper(artist))
+		if len(artist) == 0 {
+			url = fmt.Sprintf("https://api.deezer.com/search/track/?q=\"%s\"", template.URLQueryEscaper(track))
+		} else {
+			url = fmt.Sprintf("https://api.deezer.com/search/track/?q=track:\"%s\"artist:\"%s\"", template.URLQueryEscaper(track), template.URLQueryEscaper(artist))
+		}
 	}
 	response, err := http.Get(url)
 	if err != nil {
+		if withSpotify {
+			withSpotify = false
+			goto start
+		}
 		return nil, err
 	}
 	var resp searchTrackResponse
@@ -356,9 +380,20 @@ func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) 
 	err = json.Unmarshal(body, &resp)
 
 	if err != nil {
+		if withSpotify {
+			withSpotify = false
+			goto start
+		}
 		return nil, err
 	}
 	itracks := resp.Data
+	if len(itracks) <= 0 {
+		if withSpotify {
+			withSpotify = false
+			goto start
+		}
+		return nil, errors.New("No track found!")
+	}
 	tracks := make([]common.Track, len(itracks))
 	for i, v := range itracks {
 		tracks[i] = Track{deezerTrack: v}

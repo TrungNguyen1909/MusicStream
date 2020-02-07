@@ -23,6 +23,7 @@ require (
 	golang.org/x/text v0.3.2
 	lyrics v0.0.0
 	queue v0.0.0
+	spotify v0.0.0
 	vorbisencoder v0.0.0
 )
 
@@ -33,6 +34,8 @@ replace common => ./common
 replace deezer => ./deezer
 
 replace lyrics => ./lyrics
+
+replace spotify => ./spotify
 
 replace queue => ./queue
 
