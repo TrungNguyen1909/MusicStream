@@ -343,9 +343,9 @@ func (client *Client) GetTrackByID(trackID int) (track common.Track, err error) 
 func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) {
 	var url string
 	if len(artist) == 0 {
-		url = fmt.Sprintf("https://api.deezer.com/search?q=%s", template.URLQueryEscaper(track))
+		url = fmt.Sprintf("https://api.deezer.com/search/track/?q=\"%s\"", template.URLQueryEscaper(track))
 	} else {
-		url = fmt.Sprintf("https://api.deezer.com/search?q=track:\"%s\"artist:\"%s\"", template.URLQueryEscaper(track), template.URLQueryEscaper(artist))
+		url = fmt.Sprintf("https://api.deezer.com/search/track/?q=track:\"%s\"artist:\"%s\"", template.URLQueryEscaper(track), template.URLQueryEscaper(artist))
 	}
 	response, err := http.Get(url)
 	if err != nil {
