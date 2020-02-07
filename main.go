@@ -569,11 +569,6 @@ func skip() []byte {
 	}
 	skipChannel <- 0
 	log.Println("Current song skipped!")
-	data, _ := json.Marshal(map[string]interface{}{
-		"op":      4,
-		"success": true,
-		"reason":  "",
-	})
 	data, err := json.Marshal(map[string]interface{}{
 		"op": 2,
 	})
@@ -584,6 +579,11 @@ func skip() []byte {
 		}
 		ws.WriteMessage(websocket.TextMessage, data)
 		return true
+	})
+	data, _ = json.Marshal(map[string]interface{}{
+		"op":      4,
+		"success": true,
+		"reason":  "",
 	})
 	return data
 }
