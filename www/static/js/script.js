@@ -391,7 +391,7 @@ function lyricsControl() {
           -(translatedBox.scrollWidth / translatedBox.offsetWidth) * 100 + "%";
       }
     }
-  }, 50);
+  }, 100);
 }
 
 function isElementOverflowing(element) {
