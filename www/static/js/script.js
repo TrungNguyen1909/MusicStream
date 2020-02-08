@@ -122,7 +122,7 @@ function setTrack(track) {
     artistBox.classList.add("marquee2");
   }
   // window.player.src = `/audio`;
-  setTimeout(lyricsControl, 0);
+  lyricsControl();
   //let artworkBox = document.getElementsByClassName("album-art")[0];
   //artworkBox.style.backgroundImage = `url(${ctrack.album.cover})`;
 }
@@ -195,17 +195,19 @@ function initWebSocket() {
         }
         delta = msg.pos / 48000.0;
         diff = delta - player.currentTime;
-        if (diff > 8) {
-          if (!ctrack || ctrack.source == 3) {
-            player.src = `/audio`;
+        if (
+          isSkipped ||
+          !ctrack ||
+          (ctrack.source == 3 && msg.track.source != 3)
+        ) {
+          player.src = `/audio`;
+        } else if (Math.abs(diff) > 8) {
+          if (msg.track.source == 3) {
+            setTimeout(() => {
+              player.src = `/audio`;
+            }, (diff - 3.168) * 1000);
           } else {
-            if (msg.track.source != 3 || isSkipped) {
-                player.src = `/audio`;
-            } else {
-              setTimeout(() => {
-                player.src = `/audio`;
-              }, diff - 1584);
-            }
+            player.src = `/audio`;
           }
         }
         console.log(`Audio diff: ${diff}`);
@@ -339,56 +341,57 @@ function lyricsControl() {
   }
   showLyricsBox();
   let idx = 0;
+  let lyricsChanged = false;
   lyricsInterval = setInterval(() => {
-    try {
-      while (ctrack.lyrics.lrc[idx].time.total + delta < player.currentTime) {
-        originalBox.innerText = "";
-        translatedBox.innerText = "";
-        originalBox.style.transitionDuration = "0s";
-        translatedBox.style.transitionDuration = "0s";
-        originalBox.style.transitionDelay = "0s";
-        translatedBox.style.transitionDelay = "0s";
-        originalBox.style.textIndent = "0%";
-        translatedBox.style.textIndent = "0%";
-        originalBox.innerText = ctrack.lyrics.lrc[idx].text;
-        translatedBox.innerText = ctrack.lyrics.lrc[idx].translated;
-        let delta =
-          idx + 1 < ctrack.lyrics.lrc.length
-            ? ctrack.lyrics.lrc[idx + 1].time.total -
-              ctrack.lyrics.lrc[idx].time.total
-            : 10;
-        if (
-          isElementOverflowing(originalBox) &&
-          idx + 1 < ctrack.lyrics.lrc.length
-        ) {
-          originalBox.style.transitionDuration = 2 * delta + "s";
-
-          originalBox.style.transitionDelay = "1s";
-          originalBox.style.textIndent =
-            -(originalBox.scrollWidth / originalBox.offsetWidth) * 100 + "%";
-        }
-        if (
-          isElementOverflowing(translatedBox) &&
-          idx + 1 < ctrack.lyrics.lrc.length
-        ) {
-          translatedBox.style.transitionDuration = 2 * delta + "s";
-
-          translatedBox.style.transitionDelay = "1s";
-          translatedBox.style.textIndent =
-            -(translatedBox.scrollWidth / translatedBox.offsetWidth) * 100 +
-            "%";
-        }
+    {
+      while (
+        ctrack.lyrics.lrc[idx].time.total + window.delta <=
+        player.currentTime
+      ) {
         idx++;
+        lyricsChanged = true;
         if (idx >= ctrack.lyrics.lrc.length) {
           hideLyricsBox();
           clearInterval(lyricsInterval);
+          break;
         }
       }
-    } catch {
-      hideLyricsBox();
-      clearInterval(lyricsInterval);
+      if (!lyricsChanged) return;
+      lyricsChanged = false;
+      originalBox.innerText = "";
+      translatedBox.innerText = "";
+      originalBox.style.transitionDuration = "0s";
+      translatedBox.style.transitionDuration = "0s";
+      originalBox.style.transitionDelay = "0s";
+      translatedBox.style.transitionDelay = "0s";
+      originalBox.style.textIndent = "0%";
+      translatedBox.style.textIndent = "0%";
+      originalBox.innerText = ctrack.lyrics.lrc[idx - 1].text;
+      translatedBox.innerText = ctrack.lyrics.lrc[idx - 1].translated;
+      let delta =
+        idx < ctrack.lyrics.lrc.length
+          ? ctrack.lyrics.lrc[idx].time.total -
+            ctrack.lyrics.lrc[idx - 1].time.total
+          : 10;
+      if (isElementOverflowing(originalBox) && idx < ctrack.lyrics.lrc.length) {
+        originalBox.style.transitionDuration = 2 * delta + "s";
+
+        originalBox.style.transitionDelay = "1s";
+        originalBox.style.textIndent =
+          -(originalBox.scrollWidth / originalBox.offsetWidth) * 100 + "%";
+      }
+      if (
+        isElementOverflowing(translatedBox) &&
+        idx < ctrack.lyrics.lrc.length
+      ) {
+        translatedBox.style.transitionDuration = 2 * delta + "s";
+
+        translatedBox.style.transitionDelay = "1s";
+        translatedBox.style.textIndent =
+          -(translatedBox.scrollWidth / translatedBox.offsetWidth) * 100 + "%";
+      }
     }
-  }, 100);
+  }, 50);
 }
 
 function isElementOverflowing(element) {
