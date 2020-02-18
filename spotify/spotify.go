@@ -157,7 +157,7 @@ func (client *Client) fetchToken() (err error) {
 	err = json.NewDecoder(resp.Body).Decode(&client)
 	return
 }
-func (client *Client) SearchTrack(query string) (track, artist string, err error) {
+func (client *Client) SearchTrack(query string) (track, artist, album string, err error) {
 	client.fetchToken()
 	reqURL, _ := url.Parse("https://api.spotify.com/v1/search?type=track&decorate_restrictions=false&best_match=false&limit=3&userless=true&market=VN")
 	queries := reqURL.Query()
@@ -176,6 +176,7 @@ func (client *Client) SearchTrack(query string) (track, artist string, err error
 	}
 	track = d.Tracks.Items[0].Name
 	artist = d.Tracks.Items[0].Artists[0].Name
+	album = d.Tracks.Items[0].Album.Name
 	return
 }
 func NewClient() (client *Client, err error) {

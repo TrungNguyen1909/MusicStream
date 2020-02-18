@@ -353,12 +353,12 @@ func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) 
 	withSpotify := client.spotifyClient != nil
 start:
 	if len(artist) == 0 && withSpotify {
-		sTrack, sArtist, err := client.spotifyClient.SearchTrack(track)
+		sTrack, sArtist, sAlbum, err := client.spotifyClient.SearchTrack(track)
 		if err != nil {
 			log.Printf("spotifyClient.SearchTrack() failed: %v\n", err)
 
 		} else {
-			url = fmt.Sprintf("https://api.deezer.com/search/track/?q=track:\"%s\"artist:\"%s\"", template.URLQueryEscaper(sTrack), template.URLQueryEscaper(sArtist))
+			url = fmt.Sprintf("https://api.deezer.com/search/track/?q=track:\"%s\"artist:\"%s\"album:\"%s\"", template.URLQueryEscaper(sTrack), template.URLQueryEscaper(sArtist), template.URLQueryEscaper(sAlbum))
 		}
 	} else {
 		if len(artist) == 0 {
@@ -370,6 +370,7 @@ start:
 	response, err := http.Get(url)
 	if err != nil {
 		if withSpotify {
+			log.Println("Search with spotify failed")
 			withSpotify = false
 			goto start
 		}
@@ -381,6 +382,7 @@ start:
 
 	if err != nil {
 		if withSpotify {
+			log.Println("Search with spotify failed")
 			withSpotify = false
 			goto start
 		}
@@ -392,7 +394,7 @@ start:
 			withSpotify = false
 			goto start
 		}
-		return nil, errors.New("No track found!")
+		return nil, errors.New("No track found")
 	}
 	tracks := make([]common.Track, len(itracks))
 	for i, v := range itracks {
