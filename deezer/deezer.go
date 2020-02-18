@@ -31,6 +31,7 @@ const (
 	deezerURL        = "https://www.deezer.com"
 	ajaxActionURL    = "https://www.deezer.com/ajax/action.php"
 	unofficialAPIURL = "https://www.deezer.com/ajax/gw-light.php"
+	trackQualityID   = 3
 )
 
 type Artist struct {
@@ -416,5 +417,3 @@ start:
 	}
 	return tracks, nil
 }
-
-const trackQualityID = 3

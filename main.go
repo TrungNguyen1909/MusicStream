@@ -37,15 +37,13 @@ const (
 	chunkDelayMS = 40
 )
 
+//#region Structures
+
 type chunk struct {
 	buffer      []byte
 	bufferLow   []byte
 	encoderTime time.Duration
 	channel     int
-}
-type webSocket struct {
-	conn *websocket.Conn
-	mux  *sync.Mutex
 }
 type wsMessage struct {
 	Operation int    `json:"op"`
@@ -53,6 +51,32 @@ type wsMessage struct {
 	Selector  int    `json:"selector"`
 }
 
+//#region webSocket
+
+type webSocket struct {
+	conn *websocket.Conn
+	mux  *sync.Mutex
+}
+
+func (socket *webSocket) WriteMessage(messageType int, data []byte) error {
+	socket.mux.Lock()
+	defer socket.mux.Unlock()
+	return socket.conn.WriteMessage(messageType, data)
+}
+func (socket *webSocket) Close() error {
+	socket.mux.Lock()
+	defer socket.mux.Unlock()
+	return socket.conn.Close()
+}
+func (socket *webSocket) ReadJSON(v interface{}) error {
+	return socket.conn.ReadJSON(v)
+}
+
+//#endregion
+
+//#endregion
+
+//#region Global Variables
 var upgrader = websocket.Upgrader{}
 var connections sync.Map
 var currentTrack common.Track
@@ -82,184 +106,10 @@ var streamMux sync.Mutex
 var encoderWg sync.WaitGroup
 var initialized chan int
 
-func (socket *webSocket) WriteMessage(messageType int, data []byte) error {
-	socket.mux.Lock()
-	defer socket.mux.Unlock()
-	return socket.conn.WriteMessage(messageType, data)
-}
-func (socket *webSocket) Close() error {
-	socket.mux.Lock()
-	defer socket.mux.Unlock()
-	return socket.conn.Close()
-}
-func (socket *webSocket) ReadJSON(v interface{}) error {
-	return socket.conn.ReadJSON(v)
-}
-func streamToClients(quit chan int, quitPreload chan int) {
-	streamMux.Lock()
-	defer streamMux.Unlock()
-	start := time.Now()
-	etaDone.Store(start)
-	interrupted := false
-	for {
-		select {
-		case <-quit:
-			quitPreload <- 0
-			interrupted = true
-			for len(quit) > 0 {
-				select {
-				case <-quit:
-				default:
-				}
-			}
-		default:
-		}
-		if !interrupted {
-			Chunk := <-bufferingChannel
-			if Chunk.buffer == nil && Chunk.bufferLow == nil {
-				log.Println("Found last chunk, breaking...")
-				break
-			}
-			done := false
-			Chunk.channel = ((currentChannel + 1) % 2)
-			for !done {
-				select {
-				case c := <-channels[currentChannel]:
-					select {
-					case c <- Chunk:
-					default:
-					}
-				default:
-					currentChannel = (currentChannel + 1) % 2
-					done = true
-				}
-			}
-			etaDone.Store(start.Add(Chunk.encoderTime))
-			time.Sleep(Chunk.encoderTime - time.Since(start) - chunkDelayMS*time.Millisecond)
-		} else {
-			for {
-				Chunk := <-bufferingChannel
-				if Chunk.buffer == nil && Chunk.bufferLow == nil {
-					log.Println("Found last chunk, breaking...")
-					break
-				}
-			}
-			return
-		}
-	}
-}
-func preloadTrack(stream io.ReadCloser, quit chan int) {
-	var encodedTime time.Duration
-	streamer, format, err := mp3.Decode(stream)
-	if err != nil {
-		log.Panic(err)
-	}
-	defer streamer.Close()
-	var needResampling bool
-	var resampled *beep.Resampler
-	if format.SampleRate != beep.SampleRate(48000) {
-		resampled = beep.Resample(4, format.SampleRate, beep.SampleRate(48000), streamer)
-		format.SampleRate = beep.SampleRate(48000)
-		needResampling = true
-	}
-	for j := 0; j < 2; j++ {
-		for i := 0; i < 2; i++ {
-			encoderWg.Add(2)
-			silenceFrame := make([]byte, 20000)
-			silenceFrameLow := make([]byte, 20000)
-			silenceBuffer := make([]byte, 76032)
-			go func() {
-				n := encoder.Encode(silenceFrame, silenceBuffer)
-				silenceFrame = silenceFrame[:n]
-				encoderWg.Done()
-			}()
+//#endregion
 
-			go func() {
-				n := encoderLow.Encode(silenceFrameLow, silenceBuffer)
-				silenceFrameLow = silenceFrameLow[:n]
-				encoderWg.Done()
-			}()
-			encoderWg.Wait()
-			encodedTime += 396 * time.Millisecond
-			bufferingChannel <- chunk{buffer: silenceFrame, bufferLow: silenceFrameLow, encoderTime: encodedTime}
-		}
-	}
-	defer func() {
-		for j := 0; j < 2; j++ {
-			for i := 0; i < 2; i++ {
-				encoderWg.Add(2)
-				silenceFrame := make([]byte, 20000)
-				silenceFrameLow := make([]byte, 20000)
-				silenceBuffer := make([]byte, 76032)
-				go func() {
-					n := encoder.Encode(silenceFrame, silenceBuffer)
-					silenceFrame = silenceFrame[:n]
-					encoderWg.Done()
-				}()
+//#region Radio Stream
 
-				go func() {
-					n := encoderLow.Encode(silenceFrameLow, silenceBuffer)
-					silenceFrameLow = silenceFrameLow[:n]
-					encoderWg.Done()
-				}()
-				encoderWg.Wait()
-				encodedTime += 396 * time.Millisecond
-				bufferingChannel <- chunk{buffer: silenceFrame, bufferLow: silenceFrameLow, encoderTime: encodedTime}
-			}
-		}
-		bufferingChannel <- chunk{buffer: nil, bufferLow: nil, encoderTime: 0}
-	}()
-	pos := int64(encoder.GranulePos())
-	atomic.StoreInt64(&startPos, pos)
-	deltaChannel <- pos
-	for {
-		select {
-		case <-quit:
-			return
-		default:
-		}
-		samples := make([][2]float64, 960)
-		var n int
-		var ok bool
-		if needResampling {
-			n, ok = resampled.Stream(samples)
-		} else {
-			n, ok = streamer.Stream(samples)
-		}
-		if !ok {
-			break
-		}
-		var buf bytes.Buffer
-		for _, sample := range samples {
-			p := make([]byte, format.Width())
-			format.EncodeSigned(p, sample)
-			for _, v := range p {
-				buf.WriteByte(v)
-			}
-		}
-		encoderWg.Add(2)
-		output := make([]byte, 20000)
-		outputLow := make([]byte, 20000)
-		go func() {
-			encodedLen := encoder.Encode(output, buf.Bytes())
-			output = output[:encodedLen]
-			encoderWg.Done()
-		}()
-		go func() {
-			encodedLen := encoderLow.Encode(outputLow, buf.Bytes())
-			outputLow = outputLow[:encodedLen]
-			encoderWg.Done()
-		}()
-		encoderWg.Wait()
-		encodedTime += 20 * time.Millisecond
-		if len(output) > 0 || len(outputLow) > 0 {
-			bufferingChannel <- chunk{buffer: output, bufferLow: outputLow, encoderTime: encodedTime}
-		}
-		if 0 <= n && n < 960 && ok {
-			break
-		}
-	}
-}
 func fillRadioMetadataFromVorbisStream(radio *common.RadioTrack, stream beep.StreamSeekCloser) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -385,6 +235,123 @@ func processRadio(quit chan int) {
 	defer func() { log.Println("Resuming track streaming..."); quit <- 0 }()
 	streamToClients(quit, quitPreload)
 }
+
+//#endregion
+
+//#region Track Stream
+
+func preloadTrack(stream io.ReadCloser, quit chan int) {
+	var encodedTime time.Duration
+	streamer, format, err := mp3.Decode(stream)
+	if err != nil {
+		log.Panic(err)
+	}
+	defer streamer.Close()
+	var needResampling bool
+	var resampled *beep.Resampler
+	if format.SampleRate != beep.SampleRate(48000) {
+		resampled = beep.Resample(4, format.SampleRate, beep.SampleRate(48000), streamer)
+		format.SampleRate = beep.SampleRate(48000)
+		needResampling = true
+	}
+	for j := 0; j < 2; j++ {
+		for i := 0; i < 2; i++ {
+			encoderWg.Add(2)
+			silenceFrame := make([]byte, 20000)
+			silenceFrameLow := make([]byte, 20000)
+			silenceBuffer := make([]byte, 76032)
+			go func() {
+				n := encoder.Encode(silenceFrame, silenceBuffer)
+				silenceFrame = silenceFrame[:n]
+				encoderWg.Done()
+			}()
+
+			go func() {
+				n := encoderLow.Encode(silenceFrameLow, silenceBuffer)
+				silenceFrameLow = silenceFrameLow[:n]
+				encoderWg.Done()
+			}()
+			encoderWg.Wait()
+			encodedTime += 396 * time.Millisecond
+			bufferingChannel <- chunk{buffer: silenceFrame, bufferLow: silenceFrameLow, encoderTime: encodedTime}
+		}
+	}
+	defer func() {
+		for j := 0; j < 2; j++ {
+			for i := 0; i < 2; i++ {
+				encoderWg.Add(2)
+				silenceFrame := make([]byte, 20000)
+				silenceFrameLow := make([]byte, 20000)
+				silenceBuffer := make([]byte, 76032)
+				go func() {
+					n := encoder.Encode(silenceFrame, silenceBuffer)
+					silenceFrame = silenceFrame[:n]
+					encoderWg.Done()
+				}()
+
+				go func() {
+					n := encoderLow.Encode(silenceFrameLow, silenceBuffer)
+					silenceFrameLow = silenceFrameLow[:n]
+					encoderWg.Done()
+				}()
+				encoderWg.Wait()
+				encodedTime += 396 * time.Millisecond
+				bufferingChannel <- chunk{buffer: silenceFrame, bufferLow: silenceFrameLow, encoderTime: encodedTime}
+			}
+		}
+		bufferingChannel <- chunk{buffer: nil, bufferLow: nil, encoderTime: 0}
+	}()
+	pos := int64(encoder.GranulePos())
+	atomic.StoreInt64(&startPos, pos)
+	deltaChannel <- pos
+	for {
+		select {
+		case <-quit:
+			return
+		default:
+		}
+		samples := make([][2]float64, 960)
+		var n int
+		var ok bool
+		if needResampling {
+			n, ok = resampled.Stream(samples)
+		} else {
+			n, ok = streamer.Stream(samples)
+		}
+		if !ok {
+			break
+		}
+		var buf bytes.Buffer
+		for _, sample := range samples {
+			p := make([]byte, format.Width())
+			format.EncodeSigned(p, sample)
+			for _, v := range p {
+				buf.WriteByte(v)
+			}
+		}
+		encoderWg.Add(2)
+		output := make([]byte, 20000)
+		outputLow := make([]byte, 20000)
+		go func() {
+			encodedLen := encoder.Encode(output, buf.Bytes())
+			output = output[:encodedLen]
+			encoderWg.Done()
+		}()
+		go func() {
+			encodedLen := encoderLow.Encode(outputLow, buf.Bytes())
+			outputLow = outputLow[:encodedLen]
+			encoderWg.Done()
+		}()
+		encoderWg.Wait()
+		encodedTime += 20 * time.Millisecond
+		if len(output) > 0 || len(outputLow) > 0 {
+			bufferingChannel <- chunk{buffer: output, bufferLow: outputLow, encoderTime: encodedTime}
+		}
+		if 0 <= n && n < 960 && ok {
+			break
+		}
+	}
+}
 func processTrack() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -463,32 +430,61 @@ func processTrack() {
 	watchDog = 0
 }
 
-func audioManager() {
-	for i := range channels {
-		channels[i] = make(chan chan chunk, 1000)
-	}
-	bufferingChannel = make(chan chunk, 5000)
-	skipChannel = make(chan int, 500)
-	deltaChannel = make(chan int64, 1)
+//#endregion
 
-	encoder = vorbisencoder.NewEncoder(2, 48000, 256000)
-	oggHeader = make([]byte, 5000)
-	n := encoder.Encode(oggHeader, make([]byte, 0))
-	oggHeader = oggHeader[:n]
+//#region Data Distribution
 
-	encoderLow = vorbisencoder.NewEncoder(2, 48000, 192000)
-	oggHeaderLow = make([]byte, 5000)
-	n = encoderLow.Encode(oggHeaderLow, make([]byte, 0))
-	oggHeaderLow = oggHeaderLow[:n]
-
-	dzClient = deezer.NewClient()
-	cacheQueue = &list.List{}
-	playQueue = queue.NewQueue()
-	currentTrackID = -1
-	etaDone.Store(time.Now())
-	initialized <- 1
+func streamToClients(quit chan int, quitPreload chan int) {
+	streamMux.Lock()
+	defer streamMux.Unlock()
+	start := time.Now()
+	etaDone.Store(start)
+	interrupted := false
 	for {
-		processTrack()
+		select {
+		case <-quit:
+			quitPreload <- 0
+			interrupted = true
+			for len(quit) > 0 {
+				select {
+				case <-quit:
+				default:
+				}
+			}
+		default:
+		}
+		if !interrupted {
+			Chunk := <-bufferingChannel
+			if Chunk.buffer == nil && Chunk.bufferLow == nil {
+				log.Println("Found last chunk, breaking...")
+				break
+			}
+			done := false
+			Chunk.channel = ((currentChannel + 1) % 2)
+			for !done {
+				select {
+				case c := <-channels[currentChannel]:
+					select {
+					case c <- Chunk:
+					default:
+					}
+				default:
+					currentChannel = (currentChannel + 1) % 2
+					done = true
+				}
+			}
+			etaDone.Store(start.Add(Chunk.encoderTime))
+			time.Sleep(Chunk.encoderTime - time.Since(start) - chunkDelayMS*time.Millisecond)
+		} else {
+			for {
+				Chunk := <-bufferingChannel
+				if Chunk.buffer == nil && Chunk.bufferLow == nil {
+					log.Println("Found last chunk, breaking...")
+					break
+				}
+			}
+			return
+		}
 	}
 }
 func setTrack(trackMeta common.TrackMetadata) {
@@ -524,52 +520,9 @@ func setListenerCount() {
 	})
 }
 
-func audioHandler(w http.ResponseWriter, r *http.Request) {
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		log.Fatal("expected http.ResponseWriter to be an http.Flusher")
-	}
-	atomic.AddInt32(&listenersCount, 1)
-	go setListenerCount()
-	defer setListenerCount()
-	defer atomic.AddInt32(&listenersCount, -1)
-	quality := 1
-	if r.URL.Path == `/fallback` {
-		quality = 0
-	}
+//#endregion
 
-	w.Header().Set("Connection", "Keep-Alive")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Header().Set("Transfer-Encoding", "chunked")
-	w.Header().Set("Content-Type", "application/ogg")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("pragma", "no-cache")
-	w.Header().Set("status", "200")
-	if quality == 0 {
-		w.Write(oggHeaderLow)
-	} else {
-		w.Write(oggHeader)
-	}
-	flusher.Flush()
-	channel := make(chan chunk, 500)
-	channels[0] <- channel
-	chanidx := 0
-	for {
-		Chunk := <-channel
-		chanidx = Chunk.channel
-		var err error
-		if quality == 0 {
-			_, err = w.Write(Chunk.bufferLow)
-		} else {
-			_, err = w.Write(Chunk.buffer)
-		}
-		if err != nil {
-			break
-		}
-		flusher.Flush()
-		channels[chanidx] <- channel
-	}
-}
+//#region Data Request Handling
 
 func getPlaying() []byte {
 	data, _ := json.Marshal(map[string]interface{}{
@@ -588,6 +541,11 @@ func getListenersCount() []byte {
 	})
 	return data
 }
+
+//#endregion
+
+//#region Queue
+
 func enqueue(msg wsMessage) []byte {
 	var err error
 	if len(msg.Query) == 0 {
@@ -725,6 +683,57 @@ func getQueue() []byte {
 	})
 
 	return data
+}
+
+//#endregion
+
+//#region HTTP Handler
+
+func audioHandler(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		log.Fatal("expected http.ResponseWriter to be an http.Flusher")
+	}
+	atomic.AddInt32(&listenersCount, 1)
+	go setListenerCount()
+	defer setListenerCount()
+	defer atomic.AddInt32(&listenersCount, -1)
+	quality := 1
+	if r.URL.Path == `/fallback` {
+		quality = 0
+	}
+
+	w.Header().Set("Connection", "Keep-Alive")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Transfer-Encoding", "chunked")
+	w.Header().Set("Content-Type", "application/ogg")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("pragma", "no-cache")
+	w.Header().Set("status", "200")
+	if quality == 0 {
+		w.Write(oggHeaderLow)
+	} else {
+		w.Write(oggHeader)
+	}
+	flusher.Flush()
+	channel := make(chan chunk, 500)
+	channels[0] <- channel
+	chanidx := 0
+	for {
+		Chunk := <-channel
+		chanidx = Chunk.channel
+		var err error
+		if quality == 0 {
+			_, err = w.Write(Chunk.bufferLow)
+		} else {
+			_, err = w.Write(Chunk.buffer)
+		}
+		if err != nil {
+			break
+		}
+		flusher.Flush()
+		channels[chanidx] <- channel
+	}
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
@@ -932,6 +941,39 @@ func logRequest(handler http.Handler) http.Handler {
 		handler.ServeHTTP(w, r)
 	})
 }
+
+//#endregion
+
+//#region Main Threads
+
+func audioManager() {
+	for i := range channels {
+		channels[i] = make(chan chan chunk, 1000)
+	}
+	bufferingChannel = make(chan chunk, 5000)
+	skipChannel = make(chan int, 500)
+	deltaChannel = make(chan int64, 1)
+
+	encoder = vorbisencoder.NewEncoder(2, 48000, 256000)
+	oggHeader = make([]byte, 5000)
+	n := encoder.Encode(oggHeader, make([]byte, 0))
+	oggHeader = oggHeader[:n]
+
+	encoderLow = vorbisencoder.NewEncoder(2, 48000, 192000)
+	oggHeaderLow = make([]byte, 5000)
+	n = encoderLow.Encode(oggHeaderLow, make([]byte, 0))
+	oggHeaderLow = oggHeaderLow[:n]
+
+	dzClient = deezer.NewClient()
+	cacheQueue = &list.List{}
+	playQueue = queue.NewQueue()
+	currentTrackID = -1
+	etaDone.Store(time.Now())
+	initialized <- 1
+	for {
+		processTrack()
+	}
+}
 func main() {
 	_, ok := os.LookupEnv("DEEZER_ARL")
 	if !ok {
@@ -962,6 +1004,10 @@ func main() {
 	log.Fatal(http.ListenAndServe(port, logRequest(http.DefaultServeMux)))
 }
 
+//#endregion
+
+//#region Utility Threads
+
 func selfPinger() {
 	appName, ok := os.LookupEnv("HEROKU_APP_NAME")
 	if !ok {
@@ -977,3 +1023,5 @@ func selfPinger() {
 		time.Sleep(1 * time.Minute)
 	}
 }
+
+//#endregion
