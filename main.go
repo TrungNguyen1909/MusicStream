@@ -471,7 +471,7 @@ func audioManager() {
 	skipChannel = make(chan int, 500)
 	deltaChannel = make(chan int64, 1)
 
-	encoder = vorbisencoder.NewEncoder(2, 48000, 320000)
+	encoder = vorbisencoder.NewEncoder(2, 48000, 256000)
 	oggHeader = make([]byte, 5000)
 	n := encoder.Encode(oggHeader, make([]byte, 0))
 	oggHeader = oggHeader[:n]
