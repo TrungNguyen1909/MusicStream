@@ -76,6 +76,9 @@ func (track Track) Download() (stream io.ReadCloser, err error) {
 	stream = response.Body
 	return
 }
+func (track Track) SpotifyURL() string {
+	return ""
+}
 
 type csnResult struct {
 	Default bool   `json:"default"`

@@ -95,6 +95,13 @@ func (track Track) Download() (io.ReadCloser, error) {
 	}
 	return &trackDecrypter{r: response.Body, BlowfishKey: track.BlowfishKey}, nil
 }
+func (track Track) SpotifyURL() string {
+	return track.deezerTrack.SpotifyURL
+}
+
+func (track *Track) SetSpotifyURL(sURI string) {
+	track.deezerTrack.SpotifyURL = sURI
+}
 
 type getUserDataResults struct {
 	CheckForm string `json:"checkForm"`
@@ -128,6 +135,7 @@ type deezerTrack struct {
 	Album        Album    `json:"album"`
 	Duration     int      `json:"duration"`
 	Rank         int      `json:"rank"`
+	SpotifyURL   string
 }
 
 type trackDecrypter struct {
@@ -350,10 +358,12 @@ func (client *Client) GetTrackByID(trackID int) (track common.Track, err error) 
 
 func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) {
 	var url string
+	var sTrack, sArtist, sAlbum, sURI string
+	var err error
 	withSpotify := client.spotifyClient != nil
 start:
 	if len(artist) == 0 && withSpotify {
-		sTrack, sArtist, sAlbum, err := client.spotifyClient.SearchTrack(track)
+		sTrack, sArtist, sAlbum, sURI, err = client.spotifyClient.SearchTrack(track)
 		if err != nil {
 			log.Printf("spotifyClient.SearchTrack() failed: %v\n", err)
 
@@ -398,6 +408,10 @@ start:
 	}
 	tracks := make([]common.Track, len(itracks))
 	for i, v := range itracks {
+
+		if withSpotify && v.Title == sTrack && v.Artist.Name == sArtist && v.Album.Title == sAlbum {
+			v.SpotifyURL = sURI
+		}
 		tracks[i] = Track{deezerTrack: v}
 	}
 	return tracks, nil

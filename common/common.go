@@ -20,6 +20,7 @@ type Track interface {
 	Album() string
 	CoverURL() string
 	Duration() int
+	SpotifyURL() string
 	Download() (io.ReadCloser, error)
 }
 
@@ -110,6 +111,10 @@ func (track RadioTrack) Duration() int {
 }
 
 func (track RadioTrack) CoverURL() string {
+	return ""
+}
+
+func (track RadioTrack) SpotifyURL() string {
 	return ""
 }
 

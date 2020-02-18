@@ -116,7 +116,7 @@ func streamToClients(quit chan int, quitPreload chan int) {
 		}
 		if !interrupted {
 			Chunk := <-bufferingChannel
-			if Chunk.buffer == nil {
+			if Chunk.buffer == nil && Chunk.bufferLow == nil {
 				log.Println("Found last chunk, breaking...")
 				break
 			}
@@ -139,7 +139,7 @@ func streamToClients(quit chan int, quitPreload chan int) {
 		} else {
 			for {
 				Chunk := <-bufferingChannel
-				if Chunk.buffer == nil {
+				if Chunk.buffer == nil && Chunk.bufferLow == nil {
 					log.Println("Found last chunk, breaking...")
 					break
 				}
@@ -365,7 +365,7 @@ func preloadRadio(quit chan int) {
 				bufferingChannel <- chunk{buffer: silenceFrame, bufferLow: silenceFrameLow, encoderTime: encodedTime}
 			}
 		}
-		bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
+		bufferingChannel <- chunk{buffer: nil, bufferLow: nil, encoderTime: 0}
 	}()
 	defer log.Println("Radio preloading stopped!")
 	radio = common.RadioTrack{}
@@ -435,7 +435,7 @@ func processTrack() {
 	log.Printf("Playing %v - %v\n", track.Title(), track.Artist())
 	trackDict := common.GetMetadata(track)
 	var mxmlyrics common.LyricsResult
-	mxmlyrics, err = lyrics.GetLyrics(track.Title(), track.Artist(), track.Album(), track.Artists(), track.Duration())
+	mxmlyrics, err = lyrics.GetLyrics(track.Title(), track.Artist(), track.Album(), track.Artists(), track.SpotifyURL(), track.Duration())
 	if err == nil {
 		trackDict.Lyrics = mxmlyrics
 	}
@@ -622,8 +622,12 @@ func enqueue(msg wsMessage) []byte {
 		return data
 	default:
 		track := tracks[0]
+		spotifyURI := track.SpotifyURL()
 		if track.Source() == common.Deezer {
 			track, err = dzClient.GetTrackByID(track.ID())
+			dtrack := track.(deezer.Track)
+			dtrack.SetSpotifyURL(spotifyURI)
+			track = dtrack
 		}
 		playQueue.Enqueue(track)
 		enqueueCallback(track)
