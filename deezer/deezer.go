@@ -399,7 +399,8 @@ start:
 		sTrack, sArtist, sAlbum, sURI, err = client.spotifyClient.SearchTrack(track)
 		if err != nil {
 			log.Printf("spotifyClient.SearchTrack() failed: %v\n", err)
-
+			withSpotify = false
+			goto start
 		} else {
 			url = fmt.Sprintf("https://api.deezer.com/search/track/?q=track:\"%s\"artist:\"%s\"album:\"%s\"", template.URLQueryEscaper(sTrack), template.URLQueryEscaper(sArtist), template.URLQueryEscaper(sAlbum))
 		}

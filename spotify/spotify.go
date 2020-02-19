@@ -2,6 +2,7 @@ package spotify
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"time"
@@ -173,6 +174,9 @@ func (client *Client) SearchTrack(query string) (track, artist, album, sURL stri
 	err = json.NewDecoder(resp.Body).Decode(&d)
 	if err != nil {
 		return
+	}
+	if len(d.Tracks.Items) <= 0 {
+		err = errors.New("No Spotify track found")
 	}
 	track = d.Tracks.Items[0].Name
 	artist = d.Tracks.Items[0].Artists[0].Name
