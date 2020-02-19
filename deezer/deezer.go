@@ -2,7 +2,6 @@ package deezer
 
 import (
 	"bytes"
-	"common"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
@@ -19,9 +18,12 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
-	"spotify"
 	"strconv"
 	"strings"
+
+	"github.com/TrungNguyen1909/MusicStream/spotify"
+
+	"github.com/TrungNguyen1909/MusicStream/common"
 
 	"golang.org/x/crypto/blowfish"
 	"golang.org/x/text/encoding/charmap"

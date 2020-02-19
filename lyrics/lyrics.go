@@ -1,7 +1,6 @@
 package lyrics
 
 import (
-	"common"
 	"compress/gzip"
 	"encoding/json"
 	"io"
@@ -11,6 +10,8 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+
+	"github.com/TrungNguyen1909/MusicStream/common"
 )
 
 type mxmResponse struct {

@@ -2,7 +2,6 @@ package csn
 
 import (
 	"bytes"
-	"common"
 	"encoding/json"
 	"errors"
 	"io"
@@ -14,6 +13,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/TrungNguyen1909/MusicStream/common"
 
 	"github.com/anaskhan96/soup"
 )

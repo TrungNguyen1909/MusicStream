@@ -88,7 +88,7 @@
   name = "golang.org/x/crypto"
   packages = ["blowfish"]
   pruneopts = "UT"
-  revision = "69ecbb4d6d5dab05e49161c6e77ea40a030884e1"
+  revision = "1d94cc7ab1c630336ab82ccb9c9cda72a875c382"
 
 [[projects]]
   branch = "master"
@@ -126,6 +126,7 @@
     "github.com/faiface/beep/mp3",
     "github.com/faiface/beep/vorbis",
     "github.com/gorilla/websocket",
+    "github.com/jfreymuth/oggvorbis",
     "github.com/joho/godotenv/autoload",
     "golang.org/x/crypto/blowfish",
     "golang.org/x/text/encoding/charmap",
