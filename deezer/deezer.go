@@ -34,9 +34,12 @@ const (
 	trackQualityID   = 3
 )
 
+//Artist represents an artist on Deezer
 type Artist struct {
 	Name string `json:"name"`
 }
+
+//Album represents an album on Deezer
 type Album struct {
 	Title       string `json:"title"`
 	Cover       string `json:"cover"`
@@ -45,6 +48,8 @@ type Album struct {
 	CoverBig    string `json:"cover_big"`
 	CoverXL     string `json:"cover_xl"`
 }
+
+//Track represents a track on Deezer
 type Track struct {
 	deezerTrack
 	StreamURL   string
@@ -52,25 +57,32 @@ type Track struct {
 	playID      string
 }
 
+//ID returns the track's ID number on Deezer
 func (track Track) ID() int {
 	return track.deezerTrack.ID
 }
 
+//Title returns the track's title
 func (track Track) Title() string {
 	return track.deezerTrack.Title
 }
 
+//Album returns the track's album title
 func (track Track) Album() string {
 	return track.deezerTrack.Album.Title
 }
 
+//Source returns the track's source
 func (track Track) Source() int {
 	return common.Deezer
 }
 
+//Artist returns the track's main artist
 func (track Track) Artist() string {
 	return track.deezerTrack.Artist.Name
 }
+
+//Artists returns the track's contributors' name, comma-separated
 func (track Track) Artists() string {
 	artists := ""
 	for _, v := range track.deezerTrack.Contributors {
@@ -79,14 +91,18 @@ func (track Track) Artists() string {
 	artists = artists[2:]
 	return artists
 }
+
+//Duration returns the track's duration
 func (track Track) Duration() int {
 	return track.deezerTrack.Duration
 }
 
+//CoverURL returns the URL to track's cover art
 func (track Track) CoverURL() string {
 	return track.deezerTrack.Album.CoverXL
 }
 
+//Download returns a mp3 stream of the track
 func (track Track) Download() (io.ReadCloser, error) {
 	if track.StreamURL == "" || len(track.BlowfishKey) == 0 {
 		return nil, errors.New("Metadata not yet populated")
@@ -97,15 +113,20 @@ func (track Track) Download() (io.ReadCloser, error) {
 	}
 	return &trackDecrypter{r: response.Body, BlowfishKey: track.BlowfishKey}, nil
 }
-func (track Track) SpotifyURL() string {
-	return track.deezerTrack.SpotifyURL
+
+//SpotifyURI returns the track's equivalent spotify song, if known
+func (track Track) SpotifyURI() string {
+	return track.deezerTrack.SpotifyURI
 }
+
+//PlayID returns a random string which is unique to this instance of Track
 func (track Track) PlayID() string {
 	return track.playID
 }
 
-func (track *Track) SetSpotifyURL(sURI string) {
-	track.deezerTrack.SpotifyURL = sURI
+//SetSpotifyURI set the track's SpotifyURI with the provided one
+func (track *Track) SetSpotifyURI(sURI string) {
+	track.deezerTrack.SpotifyURI = sURI
 }
 
 type getUserDataResults struct {
@@ -140,7 +161,7 @@ type deezerTrack struct {
 	Album        Album    `json:"album"`
 	Duration     int      `json:"duration"`
 	Rank         int      `json:"rank"`
-	SpotifyURL   string
+	SpotifyURI   string
 }
 
 type trackDecrypter struct {
@@ -189,6 +210,7 @@ func (decrypter *trackDecrypter) Close() error {
 	return decrypter.r.Close()
 }
 
+//Client represents a Deezer client
 type Client struct {
 	httpHeaders        http.Header
 	arlCookie          *http.Cookie
@@ -200,6 +222,7 @@ type Client struct {
 	spotifyClient      *spotify.Client
 }
 
+//NewClient returns a new Deezer Client
 func NewClient() (client *Client) {
 	client = &Client{}
 	cookiesJar, _ := cookiejar.New(nil)
@@ -330,6 +353,7 @@ func (client *Client) getTrackDownloadURL(trackInfo pageTrackData) (url string, 
 	return
 }
 
+//PopulateMetadata populates the required metadata for downloading the track
 func (client *Client) PopulateMetadata(dTrack *Track) (err error) {
 	trackInfo, err := client.getTrackInfo(dTrack.deezerTrack.ID, false)
 	if err != nil {
@@ -346,6 +370,7 @@ func (client *Client) PopulateMetadata(dTrack *Track) (err error) {
 	return
 }
 
+//GetTrackByID returns the populated track with the provided ID on Deezer
 func (client *Client) GetTrackByID(trackID int) (track common.Track, err error) {
 	var url string
 	var dTrack deezerTrack
@@ -355,12 +380,13 @@ func (client *Client) GetTrackByID(trackID int) (track common.Track, err error) 
 		return
 	}
 	err = json.NewDecoder(response.Body).Decode(&dTrack)
-	itrack := Track{deezerTrack: dTrack, playID: common.GenerateId()}
+	itrack := Track{deezerTrack: dTrack, playID: common.GenerateID()}
 	err = client.PopulateMetadata(&itrack)
 	track = itrack
 	return
 }
 
+//SearchTrack takes the track title and optional track's artist query and returns the best match track on Deezer
 func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) {
 	var url string
 	var sTrack, sArtist, sAlbum, sURI string
@@ -415,9 +441,9 @@ start:
 	for i, v := range itracks {
 
 		if withSpotify && v.Title == sTrack && v.Artist.Name == sArtist && v.Album.Title == sAlbum {
-			v.SpotifyURL = sURI
+			v.SpotifyURI = sURI
 		}
-		tracks[i] = Track{deezerTrack: v, playID: common.GenerateId()}
+		tracks[i] = Track{deezerTrack: v, playID: common.GenerateID()}
 	}
 	return tracks, nil
 }

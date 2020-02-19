@@ -29,14 +29,14 @@ type csnTrack struct {
 	Link     string `json:"music_link"`
 }
 
-//Track represents a Song on csn site
+//Track represents a track on CSN site
 type Track struct {
 	csnTrack
 	StreamURL string
 	playID    string
 }
 
-//ID returns the track's ID number
+//ID returns the track's ID number on CSN
 func (track Track) ID() int {
 	return track.csnTrack.ID
 }
@@ -90,8 +90,8 @@ func (track Track) Download() (stream io.ReadCloser, err error) {
 	return
 }
 
-//SpotifyURL returns the track's equivalent spotify song
-func (track Track) SpotifyURL() string {
+//SpotifyURI returns the track's equivalent spotify song, if known
+func (track Track) SpotifyURI() string {
 	return ""
 }
 
@@ -148,12 +148,12 @@ func Search(query string) (tracks []common.Track, err error) {
 		result.Music.Data[i].Artist = result.Music.Data[i].Artists[0]
 	}
 	for i, v := range result.Music.Data {
-		tracks[i] = Track{csnTrack: v, playID: common.GenerateId()}
+		tracks[i] = Track{csnTrack: v, playID: common.GenerateID()}
 	}
 	return
 }
 
-//Populate populates the needed metadata for downloading the track
+//Populate populates the required metadata for downloading the track
 func (track *Track) Populate() (err error) {
 	url := track.Link
 	if client == nil {

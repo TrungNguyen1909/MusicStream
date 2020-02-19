@@ -409,7 +409,7 @@ func processTrack() {
 	log.Printf("Playing %v - %v\n", track.Title(), track.Artist())
 	trackDict := common.GetMetadata(track)
 	var mxmlyrics common.LyricsResult
-	mxmlyrics, err = lyrics.GetLyrics(track.Title(), track.Artist(), track.Album(), track.Artists(), track.SpotifyURL(), track.Duration())
+	mxmlyrics, err = lyrics.GetLyrics(track.Title(), track.Artist(), track.Album(), track.Artists(), track.SpotifyURI(), track.Duration())
 	if err == nil {
 		trackDict.Lyrics = mxmlyrics
 	}
@@ -588,11 +588,11 @@ func enqueue(msg wsMessage) []byte {
 		return data
 	default:
 		track := tracks[0]
-		spotifyURI := track.SpotifyURL()
+		spotifyURI := track.SpotifyURI()
 		if track.Source() == common.Deezer {
 			track, err = dzClient.GetTrackByID(track.ID())
 			dtrack := track.(deezer.Track)
-			dtrack.SetSpotifyURL(spotifyURI)
+			dtrack.SetSpotifyURI(spotifyURI)
 			track = dtrack
 		}
 		playQueue.Enqueue(track)

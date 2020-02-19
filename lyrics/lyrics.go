@@ -212,7 +212,8 @@ type mxmResponse struct {
 	} `json:"message"`
 }
 
-func GetLyrics(track, artist, album, artists, spotifyURL string, duration int) (result common.LyricsResult, err error) {
+//GetLyrics returns the lyrics of the song with provided information
+func GetLyrics(track, artist, album, artists, SpotifyURI string, duration int) (result common.LyricsResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("GetLyrics: %v\n", r)
@@ -235,10 +236,10 @@ func GetLyrics(track, artist, album, artists, spotifyURL string, duration int) (
 		queries.Add("q_duration", strconv.Itoa(duration))
 	}
 	queries.Add("f_subtitle_length", strconv.Itoa(duration))
-	if len(spotifyURL) > 0 {
-		queries.Add("track_spotify_id", spotifyURL)
+	if len(SpotifyURI) > 0 {
+		queries.Add("track_spotify_id", SpotifyURI)
 	}
-	log.Printf("Spotify URI: %s\n", spotifyURL)
+	log.Printf("Spotify URI: %s\n", SpotifyURI)
 	reqURL.RawQuery = queries.Encode()
 	req, _ := http.NewRequest("GET", reqURL.String(), nil)
 	req.Header.Set("Host", "apic.musixmatch.com")
