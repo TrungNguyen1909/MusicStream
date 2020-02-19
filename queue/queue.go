@@ -39,9 +39,9 @@ func (c *Queue) Front() interface{} {
 		c.enqueued.L.Lock()
 		defer c.enqueued.L.Unlock()
 		c.enqueued.Wait()
-		c.mux.RLock()
-		defer c.mux.RUnlock()
 	}
+	c.mux.RLock()
+	defer c.mux.RUnlock()
 	val := c.queue.Front().Value
 	return val
 }
