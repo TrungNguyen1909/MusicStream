@@ -8,10 +8,13 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -24,13 +27,19 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/lyrics"
 	"github.com/TrungNguyen1909/MusicStream/queue"
 	"github.com/TrungNguyen1909/MusicStream/vorbisencoder"
-
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/vorbis"
 	"github.com/gorilla/websocket"
 	"github.com/jfreymuth/oggvorbis"
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/tdewolff/minify"
+	"github.com/tdewolff/minify/css"
+	"github.com/tdewolff/minify/html"
+	"github.com/tdewolff/minify/js"
+	mJSON "github.com/tdewolff/minify/json"
+	"github.com/tdewolff/minify/svg"
+	"github.com/tdewolff/minify/xml"
 )
 
 const (
@@ -113,6 +122,7 @@ var cacheQueue *queue.Queue
 var streamMux sync.Mutex
 var encoderWg sync.WaitGroup
 var initialized chan int
+var minifier *minify.M
 
 //#endregion
 
@@ -974,7 +984,12 @@ func fileServer(fs http.Dir) func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, msg, code)
 			return
 		}
-		etag := sha1.Sum(content)
+		mediaType := mime.TypeByExtension(filepath.Ext(d.Name()))
+		if mediaType == "" {
+			mediaType = http.DetectContentType(content)
+		}
+		mContent, err := minifier.Bytes(mediaType, content)
+		etag := sha1.Sum(mContent)
 		w.Header().Set("ETag", "W/"+fmt.Sprintf("%x", etag))
 		if match := r.Header.Get("If-None-Match"); match != "" {
 			if strings.Contains(match, w.Header().Get("ETag")) {
@@ -982,7 +997,7 @@ func fileServer(fs http.Dir) func(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		http.ServeContent(w, r, d.Name(), d.ModTime(), f)
+		http.ServeContent(w, r, d.Name(), d.ModTime(), bytes.NewReader(mContent))
 		return
 
 	}
@@ -1044,6 +1059,13 @@ func main() {
 	port = ":" + port
 	initialized = make(chan int)
 	go audioManager()
+	minifier = minify.New()
+	minifier.AddFunc("text/css", css.Minify)
+	minifier.AddFunc("text/html", html.Minify)
+	minifier.AddFunc("image/svg+xml", svg.Minify)
+	minifier.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
+	minifier.AddFuncRegexp(regexp.MustCompile("[/+]json$"), mJSON.Minify)
+	minifier.AddFuncRegexp(regexp.MustCompile("[/+]xml$"), xml.Minify)
 	http.HandleFunc("/enqueue", enqueueHandler)
 	http.HandleFunc("/queue", queueHandler)
 	http.HandleFunc("/listeners", listenersHandler)

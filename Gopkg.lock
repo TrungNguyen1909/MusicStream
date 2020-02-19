@@ -83,6 +83,40 @@
   version = "v0.9.1"
 
 [[projects]]
+  digest = "1:4eab4eeecfcc7210a50ee6f6b64b290034c885397ec5d7bdd98920d3dab8f1a5"
+  name = "github.com/tdewolff/minify"
+  packages = [
+    ".",
+    "css",
+    "html",
+    "js",
+    "json",
+    "svg",
+    "xml",
+  ]
+  pruneopts = "UT"
+  revision = "c86dd764169e70ab04e3b0d5fd5e478657a6c83d"
+  version = "v2.3.6"
+
+[[projects]]
+  digest = "1:5adb31eb4b5028237a529c2971bbf65952ae2712c65426587adfa2e8212f042c"
+  name = "github.com/tdewolff/parse"
+  packages = [
+    ".",
+    "buffer",
+    "css",
+    "html",
+    "js",
+    "json",
+    "strconv",
+    "svg",
+    "xml",
+  ]
+  pruneopts = "UT"
+  revision = "1b0354dccc7aceb4528eb638fbfec60d20338a29"
+  version = "v2.3.4"
+
+[[projects]]
   branch = "master"
   digest = "1:856a79b7e254e0c8e29a17b354fdac4cc8123a6e1bb3b58478e720f67487fcd2"
   name = "golang.org/x/crypto"
@@ -128,6 +162,13 @@
     "github.com/gorilla/websocket",
     "github.com/jfreymuth/oggvorbis",
     "github.com/joho/godotenv/autoload",
+    "github.com/tdewolff/minify",
+    "github.com/tdewolff/minify/css",
+    "github.com/tdewolff/minify/html",
+    "github.com/tdewolff/minify/js",
+    "github.com/tdewolff/minify/json",
+    "github.com/tdewolff/minify/svg",
+    "github.com/tdewolff/minify/xml",
     "golang.org/x/crypto/blowfish",
     "golang.org/x/text/encoding/charmap",
   ]
