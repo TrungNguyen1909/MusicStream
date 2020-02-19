@@ -5,6 +5,15 @@ var lyricsInterval = null;
 var subBoxTimeout = null;
 var delta = 0;
 var isSkipped = false;
+const opSetClientsTrack = 1;
+const opAllClientsSkip = 2;
+const opClientRequestTrack = 3;
+const opClientRequestSkip = 4;
+const opSetClientsListeners = 5;
+const opTrackEnqueued = 6;
+const opClientRequestQueue = 7;
+const opWebSocketKeepAlive = 8;
+const opClientRemoveTrack = 9;
 class musicPlayer {
   constructor() {
     this.play = this.play.bind(this);
@@ -20,7 +29,7 @@ class musicPlayer {
     this.isPlaying = false;
   }
   skip() {
-    ws.send(JSON.stringify({ op: 4 }));
+    ws.send(JSON.stringify({ op: opClientRequestSkip }));
     this.skipBtn.disabled = true;
     setTimeout(() => {
       this.skipBtn.disabled = false;
@@ -89,7 +98,9 @@ function enqueue() {
   clearTimeout(subBoxTimeout);
   showSubBox();
   subBoxTimeout = setTimeout(hideSubBox, 2000);
-  ws.send(JSON.stringify({ op: 3, query: q, selector: mode }));
+  ws.send(
+    JSON.stringify({ op: opClientRequestTrack, query: q, selector: mode })
+  );
 }
 function setTrack(track) {
   console.log(track);
@@ -173,10 +184,10 @@ function initWebSocket() {
   };
   ws.onopen = event => {
     console.log("[WS] opened");
-    ws.send(JSON.stringify({ op: 1 }));
-    ws.send(JSON.stringify({ op: 7 }));
+    ws.send(JSON.stringify({ op: opSetClientsTrack }));
+    ws.send(JSON.stringify({ op: opClientRequestQueue }));
     wsInterval = setInterval(() => {
-      ws.send(JSON.stringify({ op: 8 }));
+      ws.send(JSON.stringify({ op: opWebSocketKeepAlive }));
     }, 30000);
   };
   ws.onclose = event => {
@@ -187,7 +198,7 @@ function initWebSocket() {
   ws.onmessage = event => {
     var msg = JSON.parse(event.data);
     switch (msg.op) {
-      case 1:
+      case opSetClientsTrack:
         if (document.getElementById("queue").childElementCount > 0) {
           document
             .getElementById("queue")
@@ -215,10 +226,10 @@ function initWebSocket() {
         setTrack(msg.track);
         setListeners(msg.listeners);
         break;
-      case 2:
+      case opAllClientsSkip:
         isSkipped = true;
         break;
-      case 3:
+      case opClientRequestTrack:
         var subBox = document.getElementById("sub");
         var artistBox = subBox.getElementsByClassName("artist")[0];
         var titleBox = subBox.getElementsByClassName("name")[0];
@@ -235,7 +246,7 @@ function initWebSocket() {
         subBoxTimeout = setTimeout(hideSubBox, 3000);
         document.getElementById("query").value = "";
         break;
-      case 4:
+      case opClientRequestSkip:
         var subBox = document.getElementById("sub");
         var artistBox = subBox.getElementsByClassName("artist")[0];
         var titleBox = subBox.getElementsByClassName("name")[0];
@@ -249,27 +260,30 @@ function initWebSocket() {
         clearTimeout(subBoxTimeout);
         showSubBox();
         subBoxTimeout = setTimeout(hideSubBox, 2000);
-        document.getElementById("query").value = "";
         break;
-      case 5:
+      case opSetClientsListeners:
         setListeners(msg.listeners);
         break;
-      case 6:
+      case opTrackEnqueued:
         {
           let ele = document.createElement("div");
           ele.className = "element";
+          ele.playId = msg.track.playId;
+          ele.addEventListener("contextmenu", this.removeTrack);
           let titleBox = document.createElement("div");
           titleBox.className = "title";
           titleBox.innerText = msg.track.title;
+          titleBox.playId = msg.track.playId;
           ele.appendChild(titleBox);
           let artistBox = document.createElement("div");
           artistBox.className = "artist";
           artistBox.innerText = msg.track.artists;
+          artistBox.playId = msg.track.playId;
           ele.appendChild(artistBox);
           document.getElementById("queue").appendChild(ele);
         }
         break;
-      case 7:
+      case opClientRequestQueue:
         while (document.getElementById("queue").firstChild) {
           document
             .getElementById("queue")
@@ -278,22 +292,73 @@ function initWebSocket() {
         msg.queue.forEach(track => {
           let ele = document.createElement("div");
           ele.className = "element";
+          ele.playId = track.playId;
+          ele.addEventListener("contextmenu", this.removeTrack);
           let titleBox = document.createElement("div");
           titleBox.className = "title";
           titleBox.innerText = track.title;
+          titleBox.playId = track.playId;
           ele.appendChild(titleBox);
           let artistBox = document.createElement("div");
           artistBox.className = "artist";
           artistBox.innerText = track.artists;
+          artistBox.playId = track.playId;
           ele.appendChild(artistBox);
           document.getElementById("queue").appendChild(ele);
         });
-
+        break;
+      case opClientRemoveTrack:
+        if (!msg.success) {
+          for (let child of document.getElementById("queue").children) {
+            if (child.playId == msg.track.playId) {
+              child.disabled = false;
+              break;
+            }
+          }
+          break;
+        }
+        var subBox = document.getElementById("sub");
+        var artistBox = subBox.getElementsByClassName("artist")[0];
+        var titleBox = subBox.getElementsByClassName("name")[0];
+        artistBox.innerText = "";
+        titleBox.innerText = "";
+        titleBox.innerText = `Removing`;
+        artistBox.innerText = `${msg.track.title} - ${msg.track.artist}`;
+        for (let child of document.getElementById("queue").children) {
+          if (child.playId == msg.track.playId) {
+            child.remove();
+            break;
+          }
+        }
+        clearTimeout(subBoxTimeout);
+        showSubBox();
+        subBoxTimeout = setTimeout(hideSubBox, 3000);
         break;
       default:
         break;
     }
   };
+}
+function removeTrack(event) {
+  console.log(event);
+  event.preventDefault();
+  console.log(event.currentTarget.playId);
+  ws.send(
+    JSON.stringify({ op: opClientRemoveTrack, query: event.target.playId })
+  );
+  var subBox = document.getElementById("sub");
+  var artistBox = subBox.getElementsByClassName("artist")[0];
+  var titleBox = subBox.getElementsByClassName("name")[0];
+  artistBox.innerText = "";
+  titleBox.innerText = "";
+  titleBox.innerText = `Removing`;
+  artistBox.innerText = `${
+    event.currentTarget.getElementsByClassName("title")[0].innerText
+  } - ${event.currentTarget.getElementsByClassName("artist")[0].innerText}`;
+  event.currentTarget.disabled = true;
+  clearTimeout(subBoxTimeout);
+  showSubBox();
+  subBoxTimeout = setTimeout(hideSubBox, 3000);
 }
 var enterPressed = false;
 const search = document.getElementById("query");

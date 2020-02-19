@@ -49,6 +49,7 @@ type Track struct {
 	deezerTrack
 	StreamURL   string
 	BlowfishKey []byte
+	playID      string
 }
 
 func (track Track) ID() int {
@@ -98,6 +99,9 @@ func (track Track) Download() (io.ReadCloser, error) {
 }
 func (track Track) SpotifyURL() string {
 	return track.deezerTrack.SpotifyURL
+}
+func (track Track) PlayID() string {
+	return track.playID
 }
 
 func (track *Track) SetSpotifyURL(sURI string) {
@@ -351,7 +355,7 @@ func (client *Client) GetTrackByID(trackID int) (track common.Track, err error) 
 		return
 	}
 	err = json.NewDecoder(response.Body).Decode(&dTrack)
-	itrack := Track{deezerTrack: dTrack}
+	itrack := Track{deezerTrack: dTrack, playID: common.GenerateId()}
 	err = client.PopulateMetadata(&itrack)
 	track = itrack
 	return
@@ -413,7 +417,7 @@ start:
 		if withSpotify && v.Title == sTrack && v.Artist.Name == sArtist && v.Album.Title == sAlbum {
 			v.SpotifyURL = sURI
 		}
-		tracks[i] = Track{deezerTrack: v}
+		tracks[i] = Track{deezerTrack: v, playID: common.GenerateId()}
 	}
 	return tracks, nil
 }

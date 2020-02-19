@@ -32,6 +32,7 @@ type csnTrack struct {
 type Track struct {
 	csnTrack
 	StreamURL string
+	playID    string
 }
 
 func (track Track) ID() int {
@@ -78,6 +79,9 @@ func (track Track) Download() (stream io.ReadCloser, err error) {
 }
 func (track Track) SpotifyURL() string {
 	return ""
+}
+func (track Track) PlayID() string {
+	return track.playID
 }
 
 type csnResult struct {
@@ -127,7 +131,7 @@ func Search(query string) (tracks []common.Track, err error) {
 		result.Music.Data[i].Artist = result.Music.Data[i].Artists[0]
 	}
 	for i, v := range result.Music.Data {
-		tracks[i] = Track{csnTrack: v}
+		tracks[i] = Track{csnTrack: v, playID: common.GenerateId()}
 	}
 	return
 }

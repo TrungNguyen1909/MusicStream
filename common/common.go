@@ -1,6 +1,7 @@
 package common
 
 import (
+	"crypto/rand"
 	"io"
 	"net/http"
 )
@@ -21,6 +22,7 @@ type Track interface {
 	CoverURL() string
 	Duration() int
 	SpotifyURL() string
+	PlayID() string
 	Download() (io.ReadCloser, error)
 }
 
@@ -33,6 +35,7 @@ type TrackMetadata struct {
 	Album    string       `json:"album"`
 	CoverURL string       `json:"cover"`
 	Lyrics   LyricsResult `json:"lyrics"`
+	PlayID   string       `json:"playId"`
 }
 
 func GetMetadata(track Track) (d TrackMetadata) {
@@ -44,6 +47,7 @@ func GetMetadata(track Track) (d TrackMetadata) {
 	d.Artists = track.Artists()
 	d.Album = track.Album()
 	d.CoverURL = track.CoverURL()
+	d.PlayID = track.PlayID()
 	return
 }
 
@@ -140,5 +144,19 @@ func (track RadioTrack) Download() (stream io.ReadCloser, err error) {
 		return
 	}
 	stream = resp.Body
+	return
+}
+func (track RadioTrack) PlayID() string {
+	return ""
+}
+
+const alphabet string = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
+
+func GenerateId() (id string) {
+	b := make([]byte, 8)
+	rand.Read(b)
+	for _, v := range b {
+		id += string(alphabet[int(v)%len(alphabet)])
+	}
 	return
 }

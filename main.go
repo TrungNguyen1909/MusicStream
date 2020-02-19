@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"common"
-	"container/list"
 	"crypto/sha1"
 	"csn"
 	"deezer"
@@ -34,7 +33,16 @@ import (
 )
 
 const (
-	chunkDelayMS = 40
+	chunkDelayMS          = 40
+	opSetClientsTrack     = 1
+	opAllClientsSkip      = 2
+	opClientRequestTrack  = 3
+	opClientRequestSkip   = 4
+	opSetClientsListeners = 5
+	opTrackEnqueued       = 6
+	opClientRequestQueue  = 7
+	opWebSocketKeepAlive  = 8
+	opClientRemoveTrack   = 9
 )
 
 //#region Structures
@@ -100,8 +108,7 @@ var encoder *vorbisencoder.Encoder
 var encoderLow *vorbisencoder.Encoder
 var deltaChannel chan int64
 var startTime time.Time
-var cacheQueue *list.List
-var cacheQueueMux sync.Mutex
+var cacheQueue *queue.Queue
 var streamMux sync.Mutex
 var encoderWg sync.WaitGroup
 var initialized chan int
@@ -491,7 +498,7 @@ func setTrack(trackMeta common.TrackMetadata) {
 	currentTrackMeta = trackMeta
 	log.Printf("Setting track on all clients %v - %v\n", trackMeta.Title, trackMeta.Artist)
 	data, err := json.Marshal(map[string]interface{}{
-		"op":        1,
+		"op":        opSetClientsTrack,
 		"track":     trackMeta,
 		"pos":       <-deltaChannel,
 		"listeners": atomic.LoadInt32(&listenersCount),
@@ -507,7 +514,7 @@ func setTrack(trackMeta common.TrackMetadata) {
 }
 func setListenerCount() {
 	data, err := json.Marshal(map[string]interface{}{
-		"op":        5,
+		"op":        opSetClientsListeners,
 		"listeners": atomic.LoadInt32(&listenersCount),
 	})
 	connections.Range(func(key, value interface{}) bool {
@@ -526,7 +533,7 @@ func setListenerCount() {
 
 func getPlaying() []byte {
 	data, _ := json.Marshal(map[string]interface{}{
-		"op":        1,
+		"op":        opSetClientsTrack,
 		"track":     currentTrackMeta,
 		"pos":       atomic.LoadInt64(&startPos),
 		"listeners": atomic.LoadInt32(&listenersCount),
@@ -536,7 +543,7 @@ func getPlaying() []byte {
 
 func getListenersCount() []byte {
 	data, _ := json.Marshal(map[string]interface{}{
-		"op":        5,
+		"op":        opSetClientsListeners,
 		"listeners": atomic.LoadInt32(&listenersCount),
 	})
 	return data
@@ -550,15 +557,16 @@ func enqueue(msg wsMessage) []byte {
 	var err error
 	if len(msg.Query) == 0 {
 		data, _ := json.Marshal(map[string]interface{}{
-			"op":      3,
+			"op":      opClientRequestTrack,
 			"success": false,
 			"reason":  "Invalid Query!",
 		})
 		return data
 	}
 	var tracks []common.Track
+	log.Printf("Client Queried: %s", msg.Query)
 	switch msg.Selector {
-	case 2:
+	case common.CSN:
 		tracks, err = csn.Search(msg.Query)
 	default:
 		tracks, err = dzClient.SearchTrack(msg.Query, "")
@@ -566,14 +574,14 @@ func enqueue(msg wsMessage) []byte {
 	switch {
 	case err != nil:
 		data, _ := json.Marshal(map[string]interface{}{
-			"op":      3,
+			"op":      opClientRequestTrack,
 			"success": false,
 			"reason":  "Search Failed!",
 		})
 		return data
 	case len(tracks) == 0:
 		data, _ := json.Marshal(map[string]interface{}{
-			"op":      3,
+			"op":      opClientRequestTrack,
 			"success": false,
 			"reason":  "No Result!",
 		})
@@ -591,7 +599,7 @@ func enqueue(msg wsMessage) []byte {
 		enqueueCallback(track)
 		log.Printf("Track enqueued: %v - %v\n", track.Title(), track.Artist())
 		data, _ := json.Marshal(map[string]interface{}{
-			"op":      3,
+			"op":      opClientRequestTrack,
 			"success": true,
 			"reason":  "",
 			"track":   common.GetMetadata(track),
@@ -604,7 +612,7 @@ func enqueue(msg wsMessage) []byte {
 func skip() []byte {
 	if atomic.LoadInt32(&isRadioStreaming) == 1 {
 		data, _ := json.Marshal(map[string]interface{}{
-			"op":      4,
+			"op":      opClientRequestSkip,
 			"success": false,
 			"reason":  "You can't skip a radio stream.",
 		})
@@ -613,7 +621,7 @@ func skip() []byte {
 	}
 	if time.Since(startTime) < 5*time.Second {
 		data, _ := json.Marshal(map[string]interface{}{
-			"op":      4,
+			"op":      opClientRequestSkip,
 			"success": false,
 			"reason":  "Please wait until first 5 seconds has passed.",
 		})
@@ -622,7 +630,7 @@ func skip() []byte {
 	skipChannel <- 0
 	log.Println("Current song skipped!")
 	data, err := json.Marshal(map[string]interface{}{
-		"op": 2,
+		"op": opAllClientsSkip,
 	})
 	connections.Range(func(key, value interface{}) bool {
 		ws := value.(*webSocket)
@@ -633,7 +641,7 @@ func skip() []byte {
 		return true
 	})
 	data, _ = json.Marshal(map[string]interface{}{
-		"op":      4,
+		"op":      opClientRequestSkip,
 		"success": true,
 		"reason":  "",
 	})
@@ -641,21 +649,19 @@ func skip() []byte {
 }
 func enqueueCallback(value interface{}) {
 	log.Println("enqueueCallback")
-	cacheQueueMux.Lock()
-	defer cacheQueueMux.Unlock()
 	track := value.(common.Track)
 	metadata := common.GetMetadata(track)
-	cacheQueue.PushBack(metadata)
+	cacheQueue.Enqueue(metadata)
 	go func(metadata common.TrackMetadata) {
 		log.Printf("Enqueuing track on all clients %v - %v\n", metadata.Title, metadata.Artist)
 		data, err := json.Marshal(map[string]interface{}{
-			"op":    6,
+			"op":    opTrackEnqueued,
 			"track": metadata,
 		})
 		connections.Range(func(key, value interface{}) bool {
 			ws := value.(*webSocket)
 			if err != nil {
-				return true
+				return false
 			}
 			ws.WriteMessage(websocket.TextMessage, data)
 			return true
@@ -664,24 +670,52 @@ func enqueueCallback(value interface{}) {
 }
 func dequeueCallback() {
 	log.Println("dequeueCallback")
-	cacheQueueMux.Lock()
-	defer cacheQueueMux.Unlock()
-	cacheQueue.Remove(cacheQueue.Front())
+	cacheQueue.Dequeue()
 }
+
 func getQueue() []byte {
-	cacheQueueMux.Lock()
-	defer cacheQueueMux.Unlock()
-	tracks := make([]common.TrackMetadata, 0, cacheQueue.Len())
-	ele := cacheQueue.Front()
-	for ele != nil {
-		tracks = append(tracks, ele.Value.(common.TrackMetadata))
-		ele = ele.Next()
+	elements := cacheQueue.GetElements()
+	tracks := make([]common.TrackMetadata, len(elements))
+	for i, val := range elements {
+		tracks[i] = val.(common.TrackMetadata)
 	}
 	data, _ := json.Marshal(map[string]interface{}{
-		"op":    7,
+		"op":    opClientRequestQueue,
 		"queue": tracks,
 	})
 
+	return data
+}
+func removeTrack(msg wsMessage) []byte {
+	removed := playQueue.Remove(func(value interface{}) bool {
+		ele := value.(common.Track)
+		if ele.PlayID() == msg.Query {
+			return true
+		}
+		return false
+	})
+	var removedTrack common.TrackMetadata
+	if removed != nil {
+		removedTrack = cacheQueue.Remove(func(value interface{}) bool {
+			ele := value.(common.TrackMetadata)
+			if ele.PlayID == msg.Query {
+				return true
+			}
+			return false
+		}).(common.TrackMetadata)
+	}
+	data, _ := json.Marshal(map[string]interface{}{
+		"op":      opClientRemoveTrack,
+		"success": removed != nil,
+		"track":   removedTrack,
+	})
+	if removed != nil {
+		connections.Range(func(key, value interface{}) bool {
+			ws := value.(*webSocket)
+			ws.WriteMessage(websocket.TextMessage, data)
+			return true
+		})
+	}
 	return data
 }
 
@@ -754,22 +788,23 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		switch msg.Operation {
-		case 1:
+		case opSetClientsTrack:
 			c.WriteMessage(websocket.TextMessage, getPlaying())
-		case 3:
+		case opClientRequestTrack:
 			c.WriteMessage(websocket.TextMessage, enqueue(msg))
-		case 4:
+		case opClientRequestSkip:
 			c.WriteMessage(websocket.TextMessage, skip())
-		case 5:
+		case opSetClientsListeners:
 			c.WriteMessage(websocket.TextMessage, getListenersCount())
-		case 7:
+		case opClientRemoveTrack:
+			c.WriteMessage(websocket.TextMessage, removeTrack(msg))
+		case opClientRequestQueue:
 			c.WriteMessage(websocket.TextMessage, getQueue())
-		case 8:
+		case opWebSocketKeepAlive:
 			data, _ := json.Marshal(map[string]interface{}{
-				"op": 8,
+				"op": opWebSocketKeepAlive,
 			})
 			c.WriteMessage(websocket.TextMessage, data)
-
 		}
 	}
 
@@ -800,7 +835,7 @@ func enqueueHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		data, _ := json.Marshal(map[string]interface{}{
-			"op":      3,
+			"op":      opClientRequestTrack,
 			"success": false,
 			"reason":  "Invalid Query!",
 		})
@@ -820,6 +855,24 @@ func queueHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 	w.Write(getQueue())
+}
+func removeTrackHandler(w http.ResponseWriter, r *http.Request) {
+	var msg wsMessage
+	err := json.NewDecoder(r.Body).Decode(&msg)
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		data, _ := json.Marshal(map[string]interface{}{
+			"op":      opClientRemoveTrack,
+			"success": false,
+			"reason":  "Bad Request",
+		})
+		w.Write(data)
+		return
+	}
+	w.Write(removeTrack(msg))
 }
 func redirectToRoot(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -965,7 +1018,7 @@ func audioManager() {
 	oggHeaderLow = oggHeaderLow[:n]
 
 	dzClient = deezer.NewClient()
-	cacheQueue = &list.List{}
+	cacheQueue = queue.NewQueue()
 	playQueue = queue.NewQueue()
 	currentTrackID = -1
 	etaDone.Store(time.Now())
@@ -998,6 +1051,7 @@ func main() {
 	http.HandleFunc("/status", wsHandler)
 	http.HandleFunc("/playing", playingHandler)
 	http.HandleFunc("/skip", skipHandler)
+	http.HandleFunc("/remove", removeTrackHandler)
 	http.HandleFunc("/", fileServer(http.Dir("www")))
 	go selfPinger()
 	<-initialized
