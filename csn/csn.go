@@ -29,42 +29,54 @@ type csnTrack struct {
 	Link     string `json:"music_link"`
 }
 
+//Track represents a Song on csn site
 type Track struct {
 	csnTrack
 	StreamURL string
 	playID    string
 }
 
+//ID returns the track's ID number
 func (track Track) ID() int {
 	return track.csnTrack.ID
 }
 
+//Title returns the track's title
 func (track Track) Title() string {
 	return track.csnTrack.Title
 }
 
+//Album returns the track's album title
 func (track Track) Album() string {
 	return track.csnTrack.Album
 }
 
+//Source returns the track's source
 func (track Track) Source() int {
 	return common.CSN
 }
 
+//Artist returns the track's main artist
 func (track Track) Artist() string {
 	return track.csnTrack.Artist
 }
+
+//Artists returns the track's contributors' name, comma-separated
 func (track Track) Artists() string {
 	return strings.Join(track.csnTrack.Artists, ", ")
 }
+
+//Duration returns the track's duration
 func (track Track) Duration() int {
 	return track.csnTrack.Duration
 }
 
+//CoverURL returns the URL to track's cover art
 func (track Track) CoverURL() string {
 	return track.csnTrack.Cover
 }
 
+//Download returns a mp3 stream of the track
 func (track Track) Download() (stream io.ReadCloser, err error) {
 	if track.StreamURL == "" {
 		err = errors.New("Metadata not populated")
@@ -77,9 +89,13 @@ func (track Track) Download() (stream io.ReadCloser, err error) {
 	stream = response.Body
 	return
 }
+
+//SpotifyURL returns the track's equivalent spotify song
 func (track Track) SpotifyURL() string {
 	return ""
 }
+
+//PlayID returns a random string which is unique to this instance of Track
 func (track Track) PlayID() string {
 	return track.playID
 }
@@ -103,6 +119,7 @@ type csnSearchResult struct {
 var pattern *regexp.Regexp
 var client *http.Client
 
+//Search takes a query string and returns a slice of matching tracks
 func Search(query string) (tracks []common.Track, err error) {
 	queryURL, _ := url.Parse("https://chiasenhac.vn/search/real")
 	queries := queryURL.Query()
@@ -135,6 +152,8 @@ func Search(query string) (tracks []common.Track, err error) {
 	}
 	return
 }
+
+//Populate populates the needed metadata for downloading the track
 func (track *Track) Populate() (err error) {
 	url := track.Link
 	if client == nil {
@@ -171,7 +190,7 @@ func (track *Track) Populate() (err error) {
 		}
 	}
 	if streamURL == "" {
-		err = errors.New("no stream URL found!")
+		err = errors.New("no stream URL found")
 		return
 	}
 	log.Println("csnTrack.Populate: got streamURL")
