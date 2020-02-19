@@ -120,13 +120,14 @@ body {
 .player .control-panel .controls .prev .svg,
 .player .control-panel .controls .play .svg,
 .player .control-panel .controls .next .svg {
-  display: block;
+  align-items: center;
+  justify-content: center;
   margin-left: auto;
   margin-right: auto;
-  margin-top: auto;
-  margin-bottom: auto;
   fill: transparent;
   stroke-width: 15px;
+  width: 100%;
+  height: 100%;
 }
 
 .player .control-panel .controls .prev .svg,
