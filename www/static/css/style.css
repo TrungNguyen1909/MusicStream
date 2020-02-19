@@ -272,7 +272,7 @@ body {
   padding: 12px 20px;
   font-size: 15px;
   line-height: 18px;
-
+  outline: 0;
   color: #c2c6cf;
   background-color: transparent;
   border: 1px solid #c2c6cf;
@@ -290,9 +290,8 @@ body {
 }
 
 .search__input:hover,
-.search__input:focus {
+.search__input:not(:placeholder-shown) {
   padding: 12px 10px;
-  outline: 0;
   border: 1px solid transparent;
   border-bottom: 1px solid #c2c6cf;
   border-radius: 0;
@@ -342,7 +341,12 @@ body {
   align-items: center;
   justify-content: center;
   overflow-x: scroll;
+  transition: all 1s ease;
   padding: 24px initial;
+}
+.queue:empty {
+  bottom: -100%;
+  transition: all 1s ease;
 }
 .queue .element {
   height: 20px;
@@ -351,7 +355,6 @@ body {
   padding-bottom: 5px;
   line-height: 20px;
   border-bottom: 1px solid #c2c6cf;
-  transition: all 0.5s ease;
 }
 .queue .element:hover {
   background-color: #c2c6cf;
