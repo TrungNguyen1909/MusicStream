@@ -177,6 +177,7 @@ func (client *Client) SearchTrack(query string) (track, artist, album, sURL stri
 	}
 	if len(d.Tracks.Items) <= 0 {
 		err = errors.New("No Spotify track found")
+		return
 	}
 	track = d.Tracks.Items[0].Name
 	artist = d.Tracks.Items[0].Artists[0].Name
