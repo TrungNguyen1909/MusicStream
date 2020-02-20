@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
@@ -23,6 +24,8 @@ type Track struct {
 	ws                 *websocket.Conn
 	heartbeatInterval  int
 	heartbeatInterrupt chan int
+	trackUpdateEvent   *sync.Cond
+	mux                sync.RWMutex
 }
 
 //setArtists sets the contributors of currently playing track on radio
@@ -31,52 +34,62 @@ func (track *Track) setArtists(artists []string) {
 }
 
 //ID returns the ID number of currently playing track on radio, if known, otherwise, returns 0
-func (track Track) ID() int {
+func (track *Track) ID() int {
+	track.mux.RLock()
+	defer track.mux.RUnlock()
 	return track.id
 }
 
 //Title returns the title of currently playing track on radio, if known, otherwise, returns the radio's name
-func (track Track) Title() string {
+func (track *Track) Title() string {
+	track.mux.RLock()
+	defer track.mux.RUnlock()
 	return track.title
 }
 
 //Album returns the album's name of currently playing track on radio, if known
-func (track Track) Album() string {
+func (track *Track) Album() string {
+	track.mux.RLock()
+	defer track.mux.RUnlock()
 	return track.album
 }
 
 //Source returns Radio
-func (track Track) Source() int {
+func (track *Track) Source() int {
 	return common.Radio
 }
 
 //Artist returns the artist's name of currently playing track on radio, if known
-func (track Track) Artist() string {
+func (track *Track) Artist() string {
+	track.mux.RLock()
+	defer track.mux.RUnlock()
 	return track.artist
 }
 
 //Artists returns the artist's name of currently playing track on radio, if known
-func (track Track) Artists() string {
+func (track *Track) Artists() string {
+	track.mux.RLock()
+	defer track.mux.RUnlock()
 	return track.artists
 }
 
 //Duration returns the duration of currently playing track on radio, if known, otherwise, 0
-func (track Track) Duration() int {
+func (track *Track) Duration() int {
 	return 0
 }
 
 //CoverURL returns the URL to the cover of currently playing track on radio, if known
-func (track Track) CoverURL() string {
+func (track *Track) CoverURL() string {
 	return ""
 }
 
 //SpotifyURI returns the currently playing track's equivalent spotify song, if known
-func (track Track) SpotifyURI() string {
+func (track *Track) SpotifyURI() string {
 	return ""
 }
 
 //Download returns an mp3 stream to the radio
-func (track Track) Download() (stream io.ReadCloser, err error) {
+func (track *Track) Download() (stream io.ReadCloser, err error) {
 	req, err := http.NewRequest("GET", "https://listen.moe/stream", nil)
 	if err != nil {
 		return
@@ -102,7 +115,7 @@ func (track Track) Download() (stream io.ReadCloser, err error) {
 }
 
 //PlayID returns 0
-func (track Track) PlayID() string {
+func (track *Track) PlayID() string {
 	return ""
 }
 func (track *Track) heartbeat() {
@@ -124,6 +137,13 @@ func (track *Track) heartbeat() {
 		}
 	}
 }
+
+//WaitForTrackUpdate waits until a new track update event from WS broadcast
+func (track *Track) WaitForTrackUpdate() {
+	track.trackUpdateEvent.L.Lock()
+	defer track.trackUpdateEvent.L.Unlock()
+	track.trackUpdateEvent.Wait()
+}
 func (track *Track) initWS() {
 	track.heartbeatInterrupt = make(chan int, 1)
 	u := url.URL{Scheme: "wss", Host: "listen.moe", Path: "/gateway_v2"}
@@ -143,6 +163,9 @@ func (track *Track) initWS() {
 				log.Println("Track:readJSON:", err)
 				return
 			}
+			if msg.Data == nil {
+				continue
+			}
 			switch msg.Operation {
 			case 0:
 				data := msg.Data.(*heartbeatData)
@@ -150,10 +173,11 @@ func (track *Track) initWS() {
 				track.heartbeatInterrupt <- 1
 				go track.heartbeat()
 			case 1:
-				if msg.EventType != "TRACK_UPDATE" {
+				if msg.EventType != "TRACK_UPDATE" && msg.EventType != "TRACK_UPDATE_REQUEST" {
 					continue
 				}
 				data := msg.Data.(*playbackData)
+				track.mux.Lock()
 				track.id = data.Song.ID
 				track.title = data.Song.Title
 				if len(data.Song.Albums) > 0 {
@@ -167,6 +191,8 @@ func (track *Track) initWS() {
 					}
 					track.setArtists(artists)
 				}
+				track.mux.Unlock()
+				track.trackUpdateEvent.Broadcast()
 			}
 		}
 	}()
@@ -174,7 +200,7 @@ func (track *Track) initWS() {
 
 //NewTrack returns an initialized Radio.Track
 func NewTrack() (radio *Track) {
-	radio = &Track{}
+	radio = &Track{title: "listen.moe", trackUpdateEvent: sync.NewCond(&sync.Mutex{})}
 	radio.initWS()
 	return
 }

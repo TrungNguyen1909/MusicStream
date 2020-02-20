@@ -126,13 +126,10 @@ var minifier *minify.M
 func encodeRadio(stream io.ReadCloser, encodedTime *time.Duration, quit chan int) bool {
 	streamer, format, err := vorbis.Decode(stream)
 	if err != nil {
-		log.Panic(err)
+		log.Println(err)
+		return true
 	}
 
-	pos := int64(encoder.GranulePos())
-	atomic.StoreInt64(&startPos, pos)
-	deltaChannel <- pos
-	setTrack(common.GetMetadata(radioTrack))
 	defer streamer.Close()
 	for {
 		select {
@@ -166,6 +163,26 @@ func preloadRadio(quit chan int) {
 	defer endCurrentStream()
 	defer pushSilentFrames(&encodedTime)
 	defer log.Println("Radio preloading stopped!")
+	quitRadioSetTrack := make(chan int, 1)
+	go func(quit chan int) {
+		firstTime := true
+		for {
+			if !firstTime {
+				radioTrack.WaitForTrackUpdate()
+			} else {
+				firstTime = false
+			}
+			select {
+			case <-quitRadioSetTrack:
+				return
+			default:
+			}
+			pos := int64(encoder.GranulePos())
+			atomic.StoreInt64(&startPos, pos)
+			deltaChannel <- pos
+			setTrack(common.GetMetadata(radioTrack))
+		}
+	}(quitRadioSetTrack)
 	stream, _ := radioTrack.Download()
 	for !encodeRadio(stream, &encodedTime, quit) {
 		stream, _ = radioTrack.Download()
