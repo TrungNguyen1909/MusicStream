@@ -222,9 +222,15 @@ func GetLyrics(track, artist, album, artists, SpotifyURI string, duration int) (
 	}()
 	cookiesJar, _ := cookiejar.New(nil)
 	client := &http.Client{Jar: cookiesJar}
-	rawURL := "http://apic.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&user_language=en&tags=playing&namespace=lyrics_synched&f_subtitle_length_max_deviation=1&subtitle_format=mxm&app_id=mac-ios-v2.0&part=subtitle_translated%2Clyrics_translated&selected_language=en&usertoken=" + os.Getenv("MUSIXMATCH_USER_TOKEN")
+	rawURL := "http://apic.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&user_language=en&tags=playing&namespace=lyrics_synched&f_subtitle_length_max_deviation=1&subtitle_format=mxm&app_id=mac-ios-v2.0&part=subtitle_translated%2Clyrics_translated&selected_language=en"
+
 	reqURL, _ := url.Parse(rawURL)
 	queries := reqURL.Query()
+	queries.Add("usertoken", os.Getenv("MUSIXMATCH_USER_TOKEN"))
+	obUserToken, exists := os.LookupEnv("MUSIXMATCH_OB_USER_TOKEN")
+	if exists {
+		queries.Add("OB-USER-TOKEN", obUserToken)
+	}
 	queries.Add("q_track", track)
 	queries.Add("q_artist", artist)
 	if len(artists) > 0 {
