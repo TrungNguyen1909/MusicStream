@@ -200,9 +200,13 @@ function initWebSocket() {
     switch (msg.op) {
       case opSetClientsTrack:
         if (document.getElementById("queue").childElementCount > 0) {
-          document
-            .getElementById("queue")
-            .removeChild(document.getElementById("queue").firstChild);
+          if (
+            document.getElementById("queue").firstChild.playId ==
+            msg.track.playId
+          )
+            document
+              .getElementById("queue")
+              .removeChild(document.getElementById("queue").firstChild);
         }
         delta = msg.pos / 48000.0;
         diff = delta - player.currentTime;

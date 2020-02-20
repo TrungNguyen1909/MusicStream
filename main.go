@@ -187,6 +187,7 @@ func preloadRadio(quit chan int) {
 	for !encodeRadio(stream, &encodedTime, quit) {
 		stream, _ = radioTrack.Download()
 	}
+	quitRadioSetTrack <- 1
 }
 func processRadio(quit chan int) {
 	quitPreload := make(chan int, 10)
