@@ -137,7 +137,7 @@ func (track *Track) initWS() {
 	go func() {
 		defer ws.Close()
 		for {
-			var msg radioMessage
+			var msg message
 			err := ws.ReadJSON(&msg)
 			if err != nil {
 				log.Println("Track:readJSON:", err)
@@ -179,7 +179,7 @@ func NewTrack() (radio *Track) {
 	return
 }
 
-type radioMessage struct {
+type message struct {
 	Operation int         `json:"op"`
 	Data      interface{} `json:"d"`
 	EventType string      `json:"t"`
@@ -233,7 +233,7 @@ type playbackData struct {
 	StartTime string `json:"startTime"`
 }
 
-func (d *radioMessage) UnmarshalJSON(data []byte) error {
+func (d *message) UnmarshalJSON(data []byte) error {
 	var msg struct {
 		Operation int              `json:"op"`
 		Data      *json.RawMessage `json:"d"`
