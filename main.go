@@ -13,25 +13,23 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-	"unsafe"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/csn"
 	"github.com/TrungNguyen1909/MusicStream/deezer"
 	"github.com/TrungNguyen1909/MusicStream/lyrics"
 	"github.com/TrungNguyen1909/MusicStream/queue"
+	"github.com/TrungNguyen1909/MusicStream/radio"
 	"github.com/TrungNguyen1909/MusicStream/vorbisencoder"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/vorbis"
 	"github.com/gorilla/websocket"
-	"github.com/jfreymuth/oggvorbis"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/tdewolff/minify"
 	"github.com/tdewolff/minify/css"
@@ -110,7 +108,7 @@ var skipChannel chan int
 var isRadioStreaming int32
 var currentTrackID int
 var watchDog int
-var radio common.RadioTrack
+var radioTrack *radio.Track
 var startPos int64
 var encoder *vorbisencoder.Encoder
 var deltaChannel chan int64
@@ -125,41 +123,16 @@ var minifier *minify.M
 
 //#region Radio Stream
 
-func fillRadioMetadataFromVorbisStream(radio *common.RadioTrack, stream beep.StreamSeekCloser) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("fillRadioMetadataFromVorbisStream failed: %v", r)
-		}
-	}()
-	v := reflect.ValueOf(stream)
-	internalDecoderField := v.Elem().FieldByName("d")
-	internalDecoderInterface := reflect.NewAt(internalDecoderField.Type(), unsafe.Pointer(internalDecoderField.UnsafeAddr())).Elem().Interface()
-	internalDecoder := internalDecoderInterface.(*oggvorbis.Reader)
-	for _, comment := range internalDecoder.CommentHeader().Comments {
-		switch {
-		case strings.HasPrefix(comment, "title="):
-			radio.SetTitle(strings.TrimPrefix(comment, "title="))
-		case strings.HasPrefix(comment, "artist="):
-			radio.SetArtist(strings.TrimPrefix(comment, "artist="))
-		case strings.HasPrefix(comment, "album="):
-			radio.SetAlbum(strings.TrimPrefix(comment, "album="))
-		}
-	}
-}
 func encodeRadio(stream io.ReadCloser, encodedTime *time.Duration, quit chan int) bool {
 	streamer, format, err := vorbis.Decode(stream)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	radio.SetTitle("listen.moe")
-	radio.SetArtist("")
-	radio.SetAlbum("")
-	fillRadioMetadataFromVorbisStream(&radio, streamer)
 	pos := int64(encoder.GranulePos())
 	atomic.StoreInt64(&startPos, pos)
 	deltaChannel <- pos
-	setTrack(common.GetMetadata(radio))
+	setTrack(common.GetMetadata(radioTrack))
 	defer streamer.Close()
 	for {
 		select {
@@ -193,16 +166,15 @@ func preloadRadio(quit chan int) {
 	defer endCurrentStream()
 	defer pushSilentFrames(&encodedTime)
 	defer log.Println("Radio preloading stopped!")
-	radio = common.RadioTrack{}
-	stream, _ := radio.Download()
+	stream, _ := radioTrack.Download()
 	for !encodeRadio(stream, &encodedTime, quit) {
-		stream, _ = radio.Download()
+		stream, _ = radioTrack.Download()
 	}
 }
 func processRadio(quit chan int) {
 	quitPreload := make(chan int, 10)
 	time.Sleep(time.Until(etaDone.Load().(time.Time)))
-	currentTrack = radio
+	currentTrack = radioTrack
 	go preloadRadio(quitPreload)
 	atomic.StoreInt32(&isRadioStreaming, 1)
 	defer atomic.StoreInt32(&isRadioStreaming, 0)
@@ -932,6 +904,7 @@ func audioManager() {
 	dzClient = deezer.NewClient()
 	cacheQueue = queue.NewQueue()
 	playQueue = queue.NewQueue()
+	radioTrack = radio.NewTrack()
 	currentTrackID = -1
 	etaDone.Store(time.Now())
 	initialized <- 1
@@ -973,6 +946,7 @@ func main() {
 	http.HandleFunc("/", fileServer(http.Dir("www")))
 	go selfPinger()
 	<-initialized
+	log.Printf("Serving on port %s", port)
 	log.Fatal(http.ListenAndServe(port, logRequest(http.DefaultServeMux)))
 }
 
