@@ -290,7 +290,7 @@ func (client *Client) initDeezerAPI() {
 	client.unofficialAPIQuery.Set("api_token", resp.Results.CheckForm)
 	log.Printf("Successfully initiated Deezer API. Checkform: \"%s\"\n", resp.Results.CheckForm)
 }
-func (client *Client) getTrackInfo(trackID int, secondTry bool) (pageTrackData, error) {
+func (client *Client) getTrackInfo(trackID int, secondTry bool) (trackInfo pageTrackData, err error) {
 	data := map[string]interface{}{
 		"SNG_ID": trackID,
 	}
@@ -299,7 +299,10 @@ func (client *Client) getTrackInfo(trackID int, secondTry bool) (pageTrackData, 
 	response, _ := client.httpClient.Do(request)
 
 	var resp pageTrackResponse
-	json.NewDecoder(response.Body).Decode(&resp)
+	err = json.NewDecoder(response.Body).Decode(&resp)
+	if err != nil {
+		return
+	}
 	if len(resp.Results.Data.MD5Origin) <= 0 {
 		if secondTry {
 			log.Panic("Failed to get trackInfo adequately")
@@ -437,6 +440,9 @@ start:
 	if withISRC {
 		resp = searchTrackResponse{Data: make([]deezerTrack, 1)}
 		err = json.NewDecoder(response.Body).Decode(&resp.Data[0])
+		if resp.Data[0].ID == 0 {
+			err = errors.New("ISRC not found on deezer")
+		}
 	} else {
 		err = json.NewDecoder(response.Body).Decode(&resp)
 	}
