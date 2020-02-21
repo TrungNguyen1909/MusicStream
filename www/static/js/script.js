@@ -362,9 +362,7 @@ function initWebSocket() {
   };
 }
 function removeTrack(event) {
-  console.log(event);
   event.preventDefault();
-  console.log(event.currentTarget.playId);
   ws.send(
     JSON.stringify({ op: opClientRemoveTrack, query: event.target.playId })
   );

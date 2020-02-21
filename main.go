@@ -592,7 +592,6 @@ func skip() []byte {
 	return data
 }
 func enqueueCallback(value interface{}) {
-	log.Println("enqueueCallback")
 	track := value.(common.Track)
 	metadata := common.GetMetadata(track)
 	cacheQueue.Enqueue(metadata)
@@ -613,7 +612,6 @@ func enqueueCallback(value interface{}) {
 	}(metadata)
 }
 func dequeueCallback() {
-	log.Println("dequeueCallback")
 	cacheQueue.Dequeue()
 }
 
