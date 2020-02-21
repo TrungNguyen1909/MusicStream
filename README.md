@@ -11,5 +11,5 @@ Listen to music together with your friends from everywhere, at the same time
 
 # License 
 
-  This work is licensed under a [Creative Commons Attribution-NonCommercial 4.0 International License](https://creativecommons.org/licenses/by-nc/4.0/).
+  This work is licensed under a [GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.html).
 
