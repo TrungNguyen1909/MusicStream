@@ -163,6 +163,7 @@ type deezerTrack struct {
 	Album        Album    `json:"album"`
 	Duration     int      `json:"duration"`
 	Rank         int      `json:"rank"`
+	ISRC         string   `json:"isrc"`
 	SpotifyURI   string
 }
 
@@ -391,18 +392,25 @@ func (client *Client) GetTrackByID(trackID int) (track common.Track, err error) 
 //SearchTrack takes the track title and optional track's artist query and returns the best match track on Deezer
 func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) {
 	var url string
-	var sTrack, sArtist, sAlbum, sURI string
+	var sTrack, sArtist, sAlbum, sISRC, sURI string
 	var err error
 	withSpotify := client.spotifyClient != nil
+	withISRC := withSpotify
 start:
 	if len(artist) == 0 && withSpotify {
-		sTrack, sArtist, sAlbum, sURI, err = client.spotifyClient.SearchTrack(track)
+		if withISRC {
+			sTrack, sArtist, sAlbum, sISRC, sURI, err = client.spotifyClient.SearchTrack(track)
+		}
 		if err != nil {
 			log.Printf("spotifyClient.SearchTrack() failed: %v\n", err)
 			withSpotify = false
 			goto start
 		} else {
-			url = fmt.Sprintf("https://api.deezer.com/search/track/?q=track:\"%s\"artist:\"%s\"album:\"%s\"", template.URLQueryEscaper(sTrack), template.URLQueryEscaper(sArtist), template.URLQueryEscaper(sAlbum))
+			if withISRC && len(sISRC) > 0 {
+				url = fmt.Sprint("https://api.deezer.com/2.0/track/isrc:", sISRC)
+			} else {
+				url = fmt.Sprintf("https://api.deezer.com/search/track/?q=track:\"%s\"artist:\"%s\"album:\"%s\"", template.URLQueryEscaper(sTrack), template.URLQueryEscaper(sArtist), template.URLQueryEscaper(sAlbum))
+			}
 		}
 	} else {
 		if len(artist) == 0 {
@@ -414,6 +422,11 @@ start:
 	response, err := http.Get(url)
 	if err != nil {
 		if withSpotify {
+			if withISRC {
+				log.Println("Search with spotify ISRC failed")
+				withISRC = false
+				goto start
+			}
 			log.Println("Search with spotify failed")
 			withSpotify = false
 			goto start
@@ -421,20 +434,35 @@ start:
 		return nil, err
 	}
 	var resp searchTrackResponse
-	body, _ := ioutil.ReadAll(response.Body)
-	err = json.Unmarshal(body, &resp)
+	if withISRC {
+		resp = searchTrackResponse{Data: make([]deezerTrack, 1)}
+		err = json.NewDecoder(response.Body).Decode(&resp.Data[0])
+	} else {
+		err = json.NewDecoder(response.Body).Decode(&resp)
+	}
 
 	if err != nil {
 		if withSpotify {
-			log.Println("Search with spotify failed")
-			withSpotify = false
+			if withISRC {
+				log.Println("Search with spotify ISRC failed")
+				withISRC = false
+			} else {
+				log.Println("Search with spotify failed")
+				withSpotify = false
+			}
 			goto start
 		}
 		return nil, err
 	}
 	itracks := resp.Data
 	if len(itracks) <= 0 {
+		if withISRC {
+			log.Println("Search with spotify ISRC failed")
+			withISRC = false
+			goto start
+		}
 		if withSpotify {
+			log.Println("Search with spotify failed")
 			withSpotify = false
 			goto start
 		}
@@ -443,7 +471,7 @@ start:
 	tracks := make([]common.Track, len(itracks))
 	for i, v := range itracks {
 
-		if withSpotify && v.Title == sTrack && v.Artist.Name == sArtist && v.Album.Title == sAlbum {
+		if withSpotify && (v.ISRC == sISRC || (v.Title == sTrack && v.Artist.Name == sArtist && v.Album.Title == sAlbum)) {
 			v.SpotifyURI = sURI
 		}
 		tracks[i] = Track{deezerTrack: v, playID: common.GenerateID()}
