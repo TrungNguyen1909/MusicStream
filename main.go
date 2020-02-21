@@ -149,27 +149,31 @@ func encodeRadio(stream io.ReadCloser, encodedTime *time.Duration, quit chan int
 	}
 
 	defer streamer.Close()
+
+	samples := make([][2]float64, 960)
+	buf := make([]byte, len(samples)*format.Width())
 	for {
 		select {
 		case <-quit:
 			return true
 		default:
 		}
-		samples := make([][2]float64, 960)
 		n, ok := streamer.Stream(samples)
 		if !ok {
 			return false
 		}
-		var buf bytes.Buffer
-		for _, sample := range samples {
-			p := make([]byte, format.Width())
-			format.EncodeSigned(p, sample)
-			for _, v := range p {
-				buf.WriteByte(v)
+		for i, sample := range samples {
+			switch {
+			case format.Precision == 1:
+				format.EncodeUnsigned(buf[i*format.Width():], sample)
+			case format.Precision == 2 || format.Precision == 3:
+				format.EncodeSigned(buf[i*format.Width():], sample)
+			default:
+				panic(fmt.Errorf("encode: invalid precision: %d", format.Precision))
 			}
 		}
-		pushPCMAudio(buf.Bytes(), encodedTime)
-		if 0 <= n && n < 960 && ok {
+		pushPCMAudio(buf[:n*format.Width()], encodedTime)
+		if 0 <= n && n < len(samples) && ok {
 			return false
 		}
 	}
@@ -243,15 +247,19 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	pos := int64(encoder.GranulePos())
 	atomic.StoreInt64(&startPos, pos)
 	deltaChannel <- pos
+
+	samples := make([][2]float64, 960)
+	buf := make([]byte, len(samples)*format.Width())
 	for {
 		select {
 		case <-quit:
 			return
 		default:
 		}
-		samples := make([][2]float64, 960)
-		var n int
-		var ok bool
+		var (
+			n  int
+			ok bool
+		)
 		if needResampling {
 			n, ok = resampled.Stream(samples)
 		} else {
@@ -260,17 +268,19 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 		if !ok {
 			break
 		}
-		var buf bytes.Buffer
-		for _, sample := range samples {
-			p := make([]byte, format.Width())
-			format.EncodeSigned(p, sample)
-			for _, v := range p {
-				buf.WriteByte(v)
+		for i, sample := range samples {
+			switch {
+			case format.Precision == 1:
+				format.EncodeUnsigned(buf[i*format.Width():], sample)
+			case format.Precision == 2 || format.Precision == 3:
+				format.EncodeSigned(buf[i*format.Width():], sample)
+			default:
+				panic(fmt.Errorf("encode: invalid precision: %d", format.Precision))
 			}
 		}
-		pushPCMAudio(buf.Bytes(), &encodedTime)
-		if 0 <= n && n < 960 && ok {
-			break
+		pushPCMAudio(buf[:n*format.Width()], &encodedTime)
+		if 0 <= n && n < len(samples) && ok {
+			return
 		}
 	}
 }
