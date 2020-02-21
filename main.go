@@ -123,11 +123,11 @@ var minifier *minify.M
 
 //#region Radio Stream
 
-func encodeRadio(stream io.ReadCloser, encodedTime *time.Duration, quit chan int) bool {
+func encodeRadio(stream io.ReadCloser, encodedTime *time.Duration, quit chan int) (ended bool) {
 	streamer, format, err := vorbis.Decode(stream)
 	if err != nil {
 		log.Println(err)
-		return true
+		return false
 	}
 
 	defer streamer.Close()
