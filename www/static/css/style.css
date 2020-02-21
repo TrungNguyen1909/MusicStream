@@ -27,6 +27,7 @@ body {
   width: 100%;
   max-width: 500px;
   justify-content: center;
+  align-items: center;
   font-family: "Fira Sans", Helvetica, Arial, sans-serif;
   z-index: -8;
   -webkit-font-smoothing: antialiased;
@@ -35,9 +36,9 @@ body {
 
 .player {
   position: relative;
-  margin-top: 200px;
   height: 90px;
   width: 100%;
+  margin-bottom: 90px;
 }
 
 .player .sub {
