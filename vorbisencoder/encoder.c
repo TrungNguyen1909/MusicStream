@@ -147,10 +147,11 @@ static long encode(Encoder* state, char* outputSlice, char* inputSlice){
     if(out_size<state->encoded_length){
         fprintf(stderr,"Output size too small %ld < %ld\n",out_size,state->encoded_length);
         fflush(stderr);
+		abort();
     }
-	memcpy(out,state->encoded_buffer,min(state->encoded_length,out_size));
-	long ret = min(state->encoded_length,out_size);
-	state->encoded_length -=min(state->encoded_length,out_size);
+	memcpy(out,state->encoded_buffer, state->encoded_length);
+	long ret = state->encoded_length;
+	state->encoded_length = 0;
 	return ret;
 }
 static long encoder_finish(Encoder* state, char* outputSlice)
