@@ -1,0 +1,11 @@
+version: '3.7'
+
+services: 
+    web:
+        container_name: MusicStream
+        image: musicstream:latest
+        restart: always
+        env_file: 
+            - ./.env
+        ports:
+            - 8080:8890
