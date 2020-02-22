@@ -2,12 +2,14 @@ FROM golang
 
 RUN apt-get update && apt-get install -y libogg-dev libvorbis-dev
 
-ADD . /go/src/github.com/TrungNguyen1909/MusicStream
+WORKDIR /go/src/github.com/TrungNguyen1909/MusicStream
 
-RUN go install github.com/TrungNguyen1909/MusicStream
+COPY . .
 
-RUN cp -R /go/src/github.com/TrungNguyen1909/MusicStream/www .
+RUN go get -d -v ./...
 
-ENTRYPOINT /go/bin/MusicStream
+RUN go install -v ./...
+
+ENTRYPOINT ["MusicStream"]
 
 EXPOSE 8890

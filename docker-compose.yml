@@ -3,9 +3,11 @@ version: '3.7'
 services: 
     web:
         container_name: MusicStream
-        image: musicstream:latest
+        image: ntrung03/musicstream:latest
         restart: always
-        env_file: 
-            - ./.env
+        environment: 
+            - DEEZER_ARL=${DEEZER_ARL}
+            - MUSIXMATCH_USER_TOKEN=${MUSIXMATCH_USER_TOKEN}
+            - MUSIXMATCH_OB_USER_TOKEN=${MUSIXMATCH_OB_USER_TOKEN}
         ports:
             - 8080:8890
