@@ -12,6 +12,8 @@ Installation
 
 - Run `docker-compose up`
 
+- Run `docker pull ntrung03/musicstream` to update to the latest image
+
 ## Kubernetes
 
 - Fill out the tokens in `secrets-example.yml`, base64-encoded
@@ -19,6 +21,8 @@ Installation
 - Run `kubectl apply -f /path/to/secrets-example.yml` to set the secrets
 
 - Run `kubectl apply -f k8s.yml` to start the server
+
+- Run `kubectl rollout restart deployment/musicstream` to pull new image from docker and update the server
 
 # Non-containerized
 
