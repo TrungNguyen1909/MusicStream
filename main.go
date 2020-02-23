@@ -1022,12 +1022,12 @@ func selfPinger() {
 }
 
 func listenerMonitor(ch chan int32) {
-	timer := time.NewTimer(5 * time.Second)
+	timer := time.NewTimer(1 * time.Minute)
 	for {
 		if listeners := atomic.LoadInt32(&listenersCount); listeners > 0 {
 			ch <- listeners
 		}
-		timer.Reset(5 * time.Second)
+		timer.Reset(1 * time.Minute)
 		select {
 		case <-newListenerC:
 		case <-timer.C:
@@ -1036,14 +1036,14 @@ func listenerMonitor(ch chan int32) {
 }
 
 func inactivityMonitor() {
-	timer := time.NewTimer(15 * time.Second)
+	timer := time.NewTimer(15 * time.Minute)
 	lch := make(chan int32)
 	go listenerMonitor(lch)
 	isStandby := false
 	for {
 		select {
 		case l := <-lch:
-			timer.Reset(15 * time.Second)
+			timer.Reset(15 * time.Minute)
 			if isStandby {
 				if atomic.LoadInt32(&isRadioStreaming) > 0 {
 					go processRadio(quitRadio)
