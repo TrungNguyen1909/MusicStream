@@ -145,14 +145,14 @@ func (track *Track) heartbeat() {
 	defer ticker.Stop()
 	for {
 		select {
+		case <-track.heartbeatInterrupt:
+			return
 		case <-ticker.C:
 			err := track.ws.WriteJSON(map[string]interface{}{"op": 9})
 			if err != nil {
 				log.Printf("Track:heartbeat: %#v", err)
 				return
 			}
-		case <-track.heartbeatInterrupt:
-			return
 		}
 	}
 }

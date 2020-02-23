@@ -117,8 +117,9 @@ func processTrack() {
 		currentTrackID = -1
 		watchDog = 0
 	} else {
-		err = dzClient.PopulateMetadata(currentTrack.(*deezer.Track))
-		track = currentTrack
+		dtrack := currentTrack.(deezer.Track)
+		err = dzClient.PopulateMetadata(&dtrack)
+		track = dtrack
 		if err != nil {
 			currentTrackID = -1
 			watchDog = 0

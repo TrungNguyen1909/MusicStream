@@ -87,6 +87,9 @@ func enqueue(msg wsMessage) []byte {
 		spotifyURI := track.SpotifyURI()
 		if track.Source() == common.Deezer {
 			track, err = dzClient.GetTrackByID(track.ID())
+			if err != nil {
+				log.Println("dzClient.GetTrackByID() failed:", err)
+			}
 			dtrack := track.(deezer.Track)
 			dtrack.SetSpotifyURI(spotifyURI)
 			track = dtrack
