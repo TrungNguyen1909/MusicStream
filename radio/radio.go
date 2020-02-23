@@ -40,6 +40,7 @@ type Track struct {
 	artists            string
 	album              string
 	ws                 *websocket.Conn
+	disconnectC        chan int
 	heartbeatInterval  int
 	heartbeatInterrupt chan int
 	trackUpdateEvent   *sync.Cond
@@ -162,7 +163,9 @@ func (track *Track) WaitForTrackUpdate() {
 	defer track.trackUpdateEvent.L.Unlock()
 	track.trackUpdateEvent.Wait()
 }
-func (track *Track) initWS() {
+
+//InitWS starts a thread to receive track info from radio
+func (track *Track) InitWS() {
 	track.heartbeatInterrupt = make(chan int, 1)
 	u := url.URL{Scheme: "wss", Host: "listen.moe", Path: "/gateway_v2"}
 	log.Printf("connecting to %s", u.String())
@@ -174,12 +177,23 @@ func (track *Track) initWS() {
 	track.ws = ws
 	go func() {
 		defer ws.Close()
+		defer func() { track.heartbeatInterrupt <- 1 }()
 		for {
 			var msg message
+			select {
+			case <-track.disconnectC:
+				return
+			default:
+			}
 			err := ws.ReadJSON(&msg)
 			if err != nil {
 				log.Println("Track:readJSON:", err)
 				return
+			}
+			select {
+			case <-track.disconnectC:
+				return
+			default:
 			}
 			if msg.Data == nil {
 				continue
@@ -216,10 +230,14 @@ func (track *Track) initWS() {
 	}()
 }
 
+//CloseWS stops receiving track from radio
+func (track *Track) CloseWS() {
+	track.disconnectC <- 1
+}
+
 //NewTrack returns an initialized Radio.Track
 func NewTrack() (radio *Track) {
-	radio = &Track{title: "listen.moe", trackUpdateEvent: sync.NewCond(&sync.Mutex{})}
-	radio.initWS()
+	radio = &Track{title: "listen.moe", trackUpdateEvent: sync.NewCond(&sync.Mutex{}), disconnectC: make(chan int, 1)}
 	return
 }
 
