@@ -70,7 +70,8 @@ func inactivityMonitor() {
 		case l := <-lch:
 			timer.Reset(15 * time.Minute)
 			if isStandby {
-				if atomic.LoadInt32(&isRadioStreaming) > 0 {
+				log.Println("Waking up...")
+				if playQueue.Empty() {
 					go processRadio(quitRadio)
 				}
 				activityWg.Done()
@@ -83,6 +84,9 @@ func inactivityMonitor() {
 			activityWg.Add(1)
 			if atomic.LoadInt32(&isRadioStreaming) > 0 {
 				quitRadio <- 0
+				streamMux.Lock()
+				streamMux.Unlock()
+				<-quitRadio
 			} else {
 				skipChannel <- 1
 			}
@@ -92,8 +96,6 @@ func inactivityMonitor() {
 				Artist:  "Inactivity",
 				Artists: "The Stream is standby due to inactivity",
 			})
-			time.Sleep(5 * time.Second)
-			<-quitRadio
 		}
 	}
 }
