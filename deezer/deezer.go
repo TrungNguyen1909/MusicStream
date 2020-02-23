@@ -318,10 +318,7 @@ func (client *Client) getTrackInfo(trackID int, secondTry bool) (trackInfo pageT
 
 	var resp pageTrackResponse
 	err = json.NewDecoder(response.Body).Decode(&resp)
-	if err != nil {
-		return
-	}
-	if len(resp.Results.Data.MD5Origin) <= 0 {
+	if err != nil || len(resp.Results.Data.MD5Origin) <= 0 {
 		if secondTry {
 			log.Panic("Failed to get trackInfo adequately")
 		}
