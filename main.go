@@ -123,6 +123,7 @@ var listenersCount int32
 var bufferingChannel chan chunk
 var etaDone atomic.Value
 var skipChannel chan int
+var quitRadio chan int
 var isRadioStreaming int32
 var currentTrackID int
 var watchDog int
@@ -136,6 +137,8 @@ var streamMux sync.Mutex
 var encoderWg sync.WaitGroup
 var initialized chan int
 var minifier *minify.M
+var activityWg sync.WaitGroup
+var newListenerC chan int
 
 //#endregion
 
@@ -299,12 +302,12 @@ func processTrack() {
 	var track common.Track
 	var err error
 	radioStarted := false
-	quitRadio := make(chan int, 10)
 	if currentTrackID == -1 || watchDog >= 3 || currentTrack.Source() == common.CSN {
 		if playQueue.Empty() {
 			radioStarted = true
 			go processRadio(quitRadio)
 		}
+		activityWg.Wait()
 		track = playQueue.Pop().(common.Track)
 		dequeueCallback()
 		currentTrackID = -1
@@ -318,6 +321,7 @@ func processTrack() {
 			return
 		}
 	}
+	activityWg.Wait()
 	currentTrackID = track.ID()
 	currentTrack = track
 	if radioStarted {
@@ -671,6 +675,7 @@ func audioHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("expected http.ResponseWriter to be an http.Flusher")
 	}
 	atomic.AddInt32(&listenersCount, 1)
+	newListenerC <- 1
 	go setListenerCount()
 	defer setListenerCount()
 	defer atomic.AddInt32(&listenersCount, -1)
@@ -939,7 +944,8 @@ func audioManager() {
 	bufferingChannel = make(chan chunk, 5000)
 	skipChannel = make(chan int, 500)
 	deltaChannel = make(chan int64, 1)
-
+	quitRadio = make(chan int, 10)
+	newListenerC = make(chan int, 1)
 	encoder = vorbisencoder.NewEncoder(2, 48000, 256000)
 	oggHeader = make([]byte, 5000)
 	n := encoder.Encode(oggHeader, make([]byte, 0))
@@ -989,6 +995,7 @@ func main() {
 	http.HandleFunc("/remove", removeTrackHandler)
 	http.HandleFunc("/", fileServer(http.Dir("www")))
 	go selfPinger()
+	go inactivityMonitor()
 	<-initialized
 	log.Printf("Serving on port %s", port)
 	log.Fatal(http.ListenAndServe(port, logRequest(http.DefaultServeMux)))
@@ -1011,6 +1018,58 @@ func selfPinger() {
 			log.Println("Ping!")
 		}
 		time.Sleep(1 * time.Minute)
+	}
+}
+
+func listenerMonitor(ch chan int32) {
+	timer := time.NewTimer(5 * time.Second)
+	for {
+		if listeners := atomic.LoadInt32(&listenersCount); listeners > 0 {
+			ch <- listeners
+		}
+		timer.Reset(5 * time.Second)
+		select {
+		case <-newListenerC:
+		case <-timer.C:
+		}
+	}
+}
+
+func inactivityMonitor() {
+	timer := time.NewTimer(15 * time.Second)
+	lch := make(chan int32)
+	go listenerMonitor(lch)
+	isStandby := false
+	for {
+		select {
+		case l := <-lch:
+			timer.Reset(15 * time.Second)
+			if isStandby {
+				if atomic.LoadInt32(&isRadioStreaming) > 0 {
+					go processRadio(quitRadio)
+				}
+				activityWg.Done()
+				isStandby = false
+			}
+			log.Println("Listeners: ", l)
+		case <-timer.C:
+			log.Println("Inactivity. Standby...")
+			isStandby = true
+			activityWg.Add(1)
+			if atomic.LoadInt32(&isRadioStreaming) > 0 {
+				quitRadio <- 0
+			} else {
+				skipChannel <- 1
+			}
+			deltaChannel <- 0
+			setTrack(common.TrackMetadata{
+				Title:   "Standby...",
+				Artist:  "Inactivity",
+				Artists: "The Stream is standby due to inactivity",
+			})
+			time.Sleep(5 * time.Second)
+			<-quitRadio
+		}
 	}
 }
 
