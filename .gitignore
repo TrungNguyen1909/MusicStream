@@ -56,3 +56,4 @@ Temporary Items
 __debug_bin
 MusicStream
 .env
+.secrets.yml

@@ -1,9 +1,40 @@
-Documentation
+Installation
 ---
+# Containerized
 
-# Dependencies
+- Docker, Kubernetes are supported
+
+- Docker image at `ntrung03/musicstream`
+
+## Docker
+
+- Fill out the tokens in `.env` or in [docker-compose.yml](./docker-compose.yml)
+
+- Run `docker-compose up`
+
+## Kubernetes
+
+- Fill out the tokens in `secrets-example.yml`, base64-encoded
+
+- Run `kubectl apply -f /path/to/secrets-example.yml` to set the secrets
+
+- Run `kubectl apply -f k8s.yml` to start the server
+
+# Non-containerized
+
+## Dependencies
 
 - You can find the required APT packages in [Aptfile](./Aptfile)
+
+## Building
+
+- Run `go build` to build the server
+
+## Start
+
+- Run `./MusicStream` to start the server
+
+- By default, the server listens at port `:8890`, but you can set that in `$PORT`
 
 # API Tokens
 

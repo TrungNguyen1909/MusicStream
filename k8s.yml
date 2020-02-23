@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: musicstream
+spec:
+  selector:
+    matchLabels:
+      app: musicstream
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: musicstream
+    spec:
+      terminationGracePeriodSeconds: 15
+      containers:
+        - name: musicstream
+          image: ntrung03/musicstream:latest
+          imagePullPolicy: Always
+          env:
+            - name: DEEZER_ARL
+              valueFrom:
+                  secretKeyRef:
+                    name: musicstream
+                    key: DEEZER_ARL
+            - name: MUSIXMATCH_USER_TOKEN
+              valueFrom:
+                  secretKeyRef:
+                    name: musicstream
+                    key: MUSIXMATCH_USER_TOKEN
+            - name: MUSIXMATCH_OB_USER_TOKEN
+              valueFrom:
+                  secretKeyRef:
+                    name: musicstream
+                    key: MUSIXMATCH_OB_USER_TOKEN
+          resources:
+            requests:
+              cpu: 1
+              memory: 512Mi
+            limits:
+              cpu: 1
+              memory: 512Mi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: musicstream
+  annotations:
+    dev.okteto.com/auto-ingress: "true"
+spec:
+  type: ClusterIP  
+  ports:
+  - name: "musicstream"
+    port: 8890
+  selector:
+    app: musicstream
