@@ -67,7 +67,7 @@ func inactivityMonitor() {
 	isStandby := false
 	for {
 		select {
-		case l := <-lch:
+		case <-lch:
 			timer.Reset(15 * time.Minute)
 			if isStandby {
 				log.Println("Waking up...")
@@ -77,7 +77,6 @@ func inactivityMonitor() {
 				activityWg.Done()
 				isStandby = false
 			}
-			log.Println("Listeners: ", l)
 		case <-timer.C:
 			log.Println("Inactivity. Standby...")
 			isStandby = true

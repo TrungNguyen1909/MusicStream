@@ -168,11 +168,10 @@ func (track *Track) WaitForTrackUpdate() {
 func (track *Track) InitWS() {
 	track.heartbeatInterrupt = make(chan int, 1)
 	u := url.URL{Scheme: "wss", Host: "listen.moe", Path: "/gateway_v2"}
-	log.Printf("connecting to %s", u.String())
 
 	ws, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		log.Fatal("dial:", err)
+		log.Panic("dial:", err)
 	}
 	track.ws = ws
 	go func() {
