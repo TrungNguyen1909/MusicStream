@@ -83,9 +83,9 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	connections.Store(c, c)
 	defer c.Close()
 	defer connections.Delete(c)
+	c.WriteMessage(websocket.TextMessage, getPlaying())
+	c.WriteMessage(websocket.TextMessage, getQueue())
 	for {
-		c.WriteMessage(websocket.TextMessage, getPlaying())
-		c.WriteMessage(websocket.TextMessage, getQueue())
 		var msg wsMessage
 		err = c.ReadJSON(&msg)
 		if err != nil {
