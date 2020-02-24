@@ -210,9 +210,6 @@ func (client *Client) SearchTrackQuery(query string) (sTrack, sArtist, sAlbum, s
 
 //SearchTrack returns a Spotify track with provided fields
 func (client *Client) SearchTrack(track, artist, album, isrc string) (sTrack, sArtist, sAlbum, sISRC, sURI string, err error) {
-	client.fetchToken()
-	reqURL, _ := url.Parse("https://api.spotify.com/v1/search?type=track&decorate_restrictions=false&best_match=true&limit=3&userless=true&market=VN")
-	queries := reqURL.Query()
 	var query string
 	if len(track) > 0 {
 		query += "track:\"" + track + "\""
@@ -226,29 +223,7 @@ func (client *Client) SearchTrack(track, artist, album, isrc string) (sTrack, sA
 	if len(isrc) > 0 {
 		query += "isrc:" + isrc
 	}
-	queries.Add("q", query)
-	reqURL.RawQuery = queries.Encode()
-	req, _ := http.NewRequest("GET", reqURL.String(), nil)
-	req.Header.Add("Authorization", "Bearer "+client.AccessToken)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return
-	}
-	var d searchResponse
-	err = json.NewDecoder(resp.Body).Decode(&d)
-	if err != nil {
-		return
-	}
-	if len(d.Tracks.Items) <= 0 {
-		err = errors.New("No Spotify track found")
-		return
-	}
-	sTrack = d.Tracks.Items[0].Name
-	sArtist = d.Tracks.Items[0].Artists[0].Name
-	sAlbum = d.Tracks.Items[0].Album.Name
-	sISRC = d.Tracks.Items[0].ExternalIds.Isrc
-	sURI = d.Tracks.Items[0].URI
-	return
+	return client.SearchTrackQuery(query)
 }
 
 //NewClient returns new Spotify Client
