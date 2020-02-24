@@ -419,7 +419,7 @@ func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) 
 start:
 	if len(artist) == 0 && withSpotify {
 		if withISRC {
-			sTrack, sArtist, sAlbum, sISRC, sURI, err = client.spotifyClient.SearchTrack(track)
+			sTrack, sArtist, sAlbum, sISRC, sURI, err = client.spotifyClient.SearchTrackQuery(track)
 		}
 		if err != nil {
 			log.Printf("spotifyClient.SearchTrack() failed: %v\n", err)
@@ -497,8 +497,9 @@ start:
 		if withSpotify && (v.ISRC == sISRC || (v.Title == sTrack && v.Artist.Name == sArtist && v.Album.Title == sAlbum)) {
 			v.SpotifyURI = sURI
 			if withISRC && i == 0 {
-				sURI = client.spotifyClient.GetTrackFromISRC(v.Title, v.Artist.Name, v.Album.Title, v.ISRC)
-				if len(sURI) > 0 {
+				var sURI string
+				_, _, _, _, sURI, err = client.spotifyClient.SearchTrack(v.Title, v.Artist.Name, v.Album.Title, v.ISRC)
+				if err != nil && len(sURI) > 0 {
 					v.SpotifyURI = sURI
 				}
 			}

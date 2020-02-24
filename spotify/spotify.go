@@ -26,6 +26,7 @@ import (
 	"time"
 )
 
+//Client represents a Spotify Client
 type Client struct {
 	AccessToken                      string `json:"accessToken"`
 	AccessTokenExpirationTimestampMs int64  `json:"accessTokenExpirationTimestampMs"`
@@ -176,7 +177,9 @@ func (client *Client) fetchToken() (err error) {
 	err = json.NewDecoder(resp.Body).Decode(&client)
 	return
 }
-func (client *Client) SearchTrack(query string) (track, artist, album, isrc, sURL string, err error) {
+
+//SearchTrackQuery returns a Spotify track with provided query
+func (client *Client) SearchTrackQuery(query string) (sTrack, sArtist, sAlbum, sISRC, sURI string, err error) {
 	client.fetchToken()
 	reqURL, _ := url.Parse("https://api.spotify.com/v1/search?type=track&decorate_restrictions=false&best_match=false&limit=3&userless=true&market=VN")
 	queries := reqURL.Query()
@@ -197,14 +200,16 @@ func (client *Client) SearchTrack(query string) (track, artist, album, isrc, sUR
 		err = errors.New("No Spotify track found")
 		return
 	}
-	track = d.Tracks.Items[0].Name
-	artist = d.Tracks.Items[0].Artists[0].Name
-	album = d.Tracks.Items[0].Album.Name
-	isrc = d.Tracks.Items[0].ExternalIds.Isrc
-	sURL = d.Tracks.Items[0].URI
+	sTrack = d.Tracks.Items[0].Name
+	sArtist = d.Tracks.Items[0].Artists[0].Name
+	sAlbum = d.Tracks.Items[0].Album.Name
+	sISRC = d.Tracks.Items[0].ExternalIds.Isrc
+	sURI = d.Tracks.Items[0].URI
 	return
 }
-func (client *Client) GetTrackFromISRC(track, artist, album, isrc string) (sURI string) {
+
+//SearchTrack returns a Spotify track with provided fields
+func (client *Client) SearchTrack(track, artist, album, isrc string) (sTrack, sArtist, sAlbum, sISRC, sURI string, err error) {
 	client.fetchToken()
 	reqURL, _ := url.Parse("https://api.spotify.com/v1/search?type=track&decorate_restrictions=false&best_match=true&limit=3&userless=true&market=VN")
 	queries := reqURL.Query()
@@ -238,9 +243,15 @@ func (client *Client) GetTrackFromISRC(track, artist, album, isrc string) (sURI 
 		err = errors.New("No Spotify track found")
 		return
 	}
+	sTrack = d.Tracks.Items[0].Name
+	sArtist = d.Tracks.Items[0].Artists[0].Name
+	sAlbum = d.Tracks.Items[0].Album.Name
+	sISRC = d.Tracks.Items[0].ExternalIds.Isrc
 	sURI = d.Tracks.Items[0].URI
 	return
 }
+
+//NewClient returns new Spotify Client
 func NewClient() (client *Client, err error) {
 	client = &Client{}
 	err = client.fetchToken()
