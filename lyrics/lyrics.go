@@ -36,113 +36,26 @@ type mxmResponse struct {
 	Message struct {
 		Body struct {
 			MacroCalls struct {
-				MatcherTrackGet struct {
-					Message struct {
-						Body struct {
-							Track struct {
-								AlbumCoverart100x100  string     `json:"album_coverart_100x100"`
-								AlbumCoverart350x350  string     `json:"album_coverart_350x350"`
-								AlbumCoverart500x500  string     `json:"album_coverart_500x500"`
-								AlbumCoverart800x800  string     `json:"album_coverart_800x800"`
-								AlbumID               int        `json:"album_id"`
-								AlbumName             string     `json:"album_name"`
-								ArtistID              int        `json:"artist_id"`
-								ArtistMbid            string     `json:"artist_mbid"`
-								ArtistName            string     `json:"artist_name"`
-								CommontrackID         int        `json:"commontrack_id"`
-								CommontrackIsrcs      [][]string `json:"commontrack_isrcs"`
-								CommontrackSpotifyIds []string   `json:"commontrack_spotify_ids"`
-								CommontrackVanityID   string     `json:"commontrack_vanity_id"`
-								Explicit              int        `json:"explicit"`
-								FirstReleaseDate      string     `json:"first_release_date"`
-								HasLyrics             int        `json:"has_lyrics"`
-								HasLyricsCrowd        int        `json:"has_lyrics_crowd"`
-								HasRichsync           int        `json:"has_richsync"`
-								HasSubtitles          int        `json:"has_subtitles"`
-								Instrumental          int        `json:"instrumental"`
-								LyricsID              int        `json:"lyrics_id"`
-								NumFavourite          int        `json:"num_favourite"`
-								PrimaryGenres         struct {
-									MusicGenreList []struct {
-										MusicGenre struct {
-											MusicGenreID           int    `json:"music_genre_id"`
-											MusicGenreName         string `json:"music_genre_name"`
-											MusicGenreNameExtended string `json:"music_genre_name_extended"`
-											MusicGenreParentID     int    `json:"music_genre_parent_id"`
-											MusicGenreVanity       string `json:"music_genre_vanity"`
-										} `json:"music_genre"`
-									} `json:"music_genre_list"`
-								} `json:"primary_genres"`
-								Restricted      int `json:"restricted"`
-								SecondaryGenres struct {
-									MusicGenreList []struct {
-										MusicGenre struct {
-											MusicGenreID           int    `json:"music_genre_id"`
-											MusicGenreName         string `json:"music_genre_name"`
-											MusicGenreNameExtended string `json:"music_genre_name_extended"`
-											MusicGenreParentID     int    `json:"music_genre_parent_id"`
-											MusicGenreVanity       string `json:"music_genre_vanity"`
-										} `json:"music_genre"`
-									} `json:"music_genre_list"`
-								} `json:"secondary_genres"`
-								SubtitleID               int           `json:"subtitle_id"`
-								TrackEditURL             string        `json:"track_edit_url"`
-								TrackID                  int           `json:"track_id"`
-								TrackIsrc                string        `json:"track_isrc"`
-								TrackLength              int           `json:"track_length"`
-								TrackMbid                string        `json:"track_mbid"`
-								TrackName                string        `json:"track_name"`
-								TrackNameTranslationList []interface{} `json:"track_name_translation_list"`
-								TrackRating              int           `json:"track_rating"`
-								TrackShareURL            string        `json:"track_share_url"`
-								TrackSoundcloudID        int           `json:"track_soundcloud_id"`
-								TrackSpotifyID           string        `json:"track_spotify_id"`
-								TrackXboxmusicID         string        `json:"track_xboxmusic_id"`
-								UpdatedTime              string        `json:"updated_time"`
-							} `json:"track"`
-						} `json:"body"`
-						Header struct {
-							Cached      int     `json:"cached"`
-							Confidence  int     `json:"confidence"`
-							ExecuteTime float64 `json:"execute_time"`
-							Mode        string  `json:"mode"`
-							StatusCode  int     `json:"status_code"`
-						} `json:"header"`
-					} `json:"message"`
-				} `json:"matcher.track.get"`
 				TrackLyricsGet struct {
 					Message struct {
 						Body struct {
-							CrowdLyricsList []interface{} `json:"crowd_lyrics_list"`
-							Lyrics          struct {
-								ActionRequested           string `json:"action_requested"`
-								BacklinkURL               string `json:"backlink_url"`
-								CanEdit                   int    `json:"can_edit"`
-								Explicit                  int    `json:"explicit"`
-								HTMLTrackingURL           string `json:"html_tracking_url"`
-								Instrumental              int    `json:"instrumental"`
-								Locked                    int    `json:"locked"`
-								LyricsBody                string `json:"lyrics_body"`
-								LyricsCopyright           string `json:"lyrics_copyright"`
-								LyricsID                  int    `json:"lyrics_id"`
-								LyricsLanguage            string `json:"lyrics_language"`
-								LyricsLanguageDescription string `json:"lyrics_language_description"`
-								LyricsTranslated          struct {
-									HTMLTrackingURL   string `json:"html_tracking_url"`
-									LyricsBody        string `json:"lyrics_body"`
-									PixelTrackingURL  string `json:"pixel_tracking_url"`
-									Restricted        int    `json:"restricted"`
-									ScriptTrackingURL string `json:"script_tracking_url"`
-									SelectedLanguage  string `json:"selected_language"`
+							Lyrics struct {
+								Explicit         int    `json:"explicit"`
+								Instrumental     int    `json:"instrumental"`
+								LyricsBody       string `json:"lyrics_body"`
+								LyricsCopyright  string `json:"lyrics_copyright"`
+								LyricsID         int    `json:"lyrics_id"`
+								LyricsLanguage   string `json:"lyrics_language"`
+								LyricsTranslated struct {
+									LyricsBody       string `json:"lyrics_body"`
+									Restricted       int    `json:"restricted"`
+									SelectedLanguage string `json:"selected_language"`
 								} `json:"lyrics_translated"`
-								PixelTrackingURL  string        `json:"pixel_tracking_url"`
-								PublishedStatus   int           `json:"published_status"`
-								PublisherList     []interface{} `json:"publisher_list"`
-								Restricted        int           `json:"restricted"`
-								ScriptTrackingURL string        `json:"script_tracking_url"`
-								UpdatedTime       string        `json:"updated_time"`
-								Verified          int           `json:"verified"`
-								WriterList        []interface{} `json:"writer_list"`
+								PublishedStatus int           `json:"published_status"`
+								PublisherList   []interface{} `json:"publisher_list"`
+								UpdatedTime     string        `json:"updated_time"`
+								Verified        int           `json:"verified"`
+								WriterList      []interface{} `json:"writer_list"`
 							} `json:"lyrics"`
 						} `json:"body"`
 						Header struct {
@@ -151,50 +64,19 @@ type mxmResponse struct {
 						} `json:"header"`
 					} `json:"message"`
 				} `json:"track.lyrics.get"`
-				TrackSnippetGet struct {
-					Message struct {
-						Body struct {
-							Snippet struct {
-								HTMLTrackingURL   string `json:"html_tracking_url"`
-								Instrumental      int    `json:"instrumental"`
-								PixelTrackingURL  string `json:"pixel_tracking_url"`
-								Restricted        int    `json:"restricted"`
-								ScriptTrackingURL string `json:"script_tracking_url"`
-								SnippetBody       string `json:"snippet_body"`
-								SnippetID         int    `json:"snippet_id"`
-								SnippetLanguage   string `json:"snippet_language"`
-								UpdatedTime       string `json:"updated_time"`
-							} `json:"snippet"`
-						} `json:"body"`
-						Header struct {
-							ExecuteTime float64 `json:"execute_time"`
-							StatusCode  int     `json:"status_code"`
-						} `json:"header"`
-					} `json:"message"`
-				} `json:"track.snippet.get"`
 				TrackSubtitlesGet struct {
 					Message struct {
 						Body struct {
 							SubtitleList []struct {
 								Subtitle struct {
-									HTMLTrackingURL             string        `json:"html_tracking_url"`
-									LyricsCopyright             string        `json:"lyrics_copyright"`
-									PixelTrackingURL            string        `json:"pixel_tracking_url"`
-									PublisherList               []interface{} `json:"publisher_list"`
-									Restricted                  int           `json:"restricted"`
-									ScriptTrackingURL           string        `json:"script_tracking_url"`
-									SubtitleAvgCount            int           `json:"subtitle_avg_count"`
-									SubtitleBody                string        `json:"subtitle_body"`
-									SubtitleID                  int           `json:"subtitle_id"`
-									SubtitleLanguage            string        `json:"subtitle_language"`
-									SubtitleLanguageDescription string        `json:"subtitle_language_description"`
-									SubtitleLength              int           `json:"subtitle_length"`
-									SubtitleTranslated          struct {
-										HTMLTrackingURL   string `json:"html_tracking_url"`
-										PixelTrackingURL  string `json:"pixel_tracking_url"`
-										ScriptTrackingURL string `json:"script_tracking_url"`
-										SelectedLanguage  string `json:"selected_language"`
-										SubtitleBody      string `json:"subtitle_body"`
+									LyricsCopyright    string `json:"lyrics_copyright"`
+									SubtitleBody       string `json:"subtitle_body"`
+									SubtitleID         int    `json:"subtitle_id"`
+									SubtitleLanguage   string `json:"subtitle_language"`
+									SubtitleLength     int    `json:"subtitle_length"`
+									SubtitleTranslated struct {
+										SelectedLanguage string `json:"selected_language"`
+										SubtitleBody     string `json:"subtitle_body"`
 									} `json:"subtitle_translated"`
 									UpdatedTime string        `json:"updated_time"`
 									WriterList  []interface{} `json:"writer_list"`
@@ -209,17 +91,6 @@ type mxmResponse struct {
 						} `json:"header"`
 					} `json:"message"`
 				} `json:"track.subtitles.get"`
-				UserblobGet struct {
-					Message struct {
-						Header struct {
-							StatusCode int `json:"status_code"`
-						} `json:"header"`
-					} `json:"message"`
-					Meta struct {
-						LastUpdated string `json:"last_updated"`
-						StatusCode  int    `json:"status_code"`
-					} `json:"meta"`
-				} `json:"userblob.get"`
 			} `json:"macro_calls"`
 		} `json:"body"`
 		Header struct {
