@@ -202,8 +202,6 @@ function initWebSocket() {
   };
   ws.onopen = event => {
     console.log("[WS] opened");
-    ws.send(JSON.stringify({ op: opSetClientsTrack }));
-    ws.send(JSON.stringify({ op: opClientRequestQueue }));
     wsInterval = setInterval(() => {
       ws.send(JSON.stringify({ op: opWebSocketKeepAlive }));
     }, 30000);
