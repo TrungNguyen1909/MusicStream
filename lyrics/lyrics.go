@@ -169,7 +169,7 @@ func GetLyrics(track, artist, album, artists, SpotifyURI string, duration int) (
 	result.Language = subtitle.SubtitleLanguage
 	sd := subtitle.SubtitleBody
 	var syncedLyrics []common.LyricsLine
-	if result.Language != "en" {
+	if result.Language != "en" && len(subtitle.SubtitleTranslated.SubtitleBody) > 0 {
 		st := subtitle.SubtitleTranslated.SubtitleBody
 		var subtitleTranslated []common.LyricsLine
 		err = json.Unmarshal(([]byte)(st), &subtitleTranslated)
