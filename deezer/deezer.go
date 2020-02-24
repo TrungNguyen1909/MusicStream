@@ -499,7 +499,7 @@ start:
 			if withISRC && i == 0 {
 				var sURI string
 				_, _, _, _, sURI, err = client.spotifyClient.SearchTrack(v.Title, v.Artist.Name, v.Album.Title, v.ISRC)
-				if err != nil && len(sURI) > 0 {
+				if err == nil && len(sURI) > 0 {
 					v.SpotifyURI = sURI
 				}
 			}
