@@ -292,16 +292,17 @@ func (client *Client) initDeezerAPI() {
 	request := client.makeUnofficialAPIRequest("deezer.getUserData", []byte(""))
 	response, err := client.httpClient.Do(request)
 	if err != nil {
-		log.Println(err)
+		log.Println("deezer.initDeezerAPI() failed: ", err)
 		return
 	}
 	buf, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Println(err)
+		log.Println("deezer.initDeezerAPI() failed: ", err)
+		return
 	}
 	var resp getUserDataResponse
-	json.Unmarshal(buf, &resp)
-	if len(resp.Results.CheckForm) <= 0 {
+	err = json.Unmarshal(buf, &resp)
+	if err != nil || len(resp.Results.CheckForm) <= 0 {
 		log.Printf("%s\n", buf)
 		return
 	}
@@ -320,7 +321,8 @@ func (client *Client) getTrackInfo(trackID int, secondTry bool) (trackInfo pageT
 	err = json.NewDecoder(response.Body).Decode(&resp)
 	if err != nil || len(resp.Results.Data.MD5Origin) <= 0 {
 		if secondTry {
-			log.Panic("Failed to get trackInfo adequately")
+			err = errors.New("Failed to get trackInfo adequately " + err.Error())
+			return
 		}
 		client.initDeezerAPI()
 		return client.getTrackInfo(trackID, true)
