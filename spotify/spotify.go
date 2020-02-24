@@ -204,6 +204,43 @@ func (client *Client) SearchTrack(query string) (track, artist, album, isrc, sUR
 	sURL = d.Tracks.Items[0].URI
 	return
 }
+func (client *Client) GetTrackFromISRC(track, artist, album, isrc string) (sURI string) {
+	client.fetchToken()
+	reqURL, _ := url.Parse("https://api.spotify.com/v1/search?type=track&decorate_restrictions=false&best_match=true&limit=3&userless=true&market=VN")
+	queries := reqURL.Query()
+	var query string
+	if len(track) > 0 {
+		query += "track:\"" + track + "\""
+	}
+	if len(artist) > 0 {
+		query += "artist:\"" + artist + "\""
+	}
+	if len(album) > 0 {
+		query += "album:\"" + album + "\""
+	}
+	if len(isrc) > 0 {
+		query += "isrc:" + isrc
+	}
+	queries.Add("q", query)
+	reqURL.RawQuery = queries.Encode()
+	req, _ := http.NewRequest("GET", reqURL.String(), nil)
+	req.Header.Add("Authorization", "Bearer "+client.AccessToken)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	var d searchResponse
+	err = json.NewDecoder(resp.Body).Decode(&d)
+	if err != nil {
+		return
+	}
+	if len(d.Tracks.Items) <= 0 {
+		err = errors.New("No Spotify track found")
+		return
+	}
+	sURI = d.Tracks.Items[0].URI
+	return
+}
 func NewClient() (client *Client, err error) {
 	client = &Client{}
 	err = client.fetchToken()

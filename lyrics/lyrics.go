@@ -130,8 +130,8 @@ func GetLyrics(track, artist, album, artists, SpotifyURI string, duration int) (
 	queries.Add("q_album", album)
 	if duration > 0 {
 		queries.Add("q_duration", strconv.Itoa(duration))
+		queries.Add("f_subtitle_length", strconv.Itoa(duration))
 	}
-	queries.Add("f_subtitle_length", strconv.Itoa(duration))
 	if len(SpotifyURI) > 0 {
 		queries.Add("track_spotify_id", SpotifyURI)
 	}
