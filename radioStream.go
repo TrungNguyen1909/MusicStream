@@ -74,7 +74,6 @@ func preloadRadio(quit chan int) {
 	defer endCurrentStream()
 	defer pushSilentFrames(&encodedTime)
 	defer log.Println("Radio preloading stopped!")
-	quitRadioSetTrack := make(chan int)
 	go func() {
 		firstTime := true
 		log.Println("Starting Radio track update")
@@ -97,7 +96,6 @@ func preloadRadio(quit chan int) {
 	for !encodeRadio(stream, &encodedTime, quit) {
 		stream, _ = radioTrack.Download()
 	}
-	quitRadioSetTrack <- 1
 }
 func processRadio(quit chan int) {
 	quitPreload := make(chan int, 10)
