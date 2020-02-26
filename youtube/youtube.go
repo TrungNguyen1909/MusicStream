@@ -20,6 +20,7 @@ package youtube
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"html"
@@ -28,6 +29,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/rylio/ytdl"
@@ -153,6 +155,92 @@ func (track Track) SpotifyURI() string {
 //PlayID returns a random string which is unique to this instance of Track
 func (track Track) PlayID() string {
 	return track.playID
+}
+
+type transcriptList struct {
+	XMLName xml.Name          `xml:"transcript_list"`
+	DocID   string            `xml:"docid,attr"`
+	Tracks  []transcriptTrack `xml:"track"`
+}
+type transcriptTrack struct {
+	ID             int    `xml:"id,attr"`
+	Name           string `xml:"name,attr"`
+	LangCode       string `xml:"lang_code,attr"`
+	LangOriginal   string `xml:"lang_original,attr"`
+	LangTranslated string `xml:"lang_translated,attr"`
+	LangDefault    bool   `xml:"lang_default,attr"`
+}
+type transcript struct {
+	XMLName xml.Name `xml:"transcript"`
+	Lines   []line   `xml:"text"`
+}
+type line struct {
+	Start    float64 `xml:"start,attr"`
+	Duration float64 `xml:"dur,attr"`
+	Text     string  `xml:",chardata"`
+}
+
+func getLyricsWithLang(id, lang, name string) (result []line, err error) {
+	reqURL, _ := url.Parse("https://www.youtube.com/api/timedtext?fmt=srv1")
+	queries := reqURL.Query()
+	queries.Add("v", id)
+	queries.Add("lang", lang)
+	queries.Add("name", name)
+	reqURL.RawQuery = queries.Encode()
+	response, err := http.DefaultClient.Get(reqURL.String())
+	if err != nil {
+		return
+	}
+	var t transcript
+	err = xml.NewDecoder(response.Body).Decode(&t)
+	if err != nil {
+		return
+	}
+	return t.Lines, nil
+}
+
+//GetLyrics returns the subtitle for a video id
+func GetLyrics(id string) (result common.LyricsResult, err error) {
+	reqURL, _ := url.Parse("https://video.google.com/timedtext?hl=en&type=list")
+	queries := reqURL.Query()
+	queries.Add("v", id)
+	reqURL.RawQuery = queries.Encode()
+	response, err := http.DefaultClient.Get(reqURL.String())
+	if err != nil {
+		return
+	}
+	var trl transcriptList
+	err = xml.NewDecoder(response.Body).Decode(&trl)
+	if err != nil {
+		return
+	}
+	var (
+		originalLang       string
+		originalLangName   string
+		translatedLang     string
+		translatedLangName string
+	)
+	for _, v := range trl.Tracks {
+		if v.ID == 0 {
+			originalLang = v.LangCode
+			originalLangName = v.Name
+		}
+		if v.LangDefault {
+			translatedLang = v.LangCode
+			translatedLangName = v.Name
+		}
+	}
+	orig, _ := getLyricsWithLang(id, originalLang, originalLangName)
+	trans, _ := getLyricsWithLang(id, translatedLang, translatedLangName)
+	log.Printf("Orig: %d - trans: %d", len(orig), len(trans))
+	result = common.LyricsResult{Language: translatedLang}
+	result.SyncedLyrics = make([]common.LyricsLine, len(trans))
+	for i, v := range orig {
+		result.SyncedLyrics[i].Text = strings.ReplaceAll(html.UnescapeString(v.Text), "\n", " ")
+		result.SyncedLyrics[i].Translated = strings.ReplaceAll(html.UnescapeString(trans[i].Text), "\n", " ")
+		result.SyncedLyrics[i].Time.Total = v.Start
+	}
+	return
 }
 
 //Search finds and returns a track from Youtube with the provided query

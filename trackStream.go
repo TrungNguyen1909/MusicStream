@@ -28,6 +28,7 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/csn"
 	"github.com/TrungNguyen1909/MusicStream/deezer"
 	"github.com/TrungNguyen1909/MusicStream/lyrics"
+	"github.com/TrungNguyen1909/MusicStream/youtube"
 	_ "github.com/joho/godotenv/autoload"
 )
 
@@ -110,6 +111,11 @@ func processTrack() {
 		mxmlyrics, err = lyrics.GetLyrics(track.Title(), track.Artist(), track.Album(), track.Artists(), track.SpotifyURI(), track.Duration())
 		if err == nil {
 			trackDict.Lyrics = mxmlyrics
+		}
+	} else {
+		ytsub, err := youtube.GetLyrics(track.ID())
+		if err == nil {
+			trackDict.Lyrics = ytsub
 		}
 	}
 	stream, err := track.Download()
