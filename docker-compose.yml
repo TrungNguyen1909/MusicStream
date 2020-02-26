@@ -9,5 +9,6 @@ services:
             - DEEZER_ARL=${DEEZER_ARL}
             - MUSIXMATCH_USER_TOKEN=${MUSIXMATCH_USER_TOKEN}
             - MUSIXMATCH_OB_USER_TOKEN=${MUSIXMATCH_OB_USER_TOKEN}
+            - YOUTUBE_DEVELOPER_KEY=${YOUTUBE_DEVELOPER_KEY}
         ports:
             - 8080:8890

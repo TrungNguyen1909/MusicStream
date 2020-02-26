@@ -78,8 +78,8 @@ type Track struct {
 }
 
 //ID returns the track's ID number on Deezer
-func (track Track) ID() int {
-	return track.deezerTrack.ID
+func (track Track) ID() string {
+	return strconv.Itoa(track.deezerTrack.ID)
 }
 
 //Title returns the track's title
@@ -131,7 +131,11 @@ func (track Track) Download() (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &trackDecrypter{r: response.Body, BlowfishKey: track.BlowfishKey}, nil
+	stream, err := common.NewMP3Decoder(&trackDecrypter{r: response.Body, BlowfishKey: track.BlowfishKey})
+	if err != nil {
+		return nil, err
+	}
+	return stream, nil
 }
 
 //SpotifyURI returns the track's equivalent spotify song, if known
@@ -394,10 +398,10 @@ func (client *Client) PopulateMetadata(dTrack *Track) (err error) {
 }
 
 //GetTrackByID returns the populated track with the provided ID on Deezer
-func (client *Client) GetTrackByID(trackID int) (track common.Track, err error) {
+func (client *Client) GetTrackByID(trackID string) (track common.Track, err error) {
 	var url string
 	var dTrack deezerTrack
-	url = fmt.Sprintf("https://api.deezer.com/track/%d", trackID)
+	url = fmt.Sprintf("https://api.deezer.com/track/%s", trackID)
 	response, err := http.Get(url)
 	if err != nil {
 		return

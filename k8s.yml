@@ -33,6 +33,11 @@ spec:
                   secretKeyRef:
                     name: musicstream
                     key: MUSIXMATCH_OB_USER_TOKEN
+            - name: YOUTUBE_DEVELOPER_KEY
+              valueFrom:
+                  secretKeyRef:
+                    name: musicstream
+                    key: YOUTUBE_DEVELOPER_KEY
           resources:
             requests:
               cpu: 1

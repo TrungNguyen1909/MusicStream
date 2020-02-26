@@ -19,7 +19,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"sync/atomic"
@@ -29,64 +28,28 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/csn"
 	"github.com/TrungNguyen1909/MusicStream/deezer"
 	"github.com/TrungNguyen1909/MusicStream/lyrics"
-	"github.com/faiface/beep"
-	"github.com/faiface/beep/mp3"
 	_ "github.com/joho/godotenv/autoload"
 )
 
 func preloadTrack(stream io.ReadCloser, quit chan int) {
 	var encodedTime time.Duration
-	streamer, format, err := mp3.Decode(stream)
-	if err != nil {
-		log.Panic(err)
-	}
-	defer streamer.Close()
-	var needResampling bool
-	var resampled *beep.Resampler
-	if format.SampleRate != beep.SampleRate(48000) {
-		resampled = beep.Resample(4, format.SampleRate, beep.SampleRate(48000), streamer)
-		format.SampleRate = beep.SampleRate(48000)
-		needResampling = true
-	}
+	defer stream.Close()
 	defer endCurrentStream()
 	pushSilentFrames(&encodedTime)
 	defer pushSilentFrames(&encodedTime)
 	pos := int64(encoder.GranulePos())
 	atomic.StoreInt64(&startPos, pos)
 	deltaChannel <- pos
-
-	samples := make([][2]float64, 960)
-	buf := make([]byte, len(samples)*format.Width())
 	for {
 		select {
 		case <-quit:
 			return
 		default:
 		}
-		var (
-			n  int
-			ok bool
-		)
-		if needResampling {
-			n, ok = resampled.Stream(samples)
-		} else {
-			n, ok = streamer.Stream(samples)
-		}
-		if !ok {
-			break
-		}
-		for i, sample := range samples {
-			switch {
-			case format.Precision == 1:
-				format.EncodeUnsigned(buf[i*format.Width():], sample)
-			case format.Precision == 2 || format.Precision == 3:
-				format.EncodeSigned(buf[i*format.Width():], sample)
-			default:
-				panic(fmt.Errorf("encode: invalid precision: %d", format.Precision))
-			}
-		}
-		pushPCMAudio(buf[:n*format.Width()], &encodedTime)
-		if 0 <= n && n < len(samples) && ok {
+		buf := make([]byte, 3840)
+		n, err := stream.Read(buf)
+		pushPCMAudio(buf[:n], &encodedTime)
+		if err != nil {
 			return
 		}
 	}
@@ -106,7 +69,7 @@ func processTrack() {
 	var track common.Track
 	var err error
 	radioStarted := false
-	if currentTrackID == -1 || watchDog >= 3 || currentTrack.Source() == common.CSN {
+	if currentTrackID == "" || watchDog >= 3 || currentTrack.Source() == common.CSN || currentTrack.Source() == common.Youtube {
 		if playQueue.Empty() {
 			radioStarted = true
 			go processRadio(quitRadio)
@@ -114,14 +77,14 @@ func processTrack() {
 		activityWg.Wait()
 		track = playQueue.Pop().(common.Track)
 		dequeueCallback()
-		currentTrackID = -1
+		currentTrackID = ""
 		watchDog = 0
 	} else {
 		dtrack := currentTrack.(deezer.Track)
 		err = dzClient.PopulateMetadata(&dtrack)
 		track = dtrack
 		if err != nil {
-			currentTrackID = -1
+			currentTrackID = ""
 			watchDog = 0
 			return
 		}
@@ -143,18 +106,17 @@ func processTrack() {
 	log.Printf("Playing %v - %v\n", track.Title(), track.Artist())
 	trackDict := common.GetMetadata(track)
 	var mxmlyrics common.LyricsResult
-	mxmlyrics, err = lyrics.GetLyrics(track.Title(), track.Artist(), track.Album(), track.Artists(), track.SpotifyURI(), track.Duration())
-	if err == nil {
-		trackDict.Lyrics = mxmlyrics
+	if track.Source() != common.Youtube {
+		mxmlyrics, err = lyrics.GetLyrics(track.Title(), track.Artist(), track.Album(), track.Artists(), track.SpotifyURI(), track.Duration())
+		if err == nil {
+			trackDict.Lyrics = mxmlyrics
+		}
 	}
 	stream, err := track.Download()
 	if err != nil {
 		log.Panic(err)
 	}
 	quit := make(chan int, 10)
-	if radioStarted {
-		<-quitRadio
-	}
 	go preloadTrack(stream, quit)
 	for len(skipChannel) > 0 {
 		select {
@@ -167,6 +129,6 @@ func processTrack() {
 	setTrack(trackDict)
 	streamToClients(skipChannel, quit)
 	log.Println("Stream ended!")
-	currentTrackID = -1
+	currentTrackID = ""
 	watchDog = 0
 }

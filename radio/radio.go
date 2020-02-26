@@ -24,6 +24,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -53,10 +54,10 @@ func (track *Track) setArtists(artists []string) {
 }
 
 //ID returns the ID number of currently playing track on radio, if known, otherwise, returns 0
-func (track *Track) ID() int {
+func (track *Track) ID() string {
 	track.mux.RLock()
 	defer track.mux.RUnlock()
-	return track.id
+	return strconv.Itoa(track.id)
 }
 
 //Title returns the title of currently playing track on radio, if known, otherwise, returns the radio's name

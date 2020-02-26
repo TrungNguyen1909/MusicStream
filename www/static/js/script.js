@@ -71,14 +71,20 @@ const newMusicplayer = new musicPlayer();
 var mode = 1;
 var dzSel = document.getElementById("deezer-sel");
 var csnSel = document.getElementById("csn-sel");
-
+var ytSel = document.getElementById("yt-sel")
 function applySelector() {
   if (mode == 1) {
-    csnSel.classList.remove("active");
     dzSel.classList.add("active");
-  } else {
-    csnSel.classList.add("active");
+    csnSel.classList.remove("active");
+    ytSel.classList.remove("active")
+  } else if (mode==2){
     dzSel.classList.remove("active");
+    csnSel.classList.add("active");
+    ytSel.classList.remove("active")
+  } else{
+    dzSel.classList.remove("active");
+    csnSel.classList.remove("active");
+    ytSel.classList.add("active")
   }
   localStorage.setItem("src-selector", mode);
 }
@@ -104,7 +110,10 @@ csnSel.addEventListener("click", () => {
   mode = 2;
   applySelector();
 });
-
+ytSel.addEventListener("click",()=>{
+  mode = 3;
+  applySelector();
+})
 function enqueue() {
   q = document.getElementById("query").value.trim();
   if (!ws) return;
@@ -229,11 +238,11 @@ function initWebSocket() {
         if (
           isSkipped ||
           !ctrack ||
-          (ctrack.source == 3 && msg.track.source != 3)
+          (ctrack.source == 0 && msg.track.source != 0)
         ) {
           player.src = `/audio`;
         } else if (Math.abs(diff) > 8) {
-          if (msg.track.source == 3) {
+          if (msg.track.source == 0) {
             setTimeout(() => {
               player.src = `/audio`;
             }, (diff - 3.168) * 1000);

@@ -286,9 +286,9 @@ body {
   margin-top: 0;
   float: left;
   position: relative;
-  width: calc(100% - 103px - 41px);
-  width: -webkit-calc(100% - 103px - 41px);
-  width: -moz-calc(100% - 103px - 41px);
+  width: calc(100% - 51px - 52px - 52px - 41px);
+  width: -webkit-calc(100% - 51px - 52px - 52px - 41px);
+  width: -moz-calc(100% - 51px - 52px - 52px - 41px);
   padding: 12px 20px;
   font-size: 15px;
   line-height: 18px;

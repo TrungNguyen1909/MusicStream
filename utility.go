@@ -85,7 +85,6 @@ func inactivityMonitor() {
 				quitRadio <- 0
 				streamMux.Lock()
 				streamMux.Unlock()
-				<-quitRadio
 			} else {
 				skipChannel <- 1
 			}

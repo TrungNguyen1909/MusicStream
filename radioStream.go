@@ -110,6 +110,6 @@ func processRadio(quit chan int) {
 	defer atomic.StoreInt32(&isRadioStreaming, 0)
 	defer log.Println("Radio stream ended")
 	defer radioTrack.CloseWS()
-	defer func() { log.Println("Resuming track streaming..."); quit <- 0 }()
+	defer func() { log.Println("Resuming track streaming...") }()
 	streamToClients(quit, quitPreload)
 }

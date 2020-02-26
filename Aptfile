@@ -1,2 +1,4 @@
 libogg-dev
 libvorbis-dev
+libopus-dev
+libopusfile-dev

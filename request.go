@@ -27,6 +27,7 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/csn"
 	"github.com/TrungNguyen1909/MusicStream/deezer"
+	"github.com/TrungNguyen1909/MusicStream/youtube"
 	"github.com/gorilla/websocket"
 	_ "github.com/joho/godotenv/autoload"
 )
@@ -64,6 +65,8 @@ func enqueue(msg wsMessage) []byte {
 	switch msg.Selector {
 	case common.CSN:
 		tracks, err = csn.Search(msg.Query)
+	case common.Youtube:
+		tracks, err = youtube.Search(msg.Query)
 	default:
 		tracks, err = dzClient.SearchTrack(msg.Query, "")
 	}

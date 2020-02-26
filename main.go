@@ -72,7 +72,7 @@ var etaDone atomic.Value
 var skipChannel chan int
 var quitRadio chan int
 var isRadioStreaming int32
-var currentTrackID int
+var currentTrackID string
 var watchDog int
 var radioTrack *radio.Track
 var startPos int64
@@ -105,7 +105,7 @@ func audioManager() {
 	cacheQueue = queue.NewQueue()
 	playQueue = queue.NewQueue()
 	radioTrack = radio.NewTrack()
-	currentTrackID = -1
+	currentTrackID = ""
 	etaDone.Store(time.Now())
 	initialized <- 1
 	for {
@@ -120,6 +120,10 @@ func main() {
 	_, ok = os.LookupEnv("MUSIXMATCH_USER_TOKEN")
 	if !ok {
 		log.Panic("Musixmatch token not found")
+	}
+	_, ok = os.LookupEnv("YOUTUBE_DEVELOPER_KEY")
+	if !ok {
+		log.Panic("Youtube Data API v3 key not found")
 	}
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
@@ -145,8 +149,8 @@ func main() {
 	http.HandleFunc("/remove", removeTrackHandler)
 	http.HandleFunc("/", fileServer(http.Dir("www")))
 	go selfPinger()
-	go inactivityMonitor()
 	<-initialized
+	go inactivityMonitor()
 	log.Printf("Serving on port %s", port)
 	log.Fatal(http.ListenAndServe(port, logRequest(http.DefaultServeMux)))
 }

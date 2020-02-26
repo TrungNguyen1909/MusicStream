@@ -24,17 +24,19 @@ import (
 )
 
 const (
+	//Radio (listen.moe) Source
+	Radio = 0
 	//Deezer Source
 	Deezer = 1
 	//CSN Source
 	CSN = 2
-	//Radio (listen.moe) Source
-	Radio = 3
+	//Youtube Source
+	Youtube = 3
 )
 
 //Track represents a track from any sources
 type Track interface {
-	ID() int
+	ID() string
 	Source() int
 	Title() string
 	Artist() string

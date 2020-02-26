@@ -29,6 +29,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -56,8 +57,8 @@ type Track struct {
 }
 
 //ID returns the track's ID number on CSN
-func (track Track) ID() int {
-	return track.csnTrack.ID
+func (track Track) ID() string {
+	return strconv.Itoa(track.csnTrack.ID)
 }
 
 //Title returns the track's title
@@ -106,7 +107,11 @@ func (track Track) Download() (stream io.ReadCloser, err error) {
 		return
 	}
 	stream = response.Body
-	return
+	stream, err = common.NewMP3Decoder(stream)
+	if err != nil {
+		return nil, err
+	}
+	return stream, nil
 }
 
 //SpotifyURI returns the track's equivalent spotify song, if known
