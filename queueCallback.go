@@ -48,5 +48,15 @@ func enqueueCallback(value interface{}) {
 	}(metadata)
 }
 func dequeueCallback() {
-	cacheQueue.Dequeue()
+	removed := cacheQueue.Pop().(common.TrackMetadata)
+	data, _ := json.Marshal(map[string]interface{}{
+		"op":      opClientRemoveTrack,
+		"success": true,
+		"track":   removed,
+	})
+	connections.Range(func(key, value interface{}) bool {
+		ws := value.(*webSocket)
+		ws.WriteMessage(websocket.TextMessage, data)
+		return true
+	})
 }

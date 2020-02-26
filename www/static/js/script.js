@@ -71,20 +71,20 @@ const newMusicplayer = new musicPlayer();
 var mode = 1;
 var dzSel = document.getElementById("deezer-sel");
 var csnSel = document.getElementById("csn-sel");
-var ytSel = document.getElementById("yt-sel")
+var ytSel = document.getElementById("yt-sel");
 function applySelector() {
   if (mode == 1) {
     dzSel.classList.add("active");
     csnSel.classList.remove("active");
-    ytSel.classList.remove("active")
-  } else if (mode==2){
+    ytSel.classList.remove("active");
+  } else if (mode == 2) {
     dzSel.classList.remove("active");
     csnSel.classList.add("active");
-    ytSel.classList.remove("active")
-  } else{
+    ytSel.classList.remove("active");
+  } else {
     dzSel.classList.remove("active");
     csnSel.classList.remove("active");
-    ytSel.classList.add("active")
+    ytSel.classList.add("active");
   }
   localStorage.setItem("src-selector", mode);
 }
@@ -110,10 +110,10 @@ csnSel.addEventListener("click", () => {
   mode = 2;
   applySelector();
 });
-ytSel.addEventListener("click",()=>{
+ytSel.addEventListener("click", () => {
   mode = 3;
   applySelector();
-})
+});
 function enqueue() {
   q = document.getElementById("query").value.trim();
   if (!ws) return;
@@ -224,15 +224,6 @@ function initWebSocket() {
     var msg = JSON.parse(event.data);
     switch (msg.op) {
       case opSetClientsTrack:
-        if (document.getElementById("queue").childElementCount > 0) {
-          if (
-            document.getElementById("queue").firstChild.playId ==
-            msg.track.playId
-          )
-            document
-              .getElementById("queue")
-              .removeChild(document.getElementById("queue").firstChild);
-        }
         delta = msg.pos / 48000.0;
         diff = delta - player.currentTime;
         if (

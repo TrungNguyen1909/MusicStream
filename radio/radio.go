@@ -187,6 +187,8 @@ func (track *Track) InitWS() {
 	go func() {
 		defer func() {
 			log.Println("Disconnected from listen.moe WS")
+			track.mux.Lock()
+			defer track.mux.Unlock()
 			track.title = "listen.moe"
 			track.artist = ""
 			track.artists = ""
