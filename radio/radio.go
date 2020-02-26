@@ -33,7 +33,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-//Track is a special track from radio sources
+//Track is a track from radio sources
 type Track struct {
 	id                 int
 	title              string
@@ -142,6 +142,7 @@ func (track *Track) heartbeat() {
 	for len(track.heartbeatInterrupt) > 0 {
 		<-track.heartbeatInterrupt
 	}
+	log.Println("Radio: starting heartbeat")
 	ticker := time.NewTicker((time.Duration)(track.heartbeatInterval) * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -167,15 +168,30 @@ func (track *Track) WaitForTrackUpdate() {
 
 //InitWS starts a thread to receive track info from radio
 func (track *Track) InitWS() {
-	track.heartbeatInterrupt = make(chan int, 1)
+	if track.heartbeatInterrupt == nil {
+		track.heartbeatInterrupt = make(chan int, 1)
+	}
 	u := url.URL{Scheme: "wss", Host: "listen.moe", Path: "/gateway_v2"}
-
+	log.Println("Connecting to listen.moe WS")
 	ws, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		log.Panic("dial:", err)
 	}
 	track.ws = ws
+	for len(track.heartbeatInterrupt) > 0 {
+		select {
+		case <-track.heartbeatInterrupt:
+		default:
+		}
+	}
 	go func() {
+		defer func() {
+			log.Println("Disconnected from listen.moe WS")
+			track.title = "listen.moe"
+			track.artist = ""
+			track.artists = ""
+			track.album = ""
+		}()
 		defer ws.Close()
 		defer func() { track.heartbeatInterrupt <- 1 }()
 		for {

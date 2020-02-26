@@ -77,6 +77,8 @@ func preloadRadio(quit chan int) {
 	quitRadioSetTrack := make(chan int, 1)
 	go func(quit chan int) {
 		firstTime := true
+		log.Println("Starting Radio track update")
+		defer log.Println("Stopped Radio track update")
 		for {
 			if !firstTime {
 				radioTrack.WaitForTrackUpdate()
