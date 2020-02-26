@@ -234,12 +234,13 @@ func GetLyrics(id string) (result common.LyricsResult, err error) {
 	trans, _ := getLyricsWithLang(id, translatedLang, translatedLangName)
 	log.Printf("Orig: %d - trans: %d", len(orig), len(trans))
 	result = common.LyricsResult{Language: translatedLang}
-	result.SyncedLyrics = make([]common.LyricsLine, len(trans))
+	result.SyncedLyrics = make([]common.LyricsLine, len(orig)+1)
 	for i, v := range orig {
 		result.SyncedLyrics[i].Text = strings.ReplaceAll(html.UnescapeString(v.Text), "\n", " ")
 		result.SyncedLyrics[i].Translated = strings.ReplaceAll(html.UnescapeString(trans[i].Text), "\n", " ")
 		result.SyncedLyrics[i].Time.Total = v.Start
 	}
+	result.SyncedLyrics[len(orig)].Time.Total = orig[len(orig)-1].Start + orig[len(orig)-1].Duration
 	return
 }
 
