@@ -201,6 +201,15 @@ func getLyricsWithLang(id, lang, name string) (result []line, err error) {
 
 //GetLyrics returns the subtitle for a video id
 func GetLyrics(id string) (result common.LyricsResult, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			e, ok := r.(error)
+			if ok {
+				err = e
+			}
+			log.Println("Youtube.GetLyrics() panicked: ", err)
+		}
+	}()
 	reqURL, _ := url.Parse("https://video.google.com/timedtext?hl=en&type=list")
 	queries := reqURL.Query()
 	queries.Add("v", id)
@@ -240,7 +249,9 @@ func GetLyrics(id string) (result common.LyricsResult, err error) {
 		result.SyncedLyrics[i].Translated = strings.ReplaceAll(html.UnescapeString(trans[i].Text), "\n", " ")
 		result.SyncedLyrics[i].Time.Total = v.Start
 	}
-	result.SyncedLyrics[len(orig)].Time.Total = orig[len(orig)-1].Start + orig[len(orig)-1].Duration
+	if len(orig) > 0 {
+		result.SyncedLyrics[len(orig)].Time.Total = orig[len(orig)-1].Start + orig[len(orig)-1].Duration
+	}
 	return
 }
 
