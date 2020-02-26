@@ -74,8 +74,8 @@ func preloadRadio(quit chan int) {
 	defer endCurrentStream()
 	defer pushSilentFrames(&encodedTime)
 	defer log.Println("Radio preloading stopped!")
-	quitRadioSetTrack := make(chan int, 1)
-	go func(quit chan int) {
+	quitRadioSetTrack := make(chan int)
+	go func() {
 		firstTime := true
 		log.Println("Starting Radio track update")
 		defer log.Println("Stopped Radio track update")
@@ -85,17 +85,14 @@ func preloadRadio(quit chan int) {
 			} else {
 				firstTime = false
 			}
-			select {
-			case <-quitRadioSetTrack:
-				return
-			default:
+			if atomic.LoadInt32(&isRadioStreaming) > 0 {
+				pos := int64(encoder.GranulePos())
+				atomic.StoreInt64(&startPos, pos)
+				deltaChannel <- pos
+				setTrack(common.GetMetadata(radioTrack))
 			}
-			pos := int64(encoder.GranulePos())
-			atomic.StoreInt64(&startPos, pos)
-			deltaChannel <- pos
-			setTrack(common.GetMetadata(radioTrack))
 		}
-	}(quitRadioSetTrack)
+	}()
 	stream, _ := radioTrack.Download()
 	for !encodeRadio(stream, &encodedTime, quit) {
 		stream, _ = radioTrack.Download()
