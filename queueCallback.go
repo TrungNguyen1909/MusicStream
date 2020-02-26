@@ -23,7 +23,6 @@ import (
 	"log"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-	"github.com/gorilla/websocket"
 	_ "github.com/joho/godotenv/autoload"
 )
 
@@ -33,18 +32,11 @@ func enqueueCallback(value interface{}) {
 	cacheQueue.Enqueue(metadata)
 	go func(metadata common.TrackMetadata) {
 		log.Printf("Enqueuing track on all clients %v - %v\n", metadata.Title, metadata.Artist)
-		data, err := json.Marshal(map[string]interface{}{
+		data, _ := json.Marshal(map[string]interface{}{
 			"op":    opTrackEnqueued,
 			"track": metadata,
 		})
-		connections.Range(func(key, value interface{}) bool {
-			ws := value.(*webSocket)
-			if err != nil {
-				return false
-			}
-			ws.WriteMessage(websocket.TextMessage, data)
-			return true
-		})
+		webSocketAnnounce(data)
 	}(metadata)
 }
 func dequeueCallback() {
@@ -54,9 +46,5 @@ func dequeueCallback() {
 		"success": true,
 		"track":   removed,
 	})
-	connections.Range(func(key, value interface{}) bool {
-		ws := value.(*webSocket)
-		ws.WriteMessage(websocket.TextMessage, data)
-		return true
-	})
+	webSocketAnnounce(data)
 }

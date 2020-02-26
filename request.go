@@ -28,7 +28,6 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/csn"
 	"github.com/TrungNguyen1909/MusicStream/deezer"
 	"github.com/TrungNguyen1909/MusicStream/youtube"
-	"github.com/gorilla/websocket"
 	_ "github.com/joho/godotenv/autoload"
 )
 
@@ -155,11 +154,7 @@ func removeTrack(msg wsMessage) []byte {
 		"track":   removedTrack,
 	})
 	if removed != nil {
-		connections.Range(func(key, value interface{}) bool {
-			ws := value.(*webSocket)
-			ws.WriteMessage(websocket.TextMessage, data)
-			return true
-		})
+		webSocketAnnounce(data)
 	}
 	return data
 }
@@ -187,14 +182,9 @@ func skip() []byte {
 	data, err := json.Marshal(map[string]interface{}{
 		"op": opAllClientsSkip,
 	})
-	connections.Range(func(key, value interface{}) bool {
-		ws := value.(*webSocket)
-		if err != nil {
-			return true
-		}
-		ws.WriteMessage(websocket.TextMessage, data)
-		return true
-	})
+	if err == nil {
+		webSocketAnnounce(data)
+	}
 	data, _ = json.Marshal(map[string]interface{}{
 		"op":      opClientRequestSkip,
 		"success": true,

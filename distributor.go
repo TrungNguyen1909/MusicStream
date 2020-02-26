@@ -105,32 +105,25 @@ func streamToClients(quit chan int, quitPreload chan int) {
 func setTrack(trackMeta common.TrackMetadata) {
 	currentTrackMeta = trackMeta
 	log.Printf("Setting track on all clients %v - %v\n", trackMeta.Title, trackMeta.Artist)
-	data, err := json.Marshal(map[string]interface{}{
+	data, _ := json.Marshal(map[string]interface{}{
 		"op":        opSetClientsTrack,
 		"track":     trackMeta,
 		"pos":       <-deltaChannel,
 		"listeners": atomic.LoadInt32(&listenersCount),
 	})
-	connections.Range(func(key, value interface{}) bool {
-		ws := value.(*webSocket)
-		if err != nil {
-			return true
-		}
-		ws.WriteMessage(websocket.TextMessage, data)
-		return true
-	})
+	webSocketAnnounce(data)
 }
 func setListenerCount() {
-	data, err := json.Marshal(map[string]interface{}{
+	data, _ := json.Marshal(map[string]interface{}{
 		"op":        opSetClientsListeners,
 		"listeners": atomic.LoadInt32(&listenersCount),
 	})
+	webSocketAnnounce(data)
+}
+func webSocketAnnounce(msg []byte) {
 	connections.Range(func(key, value interface{}) bool {
 		ws := value.(*webSocket)
-		if err != nil {
-			return true
-		}
-		ws.WriteMessage(websocket.TextMessage, data)
+		ws.WriteMessage(websocket.TextMessage, msg)
 		return true
 	})
 }
