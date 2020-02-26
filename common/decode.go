@@ -31,13 +31,14 @@ import (
 	"gopkg.in/hraban/opus.v2"
 )
 
-type mp3Decoder struct {
+//MP3Decoder represents a mp3 decoding stream
+type MP3Decoder struct {
 	s beep.StreamSeekCloser
 	r *beep.Resampler
 	f beep.Format
 }
 
-func (decoder *mp3Decoder) Read(p []byte) (n int, err error) {
+func (decoder *MP3Decoder) Read(p []byte) (n int, err error) {
 	samples := make([][2]float64, len(p)/decoder.f.Width())
 	var ok bool
 
@@ -63,10 +64,14 @@ func (decoder *mp3Decoder) Read(p []byte) (n int, err error) {
 	n = len(samples) * decoder.f.Width()
 	return
 }
-func (decoder *mp3Decoder) Close() (err error) {
+
+//Close closes the mp3 stream and the underlying stream
+func (decoder *MP3Decoder) Close() (err error) {
 	return decoder.s.Close()
 }
-func NewMP3Decoder(stream io.ReadCloser) (decoder *mp3Decoder, err error) {
+
+//NewMP3Decoder returns a mp3 decoding stream with provided stream
+func NewMP3Decoder(stream io.ReadCloser) (decoder *MP3Decoder, err error) {
 	streamer, format, err := mp3.Decode(stream)
 	if err != nil {
 		return
@@ -76,11 +81,12 @@ func NewMP3Decoder(stream io.ReadCloser) (decoder *mp3Decoder, err error) {
 		resampler = beep.Resample(4, format.SampleRate, beep.SampleRate(48000), streamer)
 		format.SampleRate = beep.SampleRate(48000)
 	}
-	decoder = &mp3Decoder{s: streamer, r: resampler, f: format}
+	decoder = &MP3Decoder{s: streamer, r: resampler, f: format}
 	return
 }
 
-type opusDecoder struct {
+//OpusDecoder represents a opus decoding stream
+type OpusDecoder struct {
 	s         io.Reader
 	o         *opus.Decoder
 	frameSize int
@@ -88,7 +94,7 @@ type opusDecoder struct {
 	err       error
 }
 
-func (decoder *opusDecoder) Read(p []byte) (n int, err error) {
+func (decoder *OpusDecoder) Read(p []byte) (n int, err error) {
 	defer func() {
 		decoder.err = err
 	}()
@@ -106,7 +112,7 @@ func (decoder *opusDecoder) Read(p []byte) (n int, err error) {
 		}
 		n, err = decoder.o.Decode(d[:n], pcm)
 		if err != nil {
-			log.Println("decoder.Decoder: ", err)
+			log.Printf("decoder.Decoder: %#v", err)
 		}
 		for i := 0; i < int(n*2); i++ {
 			buf[2*i] = byte(pcm[i])
@@ -120,14 +126,18 @@ func (decoder *opusDecoder) Read(p []byte) (n int, err error) {
 	n, err = decoder.buffer.Read(p)
 	return
 }
-func (decoder *opusDecoder) Close() (err error) {
+
+//Close closes the opus decoding stream and the underlying stream
+func (decoder *OpusDecoder) Close() (err error) {
 	rc, ok := decoder.s.(io.ReadCloser)
 	if ok {
 		err = rc.Close()
 	}
 	return
 }
-func NewOpusDecoder(stream io.Reader, sampleRate, channels int) (decoder *opusDecoder, err error) {
+
+//NewOpusDecoder returns a new opus decoding stream with the provided stream
+func NewOpusDecoder(stream io.Reader, sampleRate, channels int) (decoder *OpusDecoder, err error) {
 	log.Printf("Initializing Opus Decoder: %d Hz, %d channels", sampleRate, channels)
 	os, err := opus.NewDecoder(sampleRate, channels)
 	if err != nil {
@@ -137,26 +147,28 @@ func NewOpusDecoder(stream io.Reader, sampleRate, channels int) (decoder *opusDe
 	if err != nil {
 		return
 	}
-	return &opusDecoder{s: stream, o: os}, nil
+	return &OpusDecoder{s: stream, o: os}, nil
 }
 
-type webmDecoder struct {
+//WebMDecoder represents a WebM decoding stream
+type WebMDecoder struct {
 	br          *io.PipeReader
 	bw          *io.PipeWriter
 	reader      *webm.Reader
 	meta        webm.WebM
-	o           *opusDecoder
+	o           *OpusDecoder
 	s           io.ReadCloser
 	atrack      *webm.TrackEntry
 	initialized bool
 }
 
-func (decoder *webmDecoder) Close() (err error) {
+//Close closes the webm decoding stream and the underlying stream
+func (decoder *WebMDecoder) Close() (err error) {
 	decoder.reader.Shutdown()
 	decoder.o.Close()
 	return decoder.s.Close()
 }
-func (decoder *webmDecoder) preload() {
+func (decoder *WebMDecoder) preload() {
 	log.Println("Starting YT preloading")
 	decoder.initialized = true
 	for pkt := range decoder.reader.Chan {
@@ -170,14 +182,16 @@ func (decoder *webmDecoder) preload() {
 	decoder.bw.Close()
 	log.Println("Stopped YT preloading")
 }
-func (decoder *webmDecoder) Read(p []byte) (n int, err error) {
+func (decoder *WebMDecoder) Read(p []byte) (n int, err error) {
 	if !decoder.initialized {
 		go decoder.preload()
 	}
 	return decoder.o.Read(p)
 
 }
-func NewWebMDecoder(stream io.ReadCloser) (decoder *webmDecoder, err error) {
+
+//NewWebMDecoder returns a new webm audio decoding stream with the provided stream
+func NewWebMDecoder(stream io.ReadCloser) (decoder *WebMDecoder, err error) {
 	var meta webm.WebM
 	src := &source{r: stream}
 	reader, err := webm.Parse(src, &meta)
@@ -194,7 +208,7 @@ func NewWebMDecoder(stream io.ReadCloser) (decoder *webmDecoder, err error) {
 		log.Panic("webDecoder:Read() -> NewOpusDecoder() failed: ", err)
 	}
 	log.Println("Opus Decoder Created")
-	return &webmDecoder{
+	return &WebMDecoder{
 		s:      stream,
 		reader: reader,
 		meta:   meta,

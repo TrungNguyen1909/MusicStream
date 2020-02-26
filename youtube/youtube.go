@@ -76,6 +76,8 @@ type youtubeResponse struct {
 	} `json:"pageInfo"`
 	RegionCode string `json:"regionCode"`
 }
+
+//Track represents a Youtube Video
 type Track struct {
 	ytTrack
 	playID    string
@@ -153,6 +155,7 @@ func (track Track) PlayID() string {
 	return track.playID
 }
 
+//Search finds and returns a track from Youtube with the provided query
 func Search(query string) (tracks []common.Track, err error) {
 	reqURL, _ := url.Parse("https://www.googleapis.com/youtube/v3/search")
 	queries := reqURL.Query()
