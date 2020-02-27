@@ -23,6 +23,7 @@ var lyricsInterval = null;
 var subBoxTimeout = null;
 var delta = 0;
 var isSkipped = false;
+var removedTracks = [];
 const opSetClientsTrack = 1;
 const opAllClientsSkip = 2;
 const opClientRequestTrack = 3;
@@ -286,21 +287,26 @@ function initWebSocket() {
         break;
       case opTrackEnqueued:
         {
-          let ele = document.createElement("div");
-          ele.className = "element";
-          ele.playId = msg.track.playId;
-          ele.addEventListener("contextmenu", this.removeTrack);
-          let titleBox = document.createElement("div");
-          titleBox.className = "title";
-          titleBox.innerText = msg.track.title;
-          titleBox.playId = msg.track.playId;
-          ele.appendChild(titleBox);
-          let artistBox = document.createElement("div");
-          artistBox.className = "artist";
-          artistBox.innerText = msg.track.artists;
-          artistBox.playId = msg.track.playId;
-          ele.appendChild(artistBox);
-          document.getElementById("queue").appendChild(ele);
+          let idx = removedTracks.indexOf(msg.track.playId);
+          if (idx != -1) {
+            removedTracks.splice(idx, 1);
+          } else {
+            let ele = document.createElement("div");
+            ele.className = "element";
+            ele.playId = msg.track.playId;
+            ele.addEventListener("contextmenu", this.removeTrack);
+            let titleBox = document.createElement("div");
+            titleBox.className = "title";
+            titleBox.innerText = msg.track.title;
+            titleBox.playId = msg.track.playId;
+            ele.appendChild(titleBox);
+            let artistBox = document.createElement("div");
+            artistBox.className = "artist";
+            artistBox.innerText = msg.track.artists;
+            artistBox.playId = msg.track.playId;
+            ele.appendChild(artistBox);
+            document.getElementById("queue").appendChild(ele);
+          }
         }
         break;
       case opClientRequestQueue:
@@ -309,6 +315,7 @@ function initWebSocket() {
             .getElementById("queue")
             .removeChild(document.getElementById("queue").firstChild);
         }
+        removedTracks = [];
         msg.queue.forEach(track => {
           let ele = document.createElement("div");
           ele.className = "element";
@@ -337,9 +344,11 @@ function initWebSocket() {
           }
           break;
         }
+        removedTracks.push(msg.track.playId);
         for (let child of document.getElementById("queue").children) {
           if (child.playId == msg.track.playId) {
             child.remove();
+            removedTracks.pop();
             break;
           }
         }
