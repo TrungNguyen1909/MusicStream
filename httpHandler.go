@@ -39,6 +39,7 @@ import (
 )
 
 func audioHandler(w http.ResponseWriter, r *http.Request) {
+	notify := w.(http.CloseNotifier).CloseNotify()
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		log.Fatal("expected http.ResponseWriter to be an http.Flusher")
@@ -61,14 +62,18 @@ func audioHandler(w http.ResponseWriter, r *http.Request) {
 	channels[0] <- channel
 	chanidx := 0
 	for {
-		Chunk := <-channel
-		chanidx = Chunk.channel
-		_, err := w.Write(Chunk.buffer)
-		if err != nil {
-			break
+		select {
+		case <-notify:
+			return
+		case Chunk := <-channel:
+			chanidx = Chunk.channel
+			_, err := w.Write(Chunk.buffer)
+			if err != nil {
+				break
+			}
+			flusher.Flush()
+			channels[chanidx] <- channel
 		}
-		flusher.Flush()
-		channels[chanidx] <- channel
 	}
 }
 
