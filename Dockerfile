@@ -2,16 +2,15 @@ FROM golang as build-env
 
 WORKDIR /go/src/github.com/TrungNguyen1909/MusicStream
 
-#RUN apt-get update && apt-get install -y libogg-dev libvorbis-dev libopus-dev libopusfile-dev
-RUN wget http://www.musl-libc.org/releases/musl-1.2.0.tar.gz
-RUN tar -xvf musl-1.2.0.tar.gz
+RUN curl -sqLO http://www.musl-libc.org/releases/musl-1.2.0.tar.gz
+RUN tar -xf musl-1.2.0.tar.gz
 RUN cd musl-1.2.0 && ./configure && make && make install
 ENV CC="/usr/local/musl/bin/musl-gcc" STATIC_CC="/usr/local/musl/bin/musl-gcc" CCOPT="-static -fPIC" BUILDMODE="static" 
-RUN wget https://ftp.osuosl.org/pub/xiph/releases/ogg/libogg-1.3.4.tar.gz
-RUN wget https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.6.tar.gz
-RUN wget https://ftp.osuosl.org/pub/xiph/releases/opus/opus-1.3.1.tar.gz
-RUN wget https://ftp.osuosl.org/pub/xiph/releases/opus/opusfile-0.11.tar.gz
-RUN wget https://www.openssl.org/source/openssl-1.0.2q.tar.gz
+RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/ogg/libogg-1.3.4.tar.gz
+RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.6.tar.gz
+RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/opus/opus-1.3.1.tar.gz
+RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/opus/opusfile-0.11.tar.gz
+RUN curl -sqLO https://www.openssl.org/source/openssl-1.0.2q.tar.gz
 RUN tar -xf libogg-1.3.4.tar.gz
 RUN tar -xf libvorbis-1.3.6.tar.gz
 RUN tar -xf opus-1.3.1.tar.gz
