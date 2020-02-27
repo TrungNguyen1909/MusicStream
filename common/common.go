@@ -42,6 +42,7 @@ type Track interface {
 	Artist() string
 	Artists() string
 	Album() string
+	ISRC() string
 	CoverURL() string
 	Duration() int
 	SpotifyURI() string

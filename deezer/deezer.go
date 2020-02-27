@@ -117,6 +117,11 @@ func (track Track) Duration() int {
 	return track.deezerTrack.Duration
 }
 
+//ISRC returns the track's ISRC ID
+func (track Track) ISRC() string {
+	return track.deezerTrack.ISRC
+}
+
 //CoverURL returns the URL to track's cover art
 func (track Track) CoverURL() string {
 	return track.deezerTrack.Album.CoverXL

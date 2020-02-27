@@ -103,7 +103,7 @@ type mxmResponse struct {
 }
 
 //GetLyrics returns the lyrics of the song with provided information
-func GetLyrics(track, artist, album, artists, SpotifyURI string, duration int) (result common.LyricsResult, err error) {
+func GetLyrics(track, artist, album, artists, ISRC, SpotifyURI string, duration int) (result common.LyricsResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("GetLyrics: %v\n", r)
@@ -134,6 +134,9 @@ func GetLyrics(track, artist, album, artists, SpotifyURI string, duration int) (
 	}
 	if len(SpotifyURI) > 0 {
 		queries.Add("track_spotify_id", SpotifyURI)
+	}
+	if len(ISRC) > 0 {
+		queries.Add("track_isrc", ISRC)
 	}
 	log.Printf("Spotify URI: %s\n", SpotifyURI)
 	reqURL.RawQuery = queries.Encode()

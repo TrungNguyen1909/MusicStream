@@ -98,6 +98,11 @@ func (track *Track) Duration() int {
 	return 0
 }
 
+//ISRC returns the track's ISRC ID
+func (track *Track) ISRC() string {
+	return ""
+}
+
 //CoverURL returns the URL to the cover of currently playing track on radio, if known
 func (track *Track) CoverURL() string {
 	return ""

@@ -91,6 +91,11 @@ func (track Track) Duration() int {
 	return track.csnTrack.Duration
 }
 
+//ISRC returns the track's ISRC ID
+func (track Track) ISRC() string {
+	return ""
+}
+
 //CoverURL returns the URL to track's cover art
 func (track Track) CoverURL() string {
 	return track.csnTrack.Cover

@@ -108,7 +108,7 @@ func processTrack() {
 	trackDict := common.GetMetadata(track)
 	var mxmlyrics common.LyricsResult
 	if track.Source() != common.Youtube {
-		mxmlyrics, err = lyrics.GetLyrics(track.Title(), track.Artist(), track.Album(), track.Artists(), track.SpotifyURI(), track.Duration())
+		mxmlyrics, err = lyrics.GetLyrics(track.Title(), track.Artist(), track.Album(), track.Artists(), track.ISRC(), track.SpotifyURI(), track.Duration())
 		if err == nil {
 			trackDict.Lyrics = mxmlyrics
 		}
