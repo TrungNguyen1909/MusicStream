@@ -2,7 +2,28 @@ FROM golang as build-env
 
 WORKDIR /go/src/github.com/TrungNguyen1909/MusicStream
 
-RUN apt-get update && apt-get install -y libogg-dev libvorbis-dev libopus-dev libopusfile-dev
+#RUN apt-get update && apt-get install -y libogg-dev libvorbis-dev libopus-dev libopusfile-dev
+RUN wget http://www.musl-libc.org/releases/musl-1.2.0.tar.gz
+RUN tar -xvf musl-1.2.0.tar.gz
+RUN cd musl-1.2.0 && ./configure && make && make install
+ENV CC="/usr/local/musl/bin/musl-gcc" STATIC_CC="/usr/local/musl/bin/musl-gcc" CCOPT="-static -fPIC" BUILDMODE="static" 
+RUN wget https://ftp.osuosl.org/pub/xiph/releases/ogg/libogg-1.3.4.tar.gz
+RUN wget https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.6.tar.gz
+RUN wget https://ftp.osuosl.org/pub/xiph/releases/opus/opus-1.3.1.tar.gz
+RUN wget https://ftp.osuosl.org/pub/xiph/releases/opus/opusfile-0.11.tar.gz
+RUN wget https://www.openssl.org/source/openssl-1.0.2q.tar.gz
+RUN tar -xf libogg-1.3.4.tar.gz
+RUN tar -xf libvorbis-1.3.6.tar.gz
+RUN tar -xf opus-1.3.1.tar.gz
+RUN tar -xf opusfile-0.11.tar.gz
+RUN tar -xf openssl-1.0.2q.tar.gz
+RUN cd libogg-1.3.4 && ./configure && make && make install
+RUN cd libvorbis-1.3.6 && ./configure && make && make install
+RUN cd opus-1.3.1 && ./configure && make && make install
+RUN cd openssl-1.0.2q  && ./config -fPIC -static && make depend && make && make install
+ENV PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/ssl/lib/pkgconfig OPENSSL_STATIC=1
+RUN cd opusfile-0.11 && ./configure && make && make install
+
 
 COPY go.mod .
 COPY go.sum .
@@ -11,20 +32,11 @@ RUN go mod download
 
 COPY . .
 
-RUN GOOS=linux GOARCH=amd64 go build -v -ldflags="-w -s" -o /bin/MusicStream .
+RUN CGO_CFLAGS="-I/usr/local/musl/include/" CFLAGS="-I/usr/local/musl/include/" CGO_LDFLAGS="-w -s -L/usr/local/lib -logg -lvorbis -lvorbisenc -lopus -lopusfile" go build -a --ldflags '-w -s -linkmode external -extldflags "-static"' -v -o /bin/MusicStream .
 
 FROM scratch
 COPY --from=build-env /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=build-env /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=build-env /lib64/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
-COPY --from=build-env /lib/x86_64-linux-gnu/libpthread.so.0 /lib/x86_64-linux-gnu/libpthread.so.0
-COPY --from=build-env /lib/x86_64-linux-gnu/libc.so.6 /lib/x86_64-linux-gnu/libc.so.6
-COPY --from=build-env /lib/x86_64-linux-gnu/libm.so.6 /lib/x86_64-linux-gnu/libm.so.6
-COPY --from=build-env /usr/lib/x86_64-linux-gnu/libogg.so.0 /usr/lib/x86_64-linux-gnu/libogg.so.0
-COPY --from=build-env /usr/lib/x86_64-linux-gnu/libvorbis.so.0 /usr/lib/x86_64-linux-gnu/libvorbis.so.0
-COPY --from=build-env /usr/lib/x86_64-linux-gnu/libvorbisenc.so.2 /usr/lib/x86_64-linux-gnu/libvorbisenc.so.2
-COPY --from=build-env /usr/lib/x86_64-linux-gnu/libopus.so.0 /usr/lib/x86_64-linux-gnu/libopus.so.0
-COPY --from=build-env /usr/lib/libopusfile.so.0 /usr/lib/libopusfile.so.0
 COPY --from=build-env /bin/MusicStream /bin/MusicStream
 COPY --from=build-env /go/src/github.com/TrungNguyen1909/MusicStream/www www
 
