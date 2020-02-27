@@ -30,14 +30,16 @@ func enqueueCallback(value interface{}) {
 	track := value.(common.Track)
 	metadata := common.GetMetadata(track)
 	cacheQueue.Enqueue(metadata)
-	go func(metadata common.TrackMetadata) {
-		log.Printf("Enqueuing track on all clients %v - %v\n", metadata.Title, metadata.Artist)
-		data, _ := json.Marshal(map[string]interface{}{
-			"op":    opTrackEnqueued,
-			"track": metadata,
-		})
-		webSocketAnnounce(data)
-	}(metadata)
+	if cacheQueue.Size() > 1 {
+		go func(metadata common.TrackMetadata) {
+			log.Printf("Enqueuing track on all clients %v - %v\n", metadata.Title, metadata.Artist)
+			data, _ := json.Marshal(map[string]interface{}{
+				"op":    opTrackEnqueued,
+				"track": metadata,
+			})
+			webSocketAnnounce(data)
+		}(metadata)
+	}
 }
 func dequeueCallback() {
 	removed := cacheQueue.Pop().(common.TrackMetadata)
@@ -45,6 +47,7 @@ func dequeueCallback() {
 		"op":      opClientRemoveTrack,
 		"success": true,
 		"track":   removed,
+		"silent":  true,
 	})
 	webSocketAnnounce(data)
 }

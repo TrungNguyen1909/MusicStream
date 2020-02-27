@@ -337,22 +337,24 @@ function initWebSocket() {
           }
           break;
         }
-        var subBox = document.getElementById("sub");
-        var artistBox = subBox.getElementsByClassName("artist")[0];
-        var titleBox = subBox.getElementsByClassName("name")[0];
-        artistBox.innerText = "";
-        titleBox.innerText = "";
-        titleBox.innerText = `Removing`;
-        artistBox.innerText = `${msg.track.title} - ${msg.track.artist}`;
         for (let child of document.getElementById("queue").children) {
           if (child.playId == msg.track.playId) {
             child.remove();
             break;
           }
         }
-        clearTimeout(subBoxTimeout);
-        showSubBox();
-        subBoxTimeout = setTimeout(hideSubBox, 3000);
+        if (!msg.silent) {
+          var subBox = document.getElementById("sub");
+          var artistBox = subBox.getElementsByClassName("artist")[0];
+          var titleBox = subBox.getElementsByClassName("name")[0];
+          artistBox.innerText = "";
+          titleBox.innerText = "";
+          titleBox.innerText = `Removing`;
+          artistBox.innerText = `${msg.track.title} - ${msg.track.artist}`;
+          clearTimeout(subBoxTimeout);
+          showSubBox();
+          subBoxTimeout = setTimeout(hideSubBox, 3000);
+        }
         break;
       default:
         break;
