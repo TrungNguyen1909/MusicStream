@@ -247,15 +247,21 @@ func GetLyrics(id string) (result common.LyricsResult, err error) {
 	orig, _ := getLyricsWithLang(id, originalLang, originalLangName)
 	trans, _ := getLyricsWithLang(id, translatedLang, translatedLangName)
 	log.Printf("Orig: %d - trans: %d", len(orig), len(trans))
+	if len(trans) == 0 {
+		err = errors.New("No subtitles found")
+		return
+	}
 	result = common.LyricsResult{Language: translatedLang}
-	result.SyncedLyrics = make([]common.LyricsLine, len(orig)+1)
-	for i, v := range orig {
+	result.SyncedLyrics = make([]common.LyricsLine, len(trans)+1)
+	for i, v := range trans {
 		result.SyncedLyrics[i].Text = strings.ReplaceAll(html.UnescapeString(v.Text), "\n", " ")
-		result.SyncedLyrics[i].Translated = strings.ReplaceAll(html.UnescapeString(trans[i].Text), "\n", " ")
+		if len(orig) == len(trans) && originalLang != translatedLang {
+			result.SyncedLyrics[i].Translated = strings.ReplaceAll(html.UnescapeString(orig[i].Text), "\n", " ")
+		}
 		result.SyncedLyrics[i].Time.Total = v.Start
 	}
-	if len(orig) > 0 {
-		result.SyncedLyrics[len(orig)].Time.Total = orig[len(orig)-1].Start + orig[len(orig)-1].Duration
+	if len(trans) > 0 {
+		result.SyncedLyrics[len(trans)].Time.Total = orig[len(trans)-1].Start + orig[len(trans)-1].Duration
 	}
 	return
 }
