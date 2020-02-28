@@ -47,6 +47,7 @@ type Track interface {
 	Duration() int
 	SpotifyURI() string
 	PlayID() string
+	Populate() error
 	Download() (io.ReadCloser, error)
 }
 

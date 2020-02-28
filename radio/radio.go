@@ -109,6 +109,11 @@ func (track *Track) CoverURL() string {
 	return ""
 }
 
+//Populate populates metadata for Download
+func (track *Track) Populate() error {
+	return nil
+}
+
 //SpotifyURI returns the currently playing track's equivalent spotify song, if known
 func (track *Track) SpotifyURI() string {
 	return ""

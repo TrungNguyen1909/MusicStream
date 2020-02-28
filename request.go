@@ -26,7 +26,6 @@ import (
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/csn"
-	"github.com/TrungNguyen1909/MusicStream/deezer"
 	"github.com/TrungNguyen1909/MusicStream/youtube"
 	_ "github.com/joho/godotenv/autoload"
 )
@@ -86,21 +85,15 @@ func enqueue(msg wsMessage) []byte {
 		return data
 	default:
 		track := tracks[0]
-		spotifyURI := track.SpotifyURI()
-		if track.Source() == common.Deezer {
-			track, err = dzClient.GetTrackByID(track.ID())
-			if err != nil {
-				log.Println("dzClient.GetTrackByID() failed:", err)
-				data, _ := json.Marshal(map[string]interface{}{
-					"op":      opClientRequestTrack,
-					"success": false,
-					"reason":  "Search Failed!",
-				})
-				return data
-			}
-			dtrack := track.(deezer.Track)
-			dtrack.SetSpotifyURI(spotifyURI)
-			track = dtrack
+		err = track.Populate()
+		if err != nil {
+			log.Println("dzClient.GetTrackByID() failed:", err)
+			data, _ := json.Marshal(map[string]interface{}{
+				"op":      opClientRequestTrack,
+				"success": false,
+				"reason":  "Search Failed!",
+			})
+			return data
 		}
 		playQueue.Enqueue(track)
 		enqueueCallback(track)
@@ -113,7 +106,6 @@ func enqueue(msg wsMessage) []byte {
 		})
 		return data
 	}
-
 }
 
 func getQueue() []byte {

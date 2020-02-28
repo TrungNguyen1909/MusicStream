@@ -25,8 +25,6 @@ import (
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-	"github.com/TrungNguyen1909/MusicStream/csn"
-	"github.com/TrungNguyen1909/MusicStream/deezer"
 	"github.com/TrungNguyen1909/MusicStream/lyrics"
 	"github.com/TrungNguyen1909/MusicStream/youtube"
 	_ "github.com/joho/godotenv/autoload"
@@ -59,50 +57,26 @@ func processTrack() {
 	defer func() {
 		if r := recover(); r != nil {
 			watchDog++
-			log.Println("Panicked!!!:", r)
-			if currentTrack.Source() == common.Deezer {
-				log.Println("Creating a new deezer client...")
-				dzClient = deezer.NewClient()
-			}
-			log.Println("Resuming...")
+			log.Println("processTrack Panicked:", r)
 		}
 	}()
 	var track common.Track
 	var err error
 	radioStarted := false
-	if currentTrackID == "" || watchDog >= 3 || currentTrack.Source() == common.CSN || currentTrack.Source() == common.Youtube {
-		if playQueue.Empty() {
-			radioStarted = true
-			go processRadio(quitRadio)
-		}
-		activityWg.Wait()
-		track = playQueue.Pop().(common.Track)
-		dequeueCallback()
-		currentTrackID = ""
-		watchDog = 0
-	} else {
-		dtrack := currentTrack.(deezer.Track)
-		err = dzClient.PopulateMetadata(&dtrack)
-		track = dtrack
-		if err != nil {
-			currentTrackID = ""
-			watchDog = 0
-			return
-		}
+	if playQueue.Empty() {
+		radioStarted = true
+		go processRadio(quitRadio)
 	}
+	activityWg.Wait()
+	track = playQueue.Pop().(common.Track)
+	dequeueCallback()
+	currentTrackID = ""
+	watchDog = 0
 	activityWg.Wait()
 	currentTrackID = track.ID()
 	currentTrack = track
 	if radioStarted {
 		quitRadio <- 0
-	}
-	if track.Source() == common.CSN {
-		cTrack := track.(csn.Track)
-		err = cTrack.Populate()
-		if err != nil {
-			log.Panic(err)
-		}
-		track = cTrack
 	}
 	log.Printf("Playing %v - %v\n", track.Title(), track.Artist())
 	trackDict := common.GetMetadata(track)

@@ -95,52 +95,52 @@ type ytTrack struct {
 }
 
 //ID returns the track's ID number on CSN
-func (track Track) ID() string {
+func (track *Track) ID() string {
 	return track.ytTrack.ID
 }
 
 //Title returns the track's title
-func (track Track) Title() string {
+func (track *Track) Title() string {
 	return track.ytTrack.Title
 }
 
 //Album returns the track's album title
-func (track Track) Album() string {
+func (track *Track) Album() string {
 	return ""
 }
 
 //Source returns the track's source
-func (track Track) Source() int {
+func (track *Track) Source() int {
 	return common.Youtube
 }
 
 //Artist returns the track's main artist
-func (track Track) Artist() string {
+func (track *Track) Artist() string {
 	return track.ytTrack.ChannelTitle
 }
 
 //Artists returns the track's contributors' name, comma-separated
-func (track Track) Artists() string {
+func (track *Track) Artists() string {
 	return track.ytTrack.ChannelTitle
 }
 
 //Duration returns the track's duration
-func (track Track) Duration() int {
+func (track *Track) Duration() int {
 	return track.ytTrack.Duration
 }
 
 //ISRC returns the track's ISRC ID
-func (track Track) ISRC() string {
+func (track *Track) ISRC() string {
 	return ""
 }
 
 //CoverURL returns the URL to track's cover art
-func (track Track) CoverURL() string {
+func (track *Track) CoverURL() string {
 	return track.ytTrack.CoverURL
 }
 
 //Download returns a pcm stream of the track
-func (track Track) Download() (stream io.ReadCloser, err error) {
+func (track *Track) Download() (stream io.ReadCloser, err error) {
 	if track.StreamURL == "" {
 		err = errors.New("Metadata not populated")
 		return
@@ -153,13 +153,28 @@ func (track Track) Download() (stream io.ReadCloser, err error) {
 	return
 }
 
+//Populate populates metadata for Download
+func (track *Track) Populate() (err error) {
+	videoInfo, err := ytdl.GetVideoInfoFromID(track.ytTrack.ID)
+	if err != nil {
+		return
+	}
+	formats := videoInfo.Formats.Extremes(ytdl.FormatAudioBitrateKey, true)
+	streamURL, err := videoInfo.GetDownloadURL(formats[0])
+	if err != nil {
+		return
+	}
+	track.StreamURL = streamURL.String()
+	return
+}
+
 //SpotifyURI returns the track's equivalent spotify song, if known
-func (track Track) SpotifyURI() string {
+func (track *Track) SpotifyURI() string {
 	return ""
 }
 
 //PlayID returns a random string which is unique to this instance of Track
-func (track Track) PlayID() string {
+func (track *Track) PlayID() string {
 	return track.playID
 }
 
@@ -292,7 +307,7 @@ func Search(query string) (tracks []common.Track, err error) {
 		err = errors.New("No track found")
 		return
 	}
-	itrack := Track{
+	itrack := &Track{
 		ytTrack: ytTrack{
 			ID:           resp.Items[0].ID.VideoID,
 			Title:        html.UnescapeString(resp.Items[0].Snippet.Title),
@@ -302,17 +317,6 @@ func Search(query string) (tracks []common.Track, err error) {
 		},
 		playID: common.GenerateID(),
 	}
-	log.Println(itrack)
-	videoInfo, err := ytdl.GetVideoInfoFromID(itrack.ID())
-	if err != nil {
-		return
-	}
-	formats := videoInfo.Formats.Extremes(ytdl.FormatAudioBitrateKey, true)
-	streamURL, err := videoInfo.GetDownloadURL(formats[0])
-	if err != nil {
-		return
-	}
-	itrack.StreamURL = streamURL.String()
 	tracks = []common.Track{itrack}
 	return
 }

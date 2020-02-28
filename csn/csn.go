@@ -57,52 +57,52 @@ type Track struct {
 }
 
 //ID returns the track's ID number on CSN
-func (track Track) ID() string {
+func (track *Track) ID() string {
 	return strconv.Itoa(track.csnTrack.ID)
 }
 
 //Title returns the track's title
-func (track Track) Title() string {
+func (track *Track) Title() string {
 	return track.csnTrack.Title
 }
 
 //Album returns the track's album title
-func (track Track) Album() string {
+func (track *Track) Album() string {
 	return track.csnTrack.Album
 }
 
 //Source returns the track's source
-func (track Track) Source() int {
+func (track *Track) Source() int {
 	return common.CSN
 }
 
 //Artist returns the track's main artist
-func (track Track) Artist() string {
+func (track *Track) Artist() string {
 	return track.csnTrack.Artist
 }
 
 //Artists returns the track's contributors' name, comma-separated
-func (track Track) Artists() string {
+func (track *Track) Artists() string {
 	return strings.Join(track.csnTrack.Artists, ", ")
 }
 
 //Duration returns the track's duration
-func (track Track) Duration() int {
+func (track *Track) Duration() int {
 	return track.csnTrack.Duration
 }
 
 //ISRC returns the track's ISRC ID
-func (track Track) ISRC() string {
+func (track *Track) ISRC() string {
 	return ""
 }
 
 //CoverURL returns the URL to track's cover art
-func (track Track) CoverURL() string {
+func (track *Track) CoverURL() string {
 	return track.csnTrack.Cover
 }
 
 //Download returns a mp3 stream of the track
-func (track Track) Download() (stream io.ReadCloser, err error) {
+func (track *Track) Download() (stream io.ReadCloser, err error) {
 	if track.StreamURL == "" {
 		err = errors.New("Metadata not populated")
 		return
@@ -120,12 +120,12 @@ func (track Track) Download() (stream io.ReadCloser, err error) {
 }
 
 //SpotifyURI returns the track's equivalent spotify song, if known
-func (track Track) SpotifyURI() string {
+func (track *Track) SpotifyURI() string {
 	return ""
 }
 
 //PlayID returns a random string which is unique to this instance of Track
-func (track Track) PlayID() string {
+func (track *Track) PlayID() string {
 	return track.playID
 }
 
@@ -177,7 +177,7 @@ func Search(query string) (tracks []common.Track, err error) {
 		result.Music.Data[i].Artist = result.Music.Data[i].Artists[0]
 	}
 	for i, v := range result.Music.Data {
-		tracks[i] = Track{csnTrack: v, playID: common.GenerateID()}
+		tracks[i] = &Track{csnTrack: v, playID: common.GenerateID()}
 	}
 	return
 }
