@@ -52,15 +52,26 @@ func preloadRadio(quit chan int) {
 	defer endCurrentStream()
 	defer pushSilentFrames(&encodedTime)
 	defer log.Println("Radio preloading stopped!")
+	quitRadioTrackUpdate := make(chan int, 1)
 	go func() {
 		firstTime := true
 		log.Println("Starting Radio track update")
 		defer log.Println("Stopped Radio track update")
 		for {
+			select {
+			case <-quitRadioTrackUpdate:
+				return
+			default:
+			}
 			if !firstTime {
 				radioTrack.WaitForTrackUpdate()
 			} else {
 				firstTime = false
+			}
+			select {
+			case <-quitRadioTrackUpdate:
+				return
+			default:
 			}
 			if atomic.LoadInt32(&isRadioStreaming) > 0 {
 				pos := int64(encoder.GranulePos())
@@ -79,6 +90,7 @@ func preloadRadio(quit chan int) {
 			break
 		}
 	}
+	quitRadioTrackUpdate <- 1
 }
 func processRadio(quit chan int) {
 	quitPreload := make(chan int, 10)

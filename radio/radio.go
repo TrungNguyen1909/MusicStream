@@ -199,11 +199,12 @@ func (track *Track) InitWS() {
 		defer func() {
 			log.Println("Disconnected from listen.moe WS")
 			track.mux.Lock()
-			defer track.mux.Unlock()
 			track.title = "listen.moe"
 			track.artist = ""
 			track.artists = ""
 			track.album = ""
+			track.mux.Unlock()
+			track.trackUpdateEvent.Broadcast()
 		}()
 		defer ws.Close()
 		defer func() { track.heartbeatInterrupt <- 1 }()
