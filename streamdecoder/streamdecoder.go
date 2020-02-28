@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package common
+package streamdecoder
 
 import (
 	"bytes"
@@ -28,6 +28,7 @@ import (
 	"github.com/ebml-go/webm"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
+	"github.com/faiface/beep/vorbis"
 	"gopkg.in/hraban/opus.v2"
 )
 
@@ -82,6 +83,60 @@ func NewMP3Decoder(stream io.ReadCloser) (decoder *MP3Decoder, err error) {
 		format.SampleRate = beep.SampleRate(48000)
 	}
 	decoder = &MP3Decoder{s: streamer, r: resampler, f: format}
+	return
+}
+
+//VorbisDecoder represents a mp3 decoding stream
+type VorbisDecoder struct {
+	s beep.StreamSeekCloser
+	r *beep.Resampler
+	f beep.Format
+}
+
+func (decoder *VorbisDecoder) Read(p []byte) (n int, err error) {
+	samples := make([][2]float64, len(p)/decoder.f.Width())
+	var ok bool
+
+	if decoder.r != nil {
+		n, ok = decoder.r.Stream(samples)
+	} else {
+		n, ok = decoder.s.Stream(samples)
+	}
+	if !ok {
+		err = io.EOF
+		return
+	}
+	for i, sample := range samples {
+		switch {
+		case decoder.f.Precision == 1:
+			decoder.f.EncodeUnsigned(p[i*decoder.f.Width():], sample)
+		case decoder.f.Precision == 2 || decoder.f.Precision == 3:
+			decoder.f.EncodeSigned(p[i*decoder.f.Width():], sample)
+		default:
+			panic(fmt.Errorf("encode: invalid precision: %d", decoder.f.Precision))
+		}
+	}
+	n = len(samples) * decoder.f.Width()
+	return
+}
+
+//Close closes the Vorbis stream and the underlying stream
+func (decoder *VorbisDecoder) Close() (err error) {
+	return decoder.s.Close()
+}
+
+//NewVorbisDecoder returns a mp3 decoding stream with provided stream
+func NewVorbisDecoder(stream io.ReadCloser) (decoder *VorbisDecoder, err error) {
+	streamer, format, err := vorbis.Decode(stream)
+	if err != nil {
+		return
+	}
+	var resampler *beep.Resampler
+	if format.SampleRate != beep.SampleRate(48000) {
+		resampler = beep.Resample(4, format.SampleRate, beep.SampleRate(48000), streamer)
+		format.SampleRate = beep.SampleRate(48000)
+	}
+	decoder = &VorbisDecoder{s: streamer, r: resampler, f: format}
 	return
 }
 
@@ -157,7 +212,7 @@ type WebMDecoder struct {
 	reader      *webm.Reader
 	meta        webm.WebM
 	o           *OpusDecoder
-	s           io.ReadCloser
+	s           io.ReadSeeker
 	atrack      *webm.TrackEntry
 	initialized bool
 }
@@ -166,7 +221,10 @@ type WebMDecoder struct {
 func (decoder *WebMDecoder) Close() (err error) {
 	decoder.reader.Shutdown()
 	decoder.o.Close()
-	return decoder.s.Close()
+	if closer, ok := decoder.s.(io.Closer); ok {
+		err = closer.Close()
+	}
+	return
 }
 func (decoder *WebMDecoder) preload() {
 	log.Println("Starting YT preloading")
@@ -187,13 +245,15 @@ func (decoder *WebMDecoder) Read(p []byte) (n int, err error) {
 		go decoder.preload()
 	}
 	return decoder.o.Read(p)
-
 }
 
 //NewWebMDecoder returns a new webm audio decoding stream with the provided stream
 func NewWebMDecoder(stream io.ReadCloser) (decoder *WebMDecoder, err error) {
 	var meta webm.WebM
-	src := &source{r: stream}
+	src, ok := stream.(io.ReadSeeker)
+	if !ok {
+		src = &BufferedReadSeeker{r: stream}
+	}
 	reader, err := webm.Parse(src, &meta)
 	if err != nil {
 		return
@@ -209,7 +269,7 @@ func NewWebMDecoder(stream io.ReadCloser) (decoder *WebMDecoder, err error) {
 	}
 	log.Println("Opus Decoder Created")
 	return &WebMDecoder{
-		s:      stream,
+		s:      src,
 		reader: reader,
 		meta:   meta,
 		atrack: atrack,
@@ -219,7 +279,8 @@ func NewWebMDecoder(stream io.ReadCloser) (decoder *WebMDecoder, err error) {
 	}, nil
 }
 
-type source struct {
+//BufferedReadSeeker represents a buffered seekable buffer which allows io.ReadCloser to be seeked
+type BufferedReadSeeker struct {
 	r   io.ReadCloser
 	buf bytes.Buffer
 	cur int64
@@ -227,12 +288,13 @@ type source struct {
 	err error
 }
 
-func (s *source) Seek(offset int64, whence int) (npos int64, err error) {
+//Seek seeks BufferedReadSeeker to the provided location, io.SeekEnd is not supported
+func (s *BufferedReadSeeker) Seek(offset int64, whence int) (npos int64, err error) {
 	npos = s.cur
 	var np int64
 	switch whence {
 	case io.SeekEnd:
-		log.Panic("SeekEnd not supported on source")
+		log.Panic("SeekEnd not supported on BufferedReadSeeker")
 	case io.SeekCurrent:
 		np = s.cur + offset
 	case io.SeekStart:
@@ -250,10 +312,10 @@ func (s *source) Seek(offset int64, whence int) (npos int64, err error) {
 	npos = s.cur
 	return
 }
-func (s *source) Read(p []byte) (n int, err error) {
+func (s *BufferedReadSeeker) Read(p []byte) (n int, err error) {
 	defer func() {
 		if err != nil {
-			log.Println("source.Read failed ", err)
+			log.Println("BufferedReadSeeker.Read failed ", err)
 		}
 	}()
 	if s.cur+int64(len(p)) > int64(s.len) && s.err == nil {
@@ -275,7 +337,8 @@ func (s *source) Read(p []byte) (n int, err error) {
 	return
 }
 
-func (s *source) Close() (err error) {
+//Close closes the underlying ReadCloser
+func (s *BufferedReadSeeker) Close() (err error) {
 	err = s.r.Close()
 	s.err = io.EOF
 	return

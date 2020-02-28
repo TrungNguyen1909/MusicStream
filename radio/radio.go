@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
+	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
 	"github.com/gorilla/websocket"
 )
 
@@ -135,7 +136,7 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 	if err != nil {
 		return
 	}
-	stream = resp.Body
+	stream, err = streamdecoder.NewVorbisDecoder(resp.Body)
 	return
 }
 

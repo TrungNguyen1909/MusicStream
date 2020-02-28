@@ -32,6 +32,7 @@ import (
 	"strings"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
+	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
 	"github.com/rylio/ytdl"
 )
 
@@ -148,7 +149,7 @@ func (track Track) Download() (stream io.ReadCloser, err error) {
 	if err != nil {
 		return
 	}
-	stream, err = common.NewWebMDecoder(response.Body)
+	stream, err = streamdecoder.NewWebMDecoder(response.Body)
 	return
 }
 

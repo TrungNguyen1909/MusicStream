@@ -40,6 +40,7 @@ import (
 	"strings"
 
 	"github.com/TrungNguyen1909/MusicStream/spotify"
+	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 
@@ -136,7 +137,7 @@ func (track Track) Download() (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	stream, err := common.NewMP3Decoder(&trackDecrypter{r: response.Body, BlowfishKey: track.BlowfishKey})
+	stream, err := streamdecoder.NewMP3Decoder(&trackDecrypter{r: response.Body, BlowfishKey: track.BlowfishKey})
 	if err != nil {
 		return nil, err
 	}

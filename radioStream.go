@@ -19,50 +19,28 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"sync/atomic"
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-	"github.com/faiface/beep/vorbis"
 	_ "github.com/joho/godotenv/autoload"
 )
 
 func encodeRadio(stream io.ReadCloser, encodedTime *time.Duration, quit chan int) (ended bool) {
-	streamer, format, err := vorbis.Decode(stream)
-	if err != nil {
-		log.Println(err)
-		return false
-	}
 
-	defer streamer.Close()
-
-	samples := make([][2]float64, 960)
-	buf := make([]byte, len(samples)*format.Width())
+	defer stream.Close()
 	for {
 		select {
 		case <-quit:
 			return true
 		default:
 		}
-		n, ok := streamer.Stream(samples)
-		if !ok {
-			return false
-		}
-		for i, sample := range samples {
-			switch {
-			case format.Precision == 1:
-				format.EncodeUnsigned(buf[i*format.Width():], sample)
-			case format.Precision == 2 || format.Precision == 3:
-				format.EncodeSigned(buf[i*format.Width():], sample)
-			default:
-				panic(fmt.Errorf("encode: invalid precision: %d", format.Precision))
-			}
-		}
-		pushPCMAudio(buf[:n*format.Width()], encodedTime)
-		if 0 <= n && n < len(samples) && ok {
+		buf := make([]byte, 3840)
+		n, err := stream.Read(buf)
+		pushPCMAudio(buf[:n], encodedTime)
+		if err != nil {
 			return false
 		}
 	}
@@ -92,9 +70,14 @@ func preloadRadio(quit chan int) {
 			}
 		}
 	}()
-	stream, _ := radioTrack.Download()
-	for !encodeRadio(stream, &encodedTime, quit) {
-		stream, _ = radioTrack.Download()
+	for {
+		stream, err := radioTrack.Download()
+		if err != nil {
+			continue
+		}
+		if encodeRadio(stream, &encodedTime, quit) {
+			break
+		}
 	}
 }
 func processRadio(quit chan int) {

@@ -34,7 +34,7 @@ import (
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-
+	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
 	"github.com/anaskhan96/soup"
 )
 
@@ -112,7 +112,7 @@ func (track Track) Download() (stream io.ReadCloser, err error) {
 		return
 	}
 	stream = response.Body
-	stream, err = common.NewMP3Decoder(stream)
+	stream, err = streamdecoder.NewMP3Decoder(stream)
 	if err != nil {
 		return nil, err
 	}
