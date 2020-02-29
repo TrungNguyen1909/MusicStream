@@ -311,19 +311,11 @@ func GetTrackFromVideoID(videoID string) (track common.Track, err error) {
 	if err != nil {
 		return
 	}
-	title := videoInfo.Song
-	if len(title) <= 0 {
-		title = videoInfo.Title
-	}
-	artist := videoInfo.Artist
-	if len(artist) <= 0 {
-		artist = videoInfo.Uploader
-	}
 	itrack := &Track{
 		ytTrack: ytTrack{
 			ID:           videoInfo.ID,
-			Title:        title,
-			ChannelTitle: artist,
+			Title:        videoInfo.Title,
+			ChannelTitle: videoInfo.Uploader,
 			CoverURL:     videoInfo.GetThumbnailURL(ytdl.ThumbnailQualityHigh).String(),
 			Duration:     0,
 		},
