@@ -155,6 +155,9 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 
 //Populate populates metadata for Download
 func (track *Track) Populate() (err error) {
+	if len(track.StreamURL) > 0 {
+		return
+	}
 	videoInfo, err := ytdl.GetVideoInfoFromID(track.ytTrack.ID)
 	if err != nil {
 		return
@@ -281,9 +284,71 @@ func GetLyrics(id string) (result common.LyricsResult, err error) {
 	}
 	return
 }
+func extractVideoID(q string) (videoID string, err error) {
+	u, err := url.Parse(q)
+	if err != nil {
+		return "", err
+	}
+	switch u.Host {
+	case "www.youtube.com", "youtube.com":
+		if u.Path == "/watch" {
+			return u.Query().Get("v"), nil
+		}
+		if strings.HasPrefix(u.Path, "/embed/") {
+			return u.Path[7:], nil
+		}
+	case "youtu.be":
+		if len(u.Path) > 1 {
+			return u.Path[1:], nil
+		}
+	}
+	return "", nil
+}
+
+//GetTrackFromVideoID returns a track on Youtube with provided videoID
+func GetTrackFromVideoID(videoID string) (track common.Track, err error) {
+	videoInfo, err := ytdl.GetVideoInfoFromID(videoID)
+	if err != nil {
+		return
+	}
+	title := videoInfo.Song
+	if len(title) <= 0 {
+		title = videoInfo.Title
+	}
+	artist := videoInfo.Artist
+	if len(artist) <= 0 {
+		artist = videoInfo.Uploader
+	}
+	itrack := &Track{
+		ytTrack: ytTrack{
+			ID:           videoInfo.ID,
+			Title:        title,
+			ChannelTitle: artist,
+			CoverURL:     videoInfo.GetThumbnailURL(ytdl.ThumbnailQualityHigh).String(),
+			Duration:     0,
+		},
+		playID: common.GenerateID(),
+	}
+	formats := videoInfo.Formats.Extremes(ytdl.FormatAudioBitrateKey, true)
+	streamURL, err := videoInfo.GetDownloadURL(formats[0])
+	if err != nil {
+		return
+	}
+	itrack.StreamURL = streamURL.String()
+	track = itrack
+	return
+}
 
 //Search finds and returns a track from Youtube with the provided query
 func Search(query string) (tracks []common.Track, err error) {
+	videoID, err := extractVideoID(query)
+	if err == nil && len(videoID) > 0 {
+		track, err := GetTrackFromVideoID(videoID)
+		if err == nil && track != nil {
+			return []common.Track{track}, nil
+		}
+		err = nil
+	}
 	reqURL, _ := url.Parse("https://www.googleapis.com/youtube/v3/search")
 	queries := reqURL.Query()
 	queries.Add("key", os.Getenv("YOUTUBE_DEVELOPER_KEY"))
@@ -307,15 +372,9 @@ func Search(query string) (tracks []common.Track, err error) {
 		err = errors.New("No track found")
 		return
 	}
-	itrack := &Track{
-		ytTrack: ytTrack{
-			ID:           resp.Items[0].ID.VideoID,
-			Title:        html.UnescapeString(resp.Items[0].Snippet.Title),
-			ChannelTitle: html.UnescapeString(resp.Items[0].Snippet.ChannelTitle),
-			CoverURL:     resp.Items[0].Snippet.Thumbnails.Default.URL,
-			Duration:     0,
-		},
-		playID: common.GenerateID(),
+	itrack, err := GetTrackFromVideoID(resp.Items[0].ID.VideoID)
+	if err != nil {
+		return
 	}
 	tracks = []common.Track{itrack}
 	return
