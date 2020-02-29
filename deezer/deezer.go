@@ -106,10 +106,14 @@ func (track *Track) Artist() string {
 //Artists returns the track's contributors' name, comma-separated
 func (track *Track) Artists() string {
 	artists := ""
-	for _, v := range track.deezerTrack.Contributors {
-		artists = strings.Join([]string{artists, v.Name}, ", ")
+	if len(track.deezerTrack.Contributors) > 0 {
+		for _, v := range track.deezerTrack.Contributors {
+			artists = strings.Join([]string{artists, v.Name}, ", ")
+		}
+		artists = artists[2:]
+	} else {
+		artists = track.deezerTrack.Artist.Name
 	}
-	artists = artists[2:]
 	return artists
 }
 
@@ -442,9 +446,7 @@ func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) 
 	withISRC := withSpotify
 start:
 	if len(artist) == 0 && withSpotify {
-		if withISRC {
-			sTrack, sArtist, sAlbum, sISRC, sURI, err = client.spotifyClient.SearchTrackQuery(track)
-		}
+		sTrack, sArtist, sAlbum, sISRC, sURI, err = client.spotifyClient.SearchTrackQuery(track)
 		if err != nil {
 			log.Printf("spotifyClient.SearchTrack() failed: %v\n", err)
 			withSpotify = false
@@ -478,7 +480,7 @@ start:
 		return nil, err
 	}
 	var resp searchTrackResponse
-	if withISRC {
+	if withSpotify && withISRC {
 		resp = searchTrackResponse{Data: make([]deezerTrack, 1)}
 		err = json.NewDecoder(response.Body).Decode(&resp.Data[0])
 		if resp.Data[0].ID == 0 {

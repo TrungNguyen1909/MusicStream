@@ -87,7 +87,7 @@ func enqueue(msg wsMessage) []byte {
 		track := tracks[0]
 		err = track.Populate()
 		if err != nil {
-			log.Println("dzClient.GetTrackByID() failed:", err)
+			log.Println("track.Populate() failed:", err)
 			data, _ := json.Marshal(map[string]interface{}{
 				"op":      opClientRequestTrack,
 				"success": false,
