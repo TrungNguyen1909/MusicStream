@@ -19,19 +19,23 @@
 package spotify
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 )
 
 //Client represents a Spotify Client
 type Client struct {
-	AccessToken                      string `json:"accessToken"`
-	AccessTokenExpirationTimestampMs int64  `json:"accessTokenExpirationTimestampMs"`
-	ClientID                         string `json:"clientId"`
-	IsAnonymous                      bool   `json:"isAnonymous"`
+	AccessToken                    string `json:"access_token"`
+	AccessTokenExpirationTimestamp time.Time
+	TokenType                      string `json:"token_type"`
+	ExpiresIn                      int64  `json:"expires_in"`
 }
 type searchResponse struct {
 	BestMatch struct {
@@ -167,19 +171,43 @@ type searchResponse struct {
 }
 
 func (client *Client) fetchToken() (err error) {
-	if time.Now().Before(time.Unix(0, client.AccessTokenExpirationTimestampMs*1000000)) {
+	if client == nil {
+		err = errors.New("Nil Spotify client")
 		return
 	}
-	resp, err := http.DefaultClient.Get("https://open.spotify.com/access_token")
+	if time.Now().Before(client.AccessTokenExpirationTimestamp) {
+		return
+	}
+	req, err := http.NewRequest("POST", "https://accounts.spotify.com/api/token", bytes.NewReader([]byte(url.QueryEscape("grant_type=client_credentials"))))
+	if err != nil {
+		return
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	clientID := os.Getenv("SPOTIFY_CLIENT_ID")
+	clientSecret := os.Getenv("SPOTIFY_CLIENT_SECRET")
+	if len(clientID) <= 0 || len(clientSecret) <= 0 {
+		err = errors.New("Invalid Spotify Authorization")
+		return
+	}
+	req.Header.Add("Authorization", "Basic "+base64.RawStdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", clientID, clientSecret))))
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return
 	}
 	err = json.NewDecoder(resp.Body).Decode(&client)
+	if err != nil {
+		return
+	}
+	client.AccessTokenExpirationTimestamp = time.Now().Add((time.Duration)(client.ExpiresIn) * time.Second)
 	return
 }
 
 //SearchTrackQuery returns a Spotify track with provided query
 func (client *Client) SearchTrackQuery(query string) (sTrack, sArtist, sAlbum, sISRC, sURI string, err error) {
+	if client == nil {
+		err = errors.New("Nil Spotify client")
+		return
+	}
 	client.fetchToken()
 	reqURL, _ := url.Parse("https://api.spotify.com/v1/search?type=track&decorate_restrictions=false&best_match=false&limit=3&userless=true&market=VN")
 	queries := reqURL.Query()
