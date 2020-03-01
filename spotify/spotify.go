@@ -20,10 +20,8 @@ package spotify
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -178,18 +176,18 @@ func (client *Client) fetchToken() (err error) {
 	if time.Now().Before(client.AccessTokenExpirationTimestamp) {
 		return
 	}
-	req, err := http.NewRequest("POST", "https://accounts.spotify.com/api/token", bytes.NewReader([]byte(url.QueryEscape("grant_type=client_credentials"))))
+	req, err := http.NewRequest("POST", "https://accounts.spotify.com/api/token", bytes.NewReader([]byte(("grant_type=client_credentials"))))
 	if err != nil {
 		return
 	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	clientID := os.Getenv("SPOTIFY_CLIENT_ID")
 	clientSecret := os.Getenv("SPOTIFY_CLIENT_SECRET")
 	if len(clientID) <= 0 || len(clientSecret) <= 0 {
 		err = errors.New("Invalid Spotify Authorization")
 		return
 	}
-	req.Header.Add("Authorization", "Basic "+base64.RawStdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", clientID, clientSecret))))
+	req.SetBasicAuth(clientID, clientSecret)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return
