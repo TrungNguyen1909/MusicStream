@@ -160,6 +160,26 @@ function setTrack(track) {
     );
     artistBox.classList.add("marquee2");
   }
+  let aTag = document.getElementById("name-ref");
+  aTag.href = "#";
+  if (!!track.spotifyURI) {
+    suri = track.spotifyURI;
+    if (track.spotifyURI.startsWith("spotify:")) {
+      sID = suri.slice(14);
+      sType = suri.slice(8, 13);
+      aTag.href = `https://open.spotify.com/${sType}/${sID}`;
+    }
+  } else if (!!track.id && track.source != 0) {
+    switch (track.source) {
+      case 1:
+        aTag.href = `https://www.deezer.com/track/${track.id}`;
+        break;
+      case 3:
+        aTag.href = `https://youtu.be/${track.id}`;
+      default:
+        break;
+    }
+  }
   // window.player.src = `/audio`;
   lyricsControl();
   //let artworkBox = document.getElementsByClassName("album-art")[0];

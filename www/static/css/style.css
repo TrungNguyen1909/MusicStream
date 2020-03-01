@@ -449,3 +449,16 @@ body {
     text-indent: var(--indent-percent);
   }
 }
+
+a {
+  text-decoration: none;
+}
+a[href="#"] {
+  pointer-events: none;
+  cursor: default;
+}
+a:hover:not([href="#"]) {
+  text-decoration: underline;
+  cursor: url;
+  color: #d92b3a;
+}

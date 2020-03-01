@@ -53,15 +53,17 @@ type Track interface {
 
 //TrackMetadata contains essential informations about a track for client
 type TrackMetadata struct {
-	Title    string       `json:"title"`
-	Source   int          `json:"source"`
-	Duration int          `json:"duration"`
-	Artist   string       `json:"artist"`
-	Artists  string       `json:"artists"`
-	Album    string       `json:"album"`
-	CoverURL string       `json:"cover"`
-	Lyrics   LyricsResult `json:"lyrics"`
-	PlayID   string       `json:"playId"`
+	Title      string       `json:"title"`
+	Source     int          `json:"source"`
+	Duration   int          `json:"duration"`
+	Artist     string       `json:"artist"`
+	Artists    string       `json:"artists"`
+	Album      string       `json:"album"`
+	CoverURL   string       `json:"cover"`
+	Lyrics     LyricsResult `json:"lyrics"`
+	PlayID     string       `json:"playId"`
+	SpotifyURI string       `json:"spotifyURI"`
+	ID         string       `json:"id"`
 }
 
 //GetMetadata returns a new TrackMetadata created from a provided Track
@@ -75,6 +77,8 @@ func GetMetadata(track Track) (d TrackMetadata) {
 	d.Album = track.Album()
 	d.CoverURL = track.CoverURL()
 	d.PlayID = track.PlayID()
+	d.ID = track.ID()
+	d.SpotifyURI = track.SpotifyURI()
 	return
 }
 
