@@ -271,10 +271,6 @@ func NewClient() (client *Client) {
 	client.httpHeaders = http.Header{}
 	client.unofficialAPIQuery = make(url.Values)
 	client.httpHeaders.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
-	client.httpHeaders.Set("cache-control", "max-age=0")
-	client.httpHeaders.Set("accept-language", "en-US,en;q=0.9,en-US;q=0.8,en;q=0.7")
-	client.httpHeaders.Set("accept-charset", "utf-8,ISO-8859-1;q=0.8,*;q=0.7")
-	client.httpHeaders.Set("content-type", "text/plain;charset=UTF-8")
 	client.ajaxActionURL, _ = url.Parse(ajaxActionURL)
 	client.unofficialAPIURL, _ = url.Parse(unofficialAPIURL)
 	client.unofficialAPIQuery.Set("api_version", "1.0")
@@ -298,7 +294,10 @@ func getAPICID() string {
 func (client *Client) makeRequest(url string, body []byte) *http.Request {
 	request, _ := http.NewRequest("POST", url, bytes.NewReader(body))
 	request.Header = client.httpHeaders
-	request.AddCookie(client.arlCookie)
+	_, err := request.Cookie("arl")
+	if err == http.ErrNoCookie {
+		request.AddCookie(client.arlCookie)
+	}
 	return request
 }
 func (client *Client) makeUnofficialAPIRequest(method string, body []byte) *http.Request {
@@ -335,8 +334,10 @@ func (client *Client) getTrackInfo(trackID int, secondTry bool) (trackInfo pageT
 	}
 	encoded, _ := json.Marshal(data)
 	request := client.makeUnofficialAPIRequest("deezer.pageTrack", encoded)
-	response, _ := client.httpClient.Do(request)
-
+	response, err := client.httpClient.Do(request)
+	if err != nil {
+		return
+	}
 	var resp pageTrackResponse
 	err = json.NewDecoder(response.Body).Decode(&resp)
 	if err != nil || len(resp.Results.Data.MD5Origin) <= 0 {
