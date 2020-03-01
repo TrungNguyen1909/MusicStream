@@ -460,7 +460,7 @@ start:
 		}
 	} else {
 		if len(artist) == 0 {
-			url = fmt.Sprintf("https://api.deezer.com/search/track/?q=\"%s\"", template.URLQueryEscaper(track))
+			url = fmt.Sprintf("https://api.deezer.com/search/track/?q=%s", template.URLQueryEscaper(track))
 		} else {
 			url = fmt.Sprintf("https://api.deezer.com/search/track/?q=track:\"%s\"artist:\"%s\"", template.URLQueryEscaper(track), template.URLQueryEscaper(artist))
 		}
