@@ -167,7 +167,7 @@ func (decoder *OpusDecoder) Read(p []byte) (n int, err error) {
 		}
 		n, err = decoder.o.Decode(d[:n], pcm)
 		if err != nil {
-			log.Printf("decoder.Decoder: %#v", err)
+			return
 		}
 		for i := 0; i < int(n*2); i++ {
 			buf[2*i] = byte(pcm[i])
@@ -193,12 +193,7 @@ func (decoder *OpusDecoder) Close() (err error) {
 
 //NewOpusDecoder returns a new opus decoding stream with the provided stream
 func NewOpusDecoder(stream io.Reader, sampleRate, channels int) (decoder *OpusDecoder, err error) {
-	log.Printf("Initializing Opus Decoder: %d Hz, %d channels", sampleRate, channels)
 	os, err := opus.NewDecoder(sampleRate, channels)
-	if err != nil {
-		log.Println("DecoderCreate failed(): ", err)
-	}
-
 	if err != nil {
 		return
 	}
@@ -227,7 +222,6 @@ func (decoder *WebMDecoder) Close() (err error) {
 	return
 }
 func (decoder *WebMDecoder) preload() {
-	log.Println("Starting YT preloading")
 	decoder.initialized = true
 	for pkt := range decoder.reader.Chan {
 		if pkt.TrackNumber == decoder.atrack.TrackNumber {
@@ -238,7 +232,6 @@ func (decoder *WebMDecoder) preload() {
 		}
 	}
 	decoder.bw.Close()
-	log.Println("Stopped YT preloading")
 }
 func (decoder *WebMDecoder) Read(p []byte) (n int, err error) {
 	if !decoder.initialized {
@@ -267,7 +260,6 @@ func NewWebMDecoder(stream io.ReadCloser) (decoder *WebMDecoder, err error) {
 	if err != nil {
 		log.Panic("webDecoder:Read() -> NewOpusDecoder() failed: ", err)
 	}
-	log.Println("Opus Decoder Created")
 	return &WebMDecoder{
 		s:      src,
 		reader: reader,
@@ -313,11 +305,6 @@ func (s *BufferedReadSeeker) Seek(offset int64, whence int) (npos int64, err err
 	return
 }
 func (s *BufferedReadSeeker) Read(p []byte) (n int, err error) {
-	defer func() {
-		if err != nil {
-			log.Println("BufferedReadSeeker.Read failed ", err)
-		}
-	}()
 	if s.cur+int64(len(p)) > int64(s.len) && s.err == nil {
 		nb := make([]byte, s.cur+int64(len(p))-int64(s.len))
 		var n int

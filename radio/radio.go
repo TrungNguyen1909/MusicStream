@@ -154,6 +154,7 @@ func (track *Track) heartbeat() {
 		<-track.heartbeatInterrupt
 	}
 	log.Println("Radio: starting heartbeat")
+	defer log.Println("Radio: Stopped heartbeat")
 	ticker := time.NewTicker((time.Duration)(track.heartbeatInterval) * time.Millisecond)
 	defer ticker.Stop()
 	for {

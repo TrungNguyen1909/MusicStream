@@ -39,6 +39,8 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 	pos := int64(encoder.GranulePos())
 	atomic.StoreInt64(&startPos, pos)
 	deltaChannel <- pos
+	log.Println("Track preloading started")
+	defer log.Println("Track preloading done")
 	for {
 		select {
 		case <-quit:
