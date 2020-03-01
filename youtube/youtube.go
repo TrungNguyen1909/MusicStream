@@ -280,7 +280,7 @@ func GetLyrics(id string) (result common.LyricsResult, err error) {
 		result.SyncedLyrics[i].Time.Total = v.Start
 	}
 	if len(trans) > 0 {
-		result.SyncedLyrics[len(trans)].Time.Total = orig[len(trans)-1].Start + orig[len(trans)-1].Duration
+		result.SyncedLyrics[len(trans)].Time.Total = trans[len(trans)-1].Start + trans[len(trans)-1].Duration
 	}
 	return
 }
