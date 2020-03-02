@@ -271,12 +271,12 @@ func NewClient() (client *Client) {
 	client.httpHeaders = http.Header{}
 	client.unofficialAPIQuery = make(url.Values)
 	client.httpHeaders.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
+	client.httpHeaders.Set("cookie", "arl="+os.Getenv("DEEZER_ARL"))
 	client.ajaxActionURL, _ = url.Parse(ajaxActionURL)
 	client.unofficialAPIURL, _ = url.Parse(unofficialAPIURL)
 	client.unofficialAPIQuery.Set("api_version", "1.0")
 	client.unofficialAPIQuery.Set("input", "3")
 	client.unofficialAPIQuery.Set("api_token", "")
-	client.arlCookie = &http.Cookie{Name: "arl", Value: os.Getenv("DEEZER_ARL")}
 	client.deezerURL, _ = url.Parse(deezerURL)
 	spotifyClient, err := spotify.NewClient()
 	if err != nil {
@@ -291,24 +291,25 @@ func NewClient() (client *Client) {
 func getAPICID() string {
 	return strconv.Itoa(int(math.Floor(rand.Float64() * 1e9)))
 }
+func (client *Client) cleanupCookieJar() {
+	cookiesJar, _ := cookiejar.New(nil)
+	client.httpClient.Jar = cookiesJar
+}
 func (client *Client) makeRequest(url string, body []byte) *http.Request {
 	request, _ := http.NewRequest("POST", url, bytes.NewReader(body))
 	request.Header = client.httpHeaders
-	_, err := request.Cookie("arl")
-	if err == http.ErrNoCookie {
-		request.AddCookie(client.arlCookie)
-	}
 	return request
 }
 func (client *Client) makeUnofficialAPIRequest(method string, body []byte) *http.Request {
-
 	client.unofficialAPIQuery.Set("method", method)
 	client.unofficialAPIQuery.Set("cid", getAPICID())
 	client.unofficialAPIURL.RawQuery = client.unofficialAPIQuery.Encode()
 	return client.makeRequest(client.unofficialAPIURL.String(), body)
 }
 func (client *Client) initDeezerAPI() {
+	client.unofficialAPIQuery.Set("api_token", "")
 	request := client.makeUnofficialAPIRequest("deezer.getUserData", []byte(""))
+	client.cleanupCookieJar()
 	response, err := client.httpClient.Do(request)
 	if err != nil {
 		log.Println("deezer.initDeezerAPI() failed: ", err)
@@ -335,11 +336,10 @@ func (client *Client) getTrackInfo(trackID int, secondTry bool) (trackInfo pageT
 	encoded, _ := json.Marshal(data)
 	request := client.makeUnofficialAPIRequest("deezer.pageTrack", encoded)
 	response, err := client.httpClient.Do(request)
-	if err != nil {
-		return
-	}
 	var resp pageTrackResponse
-	err = json.NewDecoder(response.Body).Decode(&resp)
+	if err == nil {
+		err = json.NewDecoder(response.Body).Decode(&resp)
+	}
 	if err != nil || len(resp.Results.Data.MD5Origin) <= 0 {
 		if secondTry {
 			err = errors.New("Failed to get trackInfo adequately " + err.Error())
