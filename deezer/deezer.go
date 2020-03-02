@@ -133,19 +133,25 @@ func (track *Track) CoverURL() string {
 }
 
 //Download returns a mp3 stream of the track
-func (track *Track) Download() (io.ReadCloser, error) {
+func (track *Track) Download() (stream io.ReadCloser, err error) {
 	if track.StreamURL == "" || len(track.BlowfishKey) == 0 {
-		return nil, errors.New("Metadata not yet populated")
+		err = errors.New("Metadata not yet populated")
+		return
 	}
-	response, err := http.Get(track.StreamURL)
+	req := track.client.makeRequest("GET", track.StreamURL, []byte(""))
+	response, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return
 	}
-	stream, err := streamdecoder.NewMP3Decoder(&trackDecrypter{r: response.Body, BlowfishKey: track.BlowfishKey})
+	if response.StatusCode != http.StatusOK {
+		err = errors.New(fmt.Sprint("deezerTrack Download failed: ", track.StreamURL, " ", response.Status))
+		return
+	}
+	stream, err = streamdecoder.NewMP3Decoder(&trackDecrypter{r: response.Body, BlowfishKey: track.BlowfishKey})
 	if err != nil {
-		return nil, err
+		return
 	}
-	return stream, nil
+	return
 }
 
 //Populate populates track metadata for Download
@@ -271,6 +277,10 @@ func NewClient() (client *Client) {
 	client.httpHeaders = http.Header{}
 	client.unofficialAPIQuery = make(url.Values)
 	client.httpHeaders.Set("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36")
+	client.httpHeaders.Set("cache-control", "max-age=0")
+	client.httpHeaders.Set("accept-language", "en-US,en;q=0.9,en-US;q=0.8,en;q=0.7")
+	client.httpHeaders.Set("accept-charset", "utf-8,ISO-8859-1;q=0.8,*;q=0.7")
+	client.httpHeaders.Set("content-type", "text/plain;charset=UTF-8")
 	client.httpHeaders.Set("cookie", "arl="+os.Getenv("DEEZER_ARL"))
 	client.ajaxActionURL, _ = url.Parse(ajaxActionURL)
 	client.unofficialAPIURL, _ = url.Parse(unofficialAPIURL)
@@ -295,8 +305,8 @@ func (client *Client) cleanupCookieJar() {
 	cookiesJar, _ := cookiejar.New(nil)
 	client.httpClient.Jar = cookiesJar
 }
-func (client *Client) makeRequest(url string, body []byte) *http.Request {
-	request, _ := http.NewRequest("POST", url, bytes.NewReader(body))
+func (client *Client) makeRequest(method, url string, body []byte) *http.Request {
+	request, _ := http.NewRequest(method, url, bytes.NewReader(body))
 	request.Header = client.httpHeaders
 	return request
 }
@@ -304,7 +314,7 @@ func (client *Client) makeUnofficialAPIRequest(method string, body []byte) *http
 	client.unofficialAPIQuery.Set("method", method)
 	client.unofficialAPIQuery.Set("cid", getAPICID())
 	client.unofficialAPIURL.RawQuery = client.unofficialAPIQuery.Encode()
-	return client.makeRequest(client.unofficialAPIURL.String(), body)
+	return client.makeRequest("POST", client.unofficialAPIURL.String(), body)
 }
 func (client *Client) initDeezerAPI() {
 	client.unofficialAPIQuery.Set("api_token", "")
