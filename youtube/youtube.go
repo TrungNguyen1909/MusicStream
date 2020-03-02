@@ -248,39 +248,44 @@ func GetLyrics(id string) (result common.LyricsResult, err error) {
 		return
 	}
 	var (
-		originalLang       string
-		originalLangName   string
+		defaultLang        string
+		defaultLangName    string
 		translatedLang     string
 		translatedLangName string
 	)
 	for _, v := range trl.Tracks {
-		if v.ID == 0 {
-			originalLang = v.LangCode
-			originalLangName = v.Name
-		}
 		if v.LangDefault {
-			translatedLang = v.LangCode
-			translatedLangName = v.Name
+			defaultLang = v.LangCode
+			defaultLangName = v.Name
+			break
 		}
 	}
-	orig, _ := getLyricsWithLang(id, originalLang, originalLangName)
+	if !strings.HasPrefix(defaultLang, "en") {
+		for _, v := range trl.Tracks {
+			if strings.HasPrefix(v.LangCode, "en") {
+				translatedLang = v.LangCode
+				translatedLangName = v.Name
+				break
+			}
+		}
+	}
+	def, _ := getLyricsWithLang(id, defaultLang, defaultLangName)
 	trans, _ := getLyricsWithLang(id, translatedLang, translatedLangName)
-	log.Printf("Orig: %d - trans: %d", len(orig), len(trans))
-	if len(trans) == 0 {
+	if len(def) == 0 {
 		err = errors.New("No subtitles found")
 		return
 	}
-	result = common.LyricsResult{Language: translatedLang}
-	result.SyncedLyrics = make([]common.LyricsLine, len(trans)+1)
-	for i, v := range trans {
+	result = common.LyricsResult{Language: defaultLang}
+	result.SyncedLyrics = make([]common.LyricsLine, len(def)+1)
+	for i, v := range def {
 		result.SyncedLyrics[i].Text = strings.ReplaceAll(html.UnescapeString(v.Text), "\n", " ")
-		if len(orig) == len(trans) && originalLang != translatedLang {
-			result.SyncedLyrics[i].Translated = strings.ReplaceAll(html.UnescapeString(orig[i].Text), "\n", " ")
+		if len(trans) == len(def) && v.Start == trans[i].Start {
+			result.SyncedLyrics[i].Text = strings.ReplaceAll(html.UnescapeString(trans[i].Text), "\n", " ")
 		}
 		result.SyncedLyrics[i].Time.Total = v.Start
 	}
-	if len(trans) > 0 {
-		result.SyncedLyrics[len(trans)].Time.Total = trans[len(trans)-1].Start + trans[len(trans)-1].Duration
+	if len(def) > 0 {
+		result.SyncedLyrics[len(def)].Time.Total = def[len(def)-1].Start + def[len(def)-1].Duration
 	}
 	return
 }
