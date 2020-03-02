@@ -192,6 +192,7 @@ func (client *Client) fetchToken() (err error) {
 	if err != nil {
 		return
 	}
+	defer resp.Body.Close()
 	err = json.NewDecoder(resp.Body).Decode(&client)
 	if err != nil {
 		return
@@ -217,6 +218,7 @@ func (client *Client) SearchTrackQuery(query string) (sTrack, sArtist, sAlbum, s
 	if err != nil {
 		return
 	}
+	defer resp.Body.Close()
 	var d searchResponse
 	err = json.NewDecoder(resp.Body).Decode(&d)
 	if err != nil {

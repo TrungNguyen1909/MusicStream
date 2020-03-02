@@ -152,6 +152,7 @@ func GetLyrics(track, artist, album, artists, ISRC, SpotifyURI string, duration 
 		log.Println(err)
 		return
 	}
+	defer resp.Body.Close()
 	var reader io.ReadCloser
 	switch resp.Header.Get("Content-Encoding") {
 	case "gzip":

@@ -165,6 +165,7 @@ func Search(query string) (tracks []common.Track, err error) {
 	if err != nil {
 		return
 	}
+	defer resp.Body.Close()
 	var results []csnSearchResult
 	err = json.NewDecoder(resp.Body).Decode(&results)
 	if err != nil {
@@ -193,6 +194,7 @@ func (track *Track) Populate() (err error) {
 	if err != nil {
 		return
 	}
+	defer resp.Body.Close()
 	buf, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return

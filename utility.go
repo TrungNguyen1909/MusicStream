@@ -39,7 +39,10 @@ func selfPinger() {
 	url := fmt.Sprintf("https://%s.herokuapp.com", appName)
 	for {
 		if atomic.LoadInt32(&listenersCount) > 0 {
-			http.Get(url)
+			resp, err := http.Get(url)
+			if err != nil {
+				resp.Body.Close()
+			}
 			log.Println("Ping!")
 		}
 		time.Sleep(1 * time.Minute)

@@ -141,6 +141,7 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 	if err != nil {
 		return
 	}
+	defer resp.Body.Close()
 	stream, err = streamdecoder.NewVorbisDecoder(resp.Body)
 	return
 }

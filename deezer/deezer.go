@@ -28,7 +28,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"log"
 	"math"
 	"math/rand"
@@ -325,15 +324,10 @@ func (client *Client) initDeezerAPI() {
 		log.Println("deezer.initDeezerAPI() failed: ", err)
 		return
 	}
-	buf, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		log.Println("deezer.initDeezerAPI() failed: ", err)
-		return
-	}
+	defer response.Body.Close()
 	var resp getUserDataResponse
-	err = json.Unmarshal(buf, &resp)
+	err = json.NewDecoder(response.Body).Decode(&resp)
 	if err != nil || len(resp.Results.CheckForm) <= 0 {
-		log.Printf("%s\n", buf)
 		return
 	}
 	client.unofficialAPIQuery.Set("api_token", resp.Results.CheckForm)
@@ -348,6 +342,7 @@ func (client *Client) getTrackInfo(trackID int, secondTry bool) (trackInfo pageT
 	response, err := client.httpClient.Do(request)
 	var resp pageTrackResponse
 	if err == nil {
+		defer response.Body.Close()
 		err = json.NewDecoder(response.Body).Decode(&resp)
 	}
 	if err != nil || len(resp.Results.Data.MD5Origin) <= 0 {
@@ -436,6 +431,7 @@ func (client *Client) GetTrackByID(trackID string) (track common.Track, err erro
 	if err != nil {
 		return
 	}
+	defer response.Body.Close()
 	err = json.NewDecoder(response.Body).Decode(&dTrack)
 	_, _, _, _, sURI, err := client.spotifyClient.SearchTrack("", "", "", dTrack.ISRC)
 	if err == nil && len(sURI) > 0 {
@@ -490,6 +486,7 @@ start:
 		}
 		return nil, err
 	}
+	defer response.Body.Close()
 	var resp searchTrackResponse
 	if withSpotify && withISRC {
 		resp = searchTrackResponse{Data: make([]deezerTrack, 1)}
@@ -500,7 +497,6 @@ start:
 	} else {
 		err = json.NewDecoder(response.Body).Decode(&resp)
 	}
-
 	if err != nil {
 		if withSpotify {
 			if withISRC {

@@ -218,6 +218,7 @@ func getLyricsWithLang(id, lang, name string) (result []line, err error) {
 	if err != nil {
 		return
 	}
+	defer response.Body.Close()
 	var t transcript
 	err = xml.NewDecoder(response.Body).Decode(&t)
 	if err != nil {
@@ -245,6 +246,7 @@ func GetLyrics(id string) (result common.LyricsResult, err error) {
 	if err != nil {
 		return
 	}
+	defer response.Body.Close()
 	var trl transcriptList
 	err = xml.NewDecoder(response.Body).Decode(&trl)
 	if err != nil {
@@ -362,6 +364,7 @@ func Search(query string) (tracks []common.Track, err error) {
 		fmt.Println(err)
 		return
 	}
+	defer response.Body.Close()
 	var resp youtubeResponse
 	err = json.NewDecoder(response.Body).Decode(&resp)
 	if err != nil {
