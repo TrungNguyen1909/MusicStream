@@ -205,6 +205,9 @@ type line struct {
 }
 
 func getLyricsWithLang(id, lang, name string) (result []line, err error) {
+	if len(id) == 0 || len(lang) == 0 {
+		return nil, errors.New("Invalid Arguments")
+	}
 	reqURL, _ := url.Parse("https://www.youtube.com/api/timedtext?fmt=srv1")
 	queries := reqURL.Query()
 	queries.Add("v", id)
