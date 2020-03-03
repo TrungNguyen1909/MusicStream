@@ -480,7 +480,11 @@ function lyricsControl() {
       translatedBox.style.transitionDelay = "0s";
       originalBox.style.textIndent = "0%";
       translatedBox.style.textIndent = "0%";
-      originalBox.innerText = ctrack.lyrics.lrc[idx - 1].text;
+      if (!!ctrack.lyrics.lrc[idx - 1].text) {
+        originalBox.innerText = ctrack.lyrics.lrc[idx - 1].text;
+      } else {
+        originalBox.innerText = ctrack.lyrics.lrc[idx - 1].original;
+      }
       translatedBox.innerText = ctrack.lyrics.lrc[idx - 1].translated;
       let delta =
         idx < ctrack.lyrics.lrc.length

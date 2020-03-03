@@ -135,9 +135,6 @@ func GetLyrics(track, artist, album, artists, ISRC, SpotifyURI string, duration 
 	if len(SpotifyURI) > 0 {
 		queries.Add("track_spotify_id", SpotifyURI)
 	}
-	if len(ISRC) > 0 {
-		queries.Add("track_isrc", ISRC)
-	}
 	log.Printf("Spotify URI: %s\n", SpotifyURI)
 	reqURL.RawQuery = queries.Encode()
 	req, _ := http.NewRequest("GET", reqURL.String(), nil)
@@ -172,7 +169,6 @@ func GetLyrics(track, artist, album, artists, ISRC, SpotifyURI string, duration 
 	subtitle := d.Message.Body.MacroCalls.TrackSubtitlesGet.Message.Body.SubtitleList[0].Subtitle
 	result.Language = subtitle.SubtitleLanguage
 	sd := subtitle.SubtitleBody
-	var syncedLyrics []common.LyricsLine
 	if result.Language != "en" && len(subtitle.SubtitleTranslated.SubtitleBody) > 0 {
 		st := subtitle.SubtitleTranslated.SubtitleBody
 		var subtitleTranslated []common.LyricsLine
@@ -181,20 +177,26 @@ func GetLyrics(track, artist, album, artists, ISRC, SpotifyURI string, duration 
 			log.Println(err)
 			return
 		}
-		syncedLyrics = make([]common.LyricsLine, len(subtitleTranslated))
+		syncedLyrics := make([]common.LyricsLine, len(subtitleTranslated))
 		for i, v := range subtitleTranslated {
 			syncedLyrics[i].Translated = v.Text
 			syncedLyrics[i].Text = v.Original
 			syncedLyrics[i].Time = v.Time
 		}
 		result.SyncedLyrics = syncedLyrics
-	} else {
-		err = json.Unmarshal(([]byte)(sd), &syncedLyrics)
-		if err != nil {
-			log.Println(err)
-			return
+	}
+	var originalSyncedLyrics []common.LyricsLine
+	err = json.Unmarshal(([]byte)(sd), &originalSyncedLyrics)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	if len(result.SyncedLyrics) == 0 {
+		result.SyncedLyrics = originalSyncedLyrics
+	} else if len(result.SyncedLyrics) == len(originalSyncedLyrics) {
+		for i := range result.SyncedLyrics {
+			result.SyncedLyrics[i].Original = originalSyncedLyrics[i].Text
 		}
-		result.SyncedLyrics = syncedLyrics
 	}
 	return
 }
