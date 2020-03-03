@@ -198,5 +198,16 @@ func GetLyrics(track, artist, album, artists, ISRC, SpotifyURI string, duration 
 			result.SyncedLyrics[i].Original = originalSyncedLyrics[i].Text
 		}
 	}
+	if n := len(result.SyncedLyrics); n > 0 && (result.SyncedLyrics[n-1].Text != "" || result.SyncedLyrics[n-1].Translated != "" || result.SyncedLyrics[n-1].Original != "") {
+		addTime := 10.0
+		if duration > 0 {
+			addTime = float64(duration) - result.SyncedLyrics[n-1].Time.Total
+		}
+		result.SyncedLyrics = append(result.SyncedLyrics, common.LyricsLine{
+			Time: common.LyricsTime{
+				Total: result.SyncedLyrics[n-1].Time.Total + addTime,
+			},
+		})
+	}
 	return
 }
