@@ -347,7 +347,11 @@ func (client *Client) getTrackInfo(trackID int, secondTry bool) (trackInfo pageT
 	}
 	if err != nil || len(resp.Results.Data.MD5Origin) <= 0 {
 		if secondTry {
-			err = errors.New("Failed to get trackInfo adequately " + err.Error())
+			if err != nil {
+				err = errors.New("Failed to get trackInfo adequately " + err.Error())
+			} else {
+				err = errors.New("Failed to get trackInfo adequately")
+			}
 			return
 		}
 		client.initDeezerAPI()
