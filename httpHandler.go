@@ -39,7 +39,7 @@ import (
 )
 
 func audioHandler(w http.ResponseWriter, r *http.Request) {
-	notify := w.(http.CloseNotifier).CloseNotify()
+	notify := r.Context().Done()
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		log.Fatal("expected http.ResponseWriter to be an http.Flusher")
@@ -64,6 +64,7 @@ func audioHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		select {
 		case <-notify:
+			log.Printf("%s %s %s: client disconnected\n", r.RemoteAddr, r.Method, r.URL)
 			return
 		case Chunk := <-channel:
 			chanidx = Chunk.channel
