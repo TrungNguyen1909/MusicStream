@@ -49,6 +49,12 @@ spec:
                   secretKeyRef:
                     name: musicstream
                     key: SPOTIFY_CLIENT_SECRET
+            - name: RADIO_DISABLED
+              valueFrom:
+                  secretKeyRef:
+                    name: musicstream
+                    key: MUSIXMATCH_OB_USER_TOKEN
+                    optional: true
           resources:
             requests:
               cpu: "1"

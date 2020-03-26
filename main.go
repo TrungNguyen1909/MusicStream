@@ -105,7 +105,7 @@ func audioManager() {
 	dzClient = deezer.NewClient()
 	cacheQueue = queue.NewQueue()
 	playQueue = queue.NewQueue()
-	if _, ok := os.LookupEnv("RADIO_DISABLED"); !ok {
+	if radioDisabled, ok := os.LookupEnv("RADIO_DISABLED"); !ok && len(radioDisabled) > 0 {
 		radioTrack = radio.NewTrack()
 	}
 	currentTrack = defaultTrack

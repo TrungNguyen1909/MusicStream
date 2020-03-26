@@ -74,7 +74,7 @@ func inactivityMonitor() {
 			timer.Reset(15 * time.Minute)
 			if isStandby {
 				log.Println("Waking up...")
-				if _, ok := os.LookupEnv("RADIO_DISABLED"); playQueue.Empty() && !ok {
+				if radioTrack != nil {
 					go processRadio(quitRadio)
 				}
 				activityWg.Done()
