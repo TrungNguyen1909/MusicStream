@@ -74,7 +74,7 @@ func inactivityMonitor() {
 			timer.Reset(15 * time.Minute)
 			if isStandby {
 				log.Println("Waking up...")
-				if playQueue.Empty() {
+				if _, ok := os.LookupEnv("RADIO_DISABLED"); playQueue.Empty() && !ok {
 					go processRadio(quitRadio)
 				}
 				activityWg.Done()
@@ -91,12 +91,10 @@ func inactivityMonitor() {
 			} else {
 				skipChannel <- 1
 			}
-			deltaChannel <- 0
-			setTrack(common.TrackMetadata{
-				Title:   "Standby...",
-				Artist:  "Inactivity",
-				Artists: "The Stream is standby due to inactivity",
-			})
+			pos := int64(encoder.GranulePos())
+			atomic.StoreInt64(&startPos, pos)
+			deltaChannel <- pos
+			setTrack(common.GetMetadata(defaultTrack))
 		}
 	}
 }

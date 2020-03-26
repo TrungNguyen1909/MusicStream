@@ -20,6 +20,7 @@ package common
 
 import (
 	"crypto/rand"
+	"errors"
 	"io"
 )
 
@@ -115,4 +116,59 @@ func GenerateID() (id string) {
 		id += string(alphabet[int(v)%len(alphabet)])
 	}
 	return
+}
+
+//DefaultTrack represents the metadata will be shown when nothing is playing
+type DefaultTrack struct{}
+
+func (track *DefaultTrack) ID() string {
+	return "0"
+}
+
+func (track *DefaultTrack) Source() int {
+	return Radio
+}
+
+func (track *DefaultTrack) Title() string {
+	return "Idling, nothing is in queue"
+}
+
+func (track *DefaultTrack) Artist() string {
+	return "Please enqueue some songs"
+}
+
+func (track *DefaultTrack) Artists() string {
+	return "Please enqueue some songs"
+}
+
+func (track *DefaultTrack) Album() string {
+	return ""
+}
+
+func (track *DefaultTrack) ISRC() string {
+	return ""
+}
+
+func (track *DefaultTrack) CoverURL() string {
+	return ""
+}
+
+func (track *DefaultTrack) Duration() int {
+	return 0
+}
+
+func (track *DefaultTrack) SpotifyURI() string {
+	return ""
+}
+
+func (track *DefaultTrack) PlayID() string {
+	return ""
+}
+
+func (track *DefaultTrack) Populate() error {
+	return errors.New("not implemented")
+}
+
+func (track *DefaultTrack) Download() (io.ReadCloser, error) {
+	return nil, errors.New("not implemented")
 }

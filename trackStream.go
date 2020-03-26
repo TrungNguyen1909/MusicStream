@@ -65,9 +65,15 @@ func processTrack() {
 	var track common.Track
 	var err error
 	radioStarted := false
-	if playQueue.Empty() {
+	if playQueue.Empty() && radioTrack != nil {
 		radioStarted = true
 		go processRadio(quitRadio)
+	} else if playQueue.Empty() {
+		currentTrack = defaultTrack
+		pos := int64(encoder.GranulePos())
+		atomic.StoreInt64(&startPos, pos)
+		deltaChannel <- pos
+		setTrack(common.GetMetadata(currentTrack))
 	}
 	activityWg.Wait()
 	track = playQueue.Pop().(common.Track)

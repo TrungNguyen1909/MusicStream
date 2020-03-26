@@ -75,6 +75,7 @@ var isRadioStreaming int32
 var currentTrackID string
 var watchDog int
 var radioTrack *radio.Track
+var defaultTrack *common.DefaultTrack
 var startPos int64
 var encoder *vorbisencoder.Encoder
 var deltaChannel chan int64
@@ -104,7 +105,10 @@ func audioManager() {
 	dzClient = deezer.NewClient()
 	cacheQueue = queue.NewQueue()
 	playQueue = queue.NewQueue()
-	radioTrack = radio.NewTrack()
+	if _, ok := os.LookupEnv("RADIO_DISABLED"); !ok {
+		radioTrack = radio.NewTrack()
+	}
+	currentTrack = defaultTrack
 	currentTrackID = ""
 	etaDone.Store(time.Now())
 	initialized <- 1
@@ -113,16 +117,14 @@ func audioManager() {
 	}
 }
 func main() {
-	_, ok := os.LookupEnv("DEEZER_ARL")
-	if !ok {
+	if _, ok := os.LookupEnv("DEEZER_ARL"); !ok {
 		log.Panic("Deezer token not found")
 	}
-	_, ok = os.LookupEnv("MUSIXMATCH_USER_TOKEN")
-	if !ok {
+	if _, ok := os.LookupEnv("MUSIXMATCH_USER_TOKEN"); !ok {
 		log.Panic("Musixmatch token not found")
 	}
-	_, ok = os.LookupEnv("YOUTUBE_DEVELOPER_KEY")
-	if !ok {
+
+	if _, ok := os.LookupEnv("YOUTUBE_DEVELOPER_KEY"); !ok {
 		log.Panic("Youtube Data API v3 key not found")
 	}
 	port, ok := os.LookupEnv("PORT")
