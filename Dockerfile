@@ -1,9 +1,8 @@
-FROM golang as build-env
+FROM golang:alpine as build-env
 
 WORKDIR /go/src/github.com/TrungNguyen1909/MusicStream
-
-RUN apt-get update && apt-get install musl musl-dev musl-tools linux-headers
-ENV CC="musl-gcc" STATIC_CC="musl-gcc" CCOPT="-static -fPIC" BUILDMODE="static" 
+RUN apk --no-cache add --virtual .build-deps build-base ca-certificates curl linux-headers musl musl-dev tar perl pkgconfig tzdata
+ENV CC="x86_64-alpine-linux-musl-gcc" STATIC_CC="x86_64-alpine-linux-musl-gcc" CCOPT="-static -fPIC" BUILDMODE="static"
 RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/ogg/libogg-1.3.4.tar.gz
 RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.6.tar.gz
 RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/opus/opus-1.3.1.tar.gz
