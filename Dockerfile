@@ -2,24 +2,22 @@ FROM golang as build-env
 
 WORKDIR /go/src/github.com/TrungNguyen1909/MusicStream
 
-RUN curl -sqLO http://www.musl-libc.org/releases/musl-1.2.0.tar.gz
-RUN tar -xf musl-1.2.0.tar.gz
-RUN cd musl-1.2.0 && ./configure && make && make install
-ENV CC="/usr/local/musl/bin/musl-gcc" STATIC_CC="/usr/local/musl/bin/musl-gcc" CCOPT="-static -fPIC" BUILDMODE="static" 
+RUN apt-get update && apt-get install musl musl-dev musl-tools linux-headers
+ENV CC="musl-gcc" STATIC_CC="musl-gcc" CCOPT="-static -fPIC" BUILDMODE="static" 
 RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/ogg/libogg-1.3.4.tar.gz
 RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.6.tar.gz
 RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/opus/opus-1.3.1.tar.gz
 RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/opus/opusfile-0.11.tar.gz
-RUN curl -sqLO https://www.openssl.org/source/openssl-1.0.2q.tar.gz
+RUN curl -sqLO https://www.openssl.org/source/openssl-1.1.1f.tar.gz
 RUN tar -xf libogg-1.3.4.tar.gz
 RUN tar -xf libvorbis-1.3.6.tar.gz
 RUN tar -xf opus-1.3.1.tar.gz
 RUN tar -xf opusfile-0.11.tar.gz
-RUN tar -xf openssl-1.0.2q.tar.gz
+RUN tar -xf openssl-1.1.1f.tar.gz
 RUN cd libogg-1.3.4 && ./configure && make && make install
 RUN cd libvorbis-1.3.6 && ./configure && make && make install
 RUN cd opus-1.3.1 && ./configure && make && make install
-RUN cd openssl-1.0.2q  && ./config -fPIC -static && make depend && make && make install
+RUN cd openssl-1.1.1f  && ./config -fPIC -static && make depend && make && make install
 ENV PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/ssl/lib/pkgconfig OPENSSL_STATIC=1
 RUN cd opusfile-0.11 && ./configure && make && make install
 
