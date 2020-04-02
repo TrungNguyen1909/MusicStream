@@ -10,6 +10,7 @@ require (
 	github.com/gorilla/websocket v1.4.1
 	github.com/joho/godotenv v1.3.0
 	github.com/petar/GoLLRB v0.0.0-20190514000832-33fb24c13b99 // indirect
+	github.com/rs/zerolog v1.16.0
 	github.com/rylio/ytdl v0.6.2
 	github.com/tdewolff/minify v2.3.6+incompatible
 	github.com/tdewolff/parse v2.3.4+incompatible // indirect

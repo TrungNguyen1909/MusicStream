@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 
 	"github.com/ebml-go/webm"
 	"github.com/faiface/beep"
@@ -71,7 +70,7 @@ func (decoder *MP3Decoder) Close() (err error) {
 	return decoder.s.Close()
 }
 
-//NewMP3Decoder returns a mp3 decoding stream with provided stream
+//NewMP3Decoder returns a 16bit/48khz PCM stream with provided mp3 stream
 func NewMP3Decoder(stream io.ReadCloser) (decoder *MP3Decoder, err error) {
 	streamer, format, err := mp3.Decode(stream)
 	if err != nil {
@@ -86,7 +85,7 @@ func NewMP3Decoder(stream io.ReadCloser) (decoder *MP3Decoder, err error) {
 	return
 }
 
-//VorbisDecoder represents a mp3 decoding stream
+//VorbisDecoder represents a vorbis decoding stream
 type VorbisDecoder struct {
 	s beep.StreamSeekCloser
 	r *beep.Resampler
@@ -125,7 +124,7 @@ func (decoder *VorbisDecoder) Close() (err error) {
 	return decoder.s.Close()
 }
 
-//NewVorbisDecoder returns a mp3 decoding stream with provided stream
+//NewVorbisDecoder returns a 16bit/48khz PCM stream with provided vorbis stream
 func NewVorbisDecoder(stream io.ReadCloser) (decoder *VorbisDecoder, err error) {
 	streamer, format, err := vorbis.Decode(stream)
 	if err != nil {
@@ -191,7 +190,7 @@ func (decoder *OpusDecoder) Close() (err error) {
 	return
 }
 
-//NewOpusDecoder returns a new opus decoding stream with the provided stream
+//NewOpusDecoder returns a new 16bit/48khz PCM stream with the provided opus stream
 func NewOpusDecoder(stream io.Reader, sampleRate, channels int) (decoder *OpusDecoder, err error) {
 	os, err := opus.NewDecoder(sampleRate, channels)
 	if err != nil {
@@ -200,7 +199,9 @@ func NewOpusDecoder(stream io.Reader, sampleRate, channels int) (decoder *OpusDe
 	return &OpusDecoder{s: stream, o: os}, nil
 }
 
-//WebMDecoder represents a WebM decoding stream
+//WebMDecoder represents a WebM decoding stream.
+//
+//BUG(TrungNguyen1909): The WebMDecoder will buffer the whole stream until close because webm requires a seekable stream.
 type WebMDecoder struct {
 	br          *io.PipeReader
 	bw          *io.PipeWriter
@@ -240,7 +241,9 @@ func (decoder *WebMDecoder) Read(p []byte) (n int, err error) {
 	return decoder.o.Read(p)
 }
 
-//NewWebMDecoder returns a new webm audio decoding stream with the provided stream
+//NewWebMDecoder returns a new 16bit/48khz PCM audio stream with the provided WebM stream
+//
+//BUG(TrungNguyen1909): Only WebM stream with opus audio is supported.
 func NewWebMDecoder(stream io.ReadCloser) (decoder *WebMDecoder, err error) {
 	var meta webm.WebM
 	src, ok := stream.(io.ReadSeeker)
@@ -252,13 +255,15 @@ func NewWebMDecoder(stream io.ReadCloser) (decoder *WebMDecoder, err error) {
 		return
 	}
 	atrack := meta.FindFirstAudioTrack()
-	if atrack != nil {
-		log.Print("webm: found audio track: ", atrack.CodecID)
+	if atrack == nil || atrack.CodecID != "A_OPUS" {
+		err = errors.New("Failed to get audio from webm/audio codec unsupported")
+		return
 	}
 	br, bw := io.Pipe()
 	o, err := NewOpusDecoder(br, int(atrack.SamplingFrequency), int(atrack.Channels))
 	if err != nil {
-		log.Panic("webDecoder:Read() -> NewOpusDecoder() failed: ", err)
+		err = errors.New("webDecoder:Read() -> NewOpusDecoder() failed: " + err.Error())
+		return
 	}
 	return &WebMDecoder{
 		s:      src,
@@ -271,7 +276,8 @@ func NewWebMDecoder(stream io.ReadCloser) (decoder *WebMDecoder, err error) {
 	}, nil
 }
 
-//BufferedReadSeeker represents a buffered seekable buffer which allows io.ReadCloser to be seeked
+//BufferedReadSeeker represents a buffered seekable buffer which allows io.ReadCloser to be seeked.
+//BufferedReadSeeker will read the stream as needed and keep it in memory until closed and does not support io.SeekEnd
 type BufferedReadSeeker struct {
 	r   io.ReadCloser
 	buf bytes.Buffer
@@ -282,11 +288,15 @@ type BufferedReadSeeker struct {
 
 //Seek seeks BufferedReadSeeker to the provided location, io.SeekEnd is not supported
 func (s *BufferedReadSeeker) Seek(offset int64, whence int) (npos int64, err error) {
+	if offset == 0 && whence == io.SeekCurrent {
+		return s.cur, nil
+	}
 	npos = s.cur
 	var np int64
 	switch whence {
 	case io.SeekEnd:
-		log.Panic("SeekEnd not supported on BufferedReadSeeker")
+		err = errors.New("SeekEnd not supported on BufferedReadSeeker")
+		return
 	case io.SeekCurrent:
 		np = s.cur + offset
 	case io.SeekStart:

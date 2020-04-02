@@ -33,6 +33,7 @@ import (
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
+	"github.com/rs/zerolog"
 	"github.com/rylio/ytdl"
 )
 
@@ -158,6 +159,7 @@ func (track *Track) Populate() (err error) {
 	if len(track.StreamURL) > 0 {
 		return
 	}
+	zerolog.SetGlobalLevel(zerolog.WarnLevel)
 	videoInfo, err := ytdl.GetVideoInfoFromID(track.ytTrack.ID)
 	if err != nil {
 		return
@@ -317,6 +319,7 @@ func extractVideoID(q string) (videoID string, err error) {
 
 //GetTrackFromVideoID returns a track on Youtube with provided videoID
 func GetTrackFromVideoID(videoID string) (track common.Track, err error) {
+	zerolog.SetGlobalLevel(zerolog.WarnLevel)
 	videoInfo, err := ytdl.GetVideoInfoFromID(videoID)
 	if err != nil {
 		return
