@@ -19,6 +19,7 @@
 package youtube
 
 import (
+	"context"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -33,8 +34,8 @@ import (
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
+	"github.com/lowerzero/ytdl"
 	"github.com/rs/zerolog"
-	"github.com/rylio/ytdl"
 )
 
 type youtubeResponse struct {
@@ -160,12 +161,12 @@ func (track *Track) Populate() (err error) {
 		return
 	}
 	zerolog.SetGlobalLevel(zerolog.WarnLevel)
-	videoInfo, err := ytdl.GetVideoInfoFromID(track.ytTrack.ID)
+	videoInfo, err := ytdl.DefaultClient.GetVideoInfoFromID(context.Background(), track.ytTrack.ID)
 	if err != nil {
 		return
 	}
 	formats := videoInfo.Formats.Extremes(ytdl.FormatAudioBitrateKey, true)
-	streamURL, err := videoInfo.GetDownloadURL(formats[0])
+	streamURL, err := ytdl.DefaultClient.GetDownloadURL(context.Background(), videoInfo, formats[0])
 	if err != nil {
 		return
 	}
@@ -319,8 +320,7 @@ func extractVideoID(q string) (videoID string, err error) {
 
 //GetTrackFromVideoID returns a track on Youtube with provided videoID
 func GetTrackFromVideoID(videoID string) (track common.Track, err error) {
-	zerolog.SetGlobalLevel(zerolog.WarnLevel)
-	videoInfo, err := ytdl.GetVideoInfoFromID(videoID)
+	videoInfo, err := ytdl.DefaultClient.GetVideoInfoFromID(context.Background(), videoID)
 	if err != nil {
 		return
 	}
@@ -335,7 +335,7 @@ func GetTrackFromVideoID(videoID string) (track common.Track, err error) {
 		playID: common.GenerateID(),
 	}
 	formats := videoInfo.Formats.Extremes(ytdl.FormatAudioBitrateKey, true)
-	streamURL, err := videoInfo.GetDownloadURL(formats[0])
+	streamURL, err := ytdl.DefaultClient.GetDownloadURL(context.Background(), videoInfo, formats[0])
 	if err != nil {
 		return
 	}
