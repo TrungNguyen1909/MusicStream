@@ -44,7 +44,7 @@ import (
 )
 
 const (
-	chunkDelayMS          = 40
+	chunkDelayMS          = 50
 	opSetClientsTrack     = 1
 	opAllClientsSkip      = 2
 	opClientRequestTrack  = 3
@@ -97,7 +97,7 @@ func audioManager() {
 	deltaChannel = make(chan int64, 1)
 	quitRadio = make(chan int, 10)
 	newListenerC = make(chan int, 1)
-	encoder = vorbisencoder.NewEncoder(2, 48000, 256000)
+	encoder = vorbisencoder.NewEncoder(2, 48000, 320000)
 	oggHeader = make([]byte, 5000)
 	n := encoder.Encode(oggHeader, make([]byte, 0))
 	oggHeader = oggHeader[:n]
