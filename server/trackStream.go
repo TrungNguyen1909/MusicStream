@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package main
+package server
 
 import (
 	"io"
@@ -27,18 +27,17 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/lyrics"
 	"github.com/TrungNguyen1909/MusicStream/youtube"
-	_ "github.com/joho/godotenv/autoload"
 )
 
-func preloadTrack(stream io.ReadCloser, quit chan int) {
+func (s *Server) preloadTrack(stream io.ReadCloser, quit chan int) {
 	var encodedTime time.Duration
 	defer stream.Close()
-	defer endCurrentStream()
-	pushSilentFrames(&encodedTime)
-	defer pushSilentFrames(&encodedTime)
-	pos := int64(encoder.GranulePos())
-	atomic.StoreInt64(&startPos, pos)
-	deltaChannel <- pos
+	defer s.endCurrentStream()
+	s.pushSilentFrames(&encodedTime)
+	defer s.pushSilentFrames(&encodedTime)
+	pos := int64(s.encoder.GranulePos())
+	atomic.StoreInt64(&s.startPos, pos)
+	s.deltaChannel <- pos
 	log.Println("Track preloading started")
 	defer log.Println("Track preloading done")
 	for {
@@ -49,42 +48,42 @@ func preloadTrack(stream io.ReadCloser, quit chan int) {
 		}
 		buf := make([]byte, 3840)
 		n, err := stream.Read(buf)
-		pushPCMAudio(buf[:n], &encodedTime)
+		s.pushPCMAudio(buf[:n], &encodedTime)
 		if err != nil {
 			return
 		}
 	}
 }
-func processTrack() {
+func (s *Server) processTrack() {
 	defer func() {
 		if r := recover(); r != nil {
-			watchDog++
+			s.watchDog++
 			log.Println("processTrack Panicked:", r)
 		}
 	}()
 	var track common.Track
 	var err error
 	radioStarted := false
-	if playQueue.Empty() && radioTrack != nil {
+	if s.playQueue.Empty() && s.radioTrack != nil {
 		radioStarted = true
-		go processRadio(quitRadio)
-	} else if playQueue.Empty() {
-		currentTrack = defaultTrack
-		pos := int64(encoder.GranulePos())
-		atomic.StoreInt64(&startPos, pos)
-		deltaChannel <- pos
-		setTrack(common.GetMetadata(currentTrack))
+		go s.processRadio(s.quitRadio)
+	} else if s.playQueue.Empty() {
+		s.currentTrack = s.defaultTrack
+		pos := int64(s.encoder.GranulePos())
+		atomic.StoreInt64(&s.startPos, pos)
+		s.deltaChannel <- pos
+		s.setTrack(common.GetMetadata(s.currentTrack))
 	}
-	activityWg.Wait()
-	track = playQueue.Pop().(common.Track)
-	dequeueCallback()
-	currentTrackID = ""
-	watchDog = 0
-	activityWg.Wait()
-	currentTrackID = track.ID()
-	currentTrack = track
+	s.activityWg.Wait()
+	track = s.playQueue.Pop().(common.Track)
+	s.dequeueCallback()
+	s.currentTrackID = ""
+	s.watchDog = 0
+	s.activityWg.Wait()
+	s.currentTrackID = track.ID()
+	s.currentTrack = track
 	if radioStarted {
-		quitRadio <- 0
+		s.quitRadio <- 0
 	}
 	log.Printf("Playing %v - %v\n", track.Title(), track.Artist())
 	trackDict := common.GetMetadata(track)
@@ -105,18 +104,18 @@ func processTrack() {
 		log.Panic(err)
 	}
 	quit := make(chan int, 10)
-	go preloadTrack(stream, quit)
-	for len(skipChannel) > 0 {
+	go s.preloadTrack(stream, quit)
+	for len(s.skipChannel) > 0 {
 		select {
-		case <-skipChannel:
+		case <-s.skipChannel:
 		default:
 		}
 	}
-	time.Sleep(time.Until(etaDone.Load().(time.Time)))
-	startTime = time.Now()
-	setTrack(trackDict)
-	streamToClients(skipChannel, quit)
+	time.Sleep(time.Until(s.etaDone.Load().(time.Time)))
+	s.startTime = time.Now()
+	s.setTrack(trackDict)
+	s.streamToClients(s.skipChannel, quit)
 	log.Println("Stream ended!")
-	currentTrackID = ""
-	watchDog = 0
+	s.currentTrackID = ""
+	s.watchDog = 0
 }

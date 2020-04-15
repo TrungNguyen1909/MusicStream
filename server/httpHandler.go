@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package main
+package server
 
 import (
 	"bytes"
@@ -35,20 +35,19 @@ import (
 	"sync/atomic"
 
 	"github.com/gorilla/websocket"
-	_ "github.com/joho/godotenv/autoload"
 )
 
-func audioHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 	notify := r.Context().Done()
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		log.Fatal("expected http.ResponseWriter to be an http.Flusher")
 	}
-	atomic.AddInt32(&listenersCount, 1)
-	newListenerC <- 1
-	go setListenerCount()
-	defer setListenerCount()
-	defer atomic.AddInt32(&listenersCount, -1)
+	atomic.AddInt32(&s.listenersCount, 1)
+	s.newListenerC <- 1
+	go s.setListenerCount()
+	defer s.setListenerCount()
+	defer atomic.AddInt32(&s.listenersCount, -1)
 	w.Header().Set("Connection", "Keep-Alive")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Transfer-Encoding", "chunked")
@@ -56,10 +55,10 @@ func audioHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("pragma", "no-cache")
 	w.Header().Set("status", "200")
-	w.Write(oggHeader)
+	w.Write(s.oggHeader)
 	flusher.Flush()
 	channel := make(chan chunk, 500)
-	channels[0] <- channel
+	s.channels[0] <- channel
 	chanidx := 0
 	for {
 		select {
@@ -73,24 +72,24 @@ func audioHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			flusher.Flush()
-			channels[chanidx] <- channel
+			s.channels[chanidx] <- channel
 		}
 	}
 }
 
-func wsHandler(w http.ResponseWriter, r *http.Request) {
-	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-	_c, err := upgrader.Upgrade(w, r, nil)
+func (s *Server) wsHandler(w http.ResponseWriter, r *http.Request) {
+	s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+	_c, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
 		return
 	}
 	c := &webSocket{conn: _c, mux: &sync.Mutex{}}
-	connections.Store(c, c)
+	s.connections.Store(c, c)
 	defer c.Close()
-	defer connections.Delete(c)
-	c.WriteMessage(websocket.TextMessage, getPlaying())
-	c.WriteMessage(websocket.TextMessage, getQueue())
+	defer s.connections.Delete(c)
+	c.WriteMessage(websocket.TextMessage, s.getPlaying())
+	c.WriteMessage(websocket.TextMessage, s.getQueue())
 	for {
 		var msg wsMessage
 		err = c.ReadJSON(&msg)
@@ -99,17 +98,17 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		switch msg.Operation {
 		case opSetClientsTrack:
-			c.WriteMessage(websocket.TextMessage, getPlaying())
+			c.WriteMessage(websocket.TextMessage, s.getPlaying())
 		case opClientRequestTrack:
-			c.WriteMessage(websocket.TextMessage, enqueue(msg))
+			c.WriteMessage(websocket.TextMessage, s.enqueue(msg))
 		case opClientRequestSkip:
-			c.WriteMessage(websocket.TextMessage, skip())
+			c.WriteMessage(websocket.TextMessage, s.skip())
 		case opSetClientsListeners:
-			c.WriteMessage(websocket.TextMessage, getListenersCount())
+			c.WriteMessage(websocket.TextMessage, s.getListenersCount())
 		case opClientRemoveTrack:
-			c.WriteMessage(websocket.TextMessage, removeTrack(msg))
+			c.WriteMessage(websocket.TextMessage, s.removeTrack(msg))
 		case opClientRequestQueue:
-			c.WriteMessage(websocket.TextMessage, getQueue())
+			c.WriteMessage(websocket.TextMessage, s.getQueue())
 		case opWebSocketKeepAlive:
 			data, _ := json.Marshal(map[string]interface{}{
 				"op": opWebSocketKeepAlive,
@@ -120,23 +119,23 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func playingHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) playingHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	w.Write(getPlaying())
+	w.Write(s.getPlaying())
 	return
 }
 
-func listenersHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) listenersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	w.Write(getListenersCount())
+	w.Write(s.getListenersCount())
 	return
 }
 
-func enqueueHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) enqueueHandler(w http.ResponseWriter, r *http.Request) {
 	var msg wsMessage
 	err := json.NewDecoder(r.Body).Decode(&msg)
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
@@ -152,21 +151,21 @@ func enqueueHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(data)
 		return
 	}
-	w.Write(enqueue(msg))
+	w.Write(s.enqueue(msg))
 }
-func skipHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) skipHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	w.Write(skip())
+	w.Write(s.skip())
 }
-func queueHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) queueHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	w.Write(getQueue())
+	w.Write(s.getQueue())
 }
-func removeTrackHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) removeTrackHandler(w http.ResponseWriter, r *http.Request) {
 	var msg wsMessage
 	err := json.NewDecoder(r.Body).Decode(&msg)
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
@@ -182,7 +181,7 @@ func removeTrackHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(data)
 		return
 	}
-	w.Write(removeTrack(msg))
+	w.Write(s.removeTrack(msg))
 }
 func redirectToRoot(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -197,7 +196,7 @@ func toHTTPError(err error) (msg string, httpStatus int) {
 	// Default:
 	return "500 Internal Server Error", http.StatusInternalServerError
 }
-func fileServer(fs http.Dir) func(w http.ResponseWriter, r *http.Request) {
+func (s *Server) fileServer(fs http.Dir) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		upath := r.URL.Path
 		if !strings.HasPrefix(upath, "/") {
@@ -287,7 +286,7 @@ func fileServer(fs http.Dir) func(w http.ResponseWriter, r *http.Request) {
 		if mediaType == "" {
 			mediaType = http.DetectContentType(content)
 		}
-		mContent, err := minifier.Bytes(mediaType, content)
+		mContent, err := s.minifier.Bytes(mediaType, content)
 		etag := sha1.Sum(mContent)
 		w.Header().Set("ETag", "W/"+fmt.Sprintf("%x", etag))
 		if match := r.Header.Get("If-None-Match"); match != "" {

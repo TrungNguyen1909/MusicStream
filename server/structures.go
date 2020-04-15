@@ -16,14 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package main
+package server
 
 import (
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
-	_ "github.com/joho/godotenv/autoload"
 )
 
 type chunk struct {
@@ -42,7 +41,6 @@ type webSocket struct {
 	mux  *sync.Mutex
 }
 
-//#region webSocket
 func (socket *webSocket) WriteMessage(messageType int, data []byte) error {
 	socket.mux.Lock()
 	defer socket.mux.Unlock()
@@ -56,5 +54,3 @@ func (socket *webSocket) Close() error {
 func (socket *webSocket) ReadJSON(v interface{}) error {
 	return socket.conn.ReadJSON(v)
 }
-
-//#endregion

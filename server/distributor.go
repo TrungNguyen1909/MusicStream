@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package main
+package server
 
 import (
 	"encoding/json"
@@ -26,34 +26,33 @@ import (
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/gorilla/websocket"
-	_ "github.com/joho/godotenv/autoload"
 )
 
-func pushPCMAudio(pcm []byte, encodedTime *time.Duration) {
+func (s *Server) pushPCMAudio(pcm []byte, encodedTime *time.Duration) {
 	output := make([]byte, 20000)
-	encodedLen := encoder.Encode(output, pcm)
+	encodedLen := s.encoder.Encode(output, pcm)
 	output = output[:encodedLen]
 	*encodedTime += (time.Duration)(len(pcm)/4/48) * time.Millisecond
 	if len(output) > 0 {
-		bufferingChannel <- chunk{buffer: output, encoderTime: *encodedTime}
+		s.bufferingChannel <- chunk{buffer: output, encoderTime: *encodedTime}
 	}
 }
-func pushSilentFrames(encodedTime *time.Duration) {
+func (s *Server) pushSilentFrames(encodedTime *time.Duration) {
 	silenceBuffer := make([]byte, 76032)
 	for j := 0; j < 2; j++ {
 		for i := 0; i < 2; i++ {
-			pushPCMAudio(silenceBuffer, encodedTime)
+			s.pushPCMAudio(silenceBuffer, encodedTime)
 		}
 	}
 }
-func endCurrentStream() {
-	bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
+func (s *Server) endCurrentStream() {
+	s.bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
 }
-func streamToClients(quit chan int, quitPreload chan int) {
-	streamMux.Lock()
-	defer streamMux.Unlock()
+func (s *Server) streamToClients(quit chan int, quitPreload chan int) {
+	s.streamMux.Lock()
+	defer s.streamMux.Unlock()
 	start := time.Now()
-	etaDone.Store(start)
+	s.etaDone.Store(start)
 	interrupted := false
 	for {
 		select {
@@ -69,30 +68,30 @@ func streamToClients(quit chan int, quitPreload chan int) {
 		default:
 		}
 		if !interrupted {
-			Chunk := <-bufferingChannel
+			Chunk := <-s.bufferingChannel
 			if Chunk.buffer == nil {
 				log.Println("Found last chunk, breaking...")
 				break
 			}
 			done := false
-			Chunk.channel = ((currentChannel + 1) % 2)
+			Chunk.channel = ((s.currentChannel + 1) % 2)
 			for !done {
 				select {
-				case c := <-channels[currentChannel]:
+				case c := <-s.channels[s.currentChannel]:
 					select {
 					case c <- Chunk:
 					default:
 					}
 				default:
-					currentChannel = (currentChannel + 1) % 2
+					s.currentChannel = (s.currentChannel + 1) % 2
 					done = true
 				}
 			}
-			etaDone.Store(start.Add(Chunk.encoderTime))
+			s.etaDone.Store(start.Add(Chunk.encoderTime))
 			time.Sleep(Chunk.encoderTime - time.Since(start) - chunkDelayMS*time.Millisecond)
 		} else {
 			for {
-				Chunk := <-bufferingChannel
+				Chunk := <-s.bufferingChannel
 				if Chunk.buffer == nil {
 					log.Println("Found last chunk, breaking...")
 					break
@@ -102,26 +101,26 @@ func streamToClients(quit chan int, quitPreload chan int) {
 		}
 	}
 }
-func setTrack(trackMeta common.TrackMetadata) {
-	currentTrackMeta = trackMeta
+func (s *Server) setTrack(trackMeta common.TrackMetadata) {
+	s.currentTrackMeta = trackMeta
 	log.Printf("Setting track on all clients %v - %v\n", trackMeta.Title, trackMeta.Artist)
 	data, _ := json.Marshal(map[string]interface{}{
 		"op":        opSetClientsTrack,
 		"track":     trackMeta,
-		"pos":       <-deltaChannel,
-		"listeners": atomic.LoadInt32(&listenersCount),
+		"pos":       <-s.deltaChannel,
+		"listeners": atomic.LoadInt32(&s.listenersCount),
 	})
-	webSocketAnnounce(data)
+	s.webSocketAnnounce(data)
 }
-func setListenerCount() {
+func (s *Server) setListenerCount() {
 	data, _ := json.Marshal(map[string]interface{}{
 		"op":        opSetClientsListeners,
-		"listeners": atomic.LoadInt32(&listenersCount),
+		"listeners": atomic.LoadInt32(&s.listenersCount),
 	})
-	webSocketAnnounce(data)
+	s.webSocketAnnounce(data)
 }
-func webSocketAnnounce(msg []byte) {
-	connections.Range(func(key, value interface{}) bool {
+func (s *Server) webSocketAnnounce(msg []byte) {
+	s.connections.Range(func(key, value interface{}) bool {
 		ws := value.(*webSocket)
 		ws.WriteMessage(websocket.TextMessage, msg)
 		return true

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package main
+package server
 
 import (
 	"fmt"
@@ -27,10 +27,9 @@ import (
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-	_ "github.com/joho/godotenv/autoload"
 )
 
-func selfPinger() {
+func (s *Server) selfPinger() {
 	appName, ok := os.LookupEnv("HEROKU_APP_NAME")
 	if !ok {
 		return
@@ -38,7 +37,7 @@ func selfPinger() {
 	log.Println("Starting periodic keep-alive ping...")
 	url := fmt.Sprintf("https://%s.herokuapp.com", appName)
 	for {
-		if atomic.LoadInt32(&listenersCount) > 0 {
+		if atomic.LoadInt32(&s.listenersCount) > 0 {
 			resp, err := http.Get(url)
 			if err != nil {
 				resp.Body.Close()
@@ -49,24 +48,24 @@ func selfPinger() {
 	}
 }
 
-func listenerMonitor(ch chan int32) {
+func (s *Server) listenerMonitor(ch chan int32) {
 	timer := time.NewTimer(1 * time.Minute)
 	for {
-		if listeners := atomic.LoadInt32(&listenersCount); listeners > 0 {
+		if listeners := atomic.LoadInt32(&s.listenersCount); listeners > 0 {
 			ch <- listeners
 		}
 		timer.Reset(1 * time.Minute)
 		select {
-		case <-newListenerC:
+		case <-s.newListenerC:
 		case <-timer.C:
 		}
 	}
 }
 
-func inactivityMonitor() {
+func (s *Server) inactivityMonitor() {
 	timer := time.NewTimer(15 * time.Minute)
 	lch := make(chan int32)
-	go listenerMonitor(lch)
+	go s.listenerMonitor(lch)
 	isStandby := false
 	for {
 		select {
@@ -74,27 +73,27 @@ func inactivityMonitor() {
 			timer.Reset(15 * time.Minute)
 			if isStandby {
 				log.Println("Waking up...")
-				if radioTrack != nil {
-					go processRadio(quitRadio)
+				if s.radioTrack != nil {
+					go s.processRadio(s.quitRadio)
 				}
-				activityWg.Done()
+				s.activityWg.Done()
 				isStandby = false
 			}
 		case <-timer.C:
 			log.Println("Inactivity. Standby...")
 			isStandby = true
-			activityWg.Add(1)
-			if atomic.LoadInt32(&isRadioStreaming) > 0 {
-				quitRadio <- 0
-				streamMux.Lock()
-				streamMux.Unlock()
+			s.activityWg.Add(1)
+			if atomic.LoadInt32(&s.isRadioStreaming) > 0 {
+				s.quitRadio <- 0
+				s.streamMux.Lock()
+				s.streamMux.Unlock()
 			} else {
-				skipChannel <- 1
+				s.skipChannel <- 1
 			}
-			pos := int64(encoder.GranulePos())
-			atomic.StoreInt64(&startPos, pos)
-			deltaChannel <- pos
-			setTrack(common.GetMetadata(defaultTrack))
+			pos := int64(s.encoder.GranulePos())
+			atomic.StoreInt64(&s.startPos, pos)
+			s.deltaChannel <- pos
+			s.setTrack(common.GetMetadata(s.defaultTrack))
 		}
 	}
 }

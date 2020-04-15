@@ -28,7 +28,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_CFLAGS="-I/usr/local/musl/include/" CFLAGS="-I/usr/local/musl/include/" CGO_LDFLAGS="-w -s -L/usr/local/lib -logg -lvorbis -lvorbisenc -lopus -lopusfile" go build -a --ldflags '-w -s -linkmode external -extldflags "-static"' -v -o /bin/MusicStream .
+RUN CGO_CFLAGS="-I/usr/local/musl/include/" CFLAGS="-I/usr/local/musl/include/" CGO_LDFLAGS="-w -s -L/usr/local/lib -logg -lvorbis -lvorbisenc -lopus -lopusfile" go build -a --ldflags '-w -s -linkmode external -extldflags "-static"' -v -o /bin/MusicStream cmd/MusicStream/main.go
 
 FROM scratch
 COPY --from=build-env /usr/share/zoneinfo /usr/share/zoneinfo

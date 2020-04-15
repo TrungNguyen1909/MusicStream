@@ -16,34 +16,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package main
+package server
 
 import (
 	"encoding/json"
 	"log"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-	_ "github.com/joho/godotenv/autoload"
 )
 
-func enqueueCallback(value interface{}) {
+func (s *Server) enqueueCallback(value interface{}) {
 	track := value.(common.Track)
 	metadata := common.GetMetadata(track)
-	cacheQueue.Enqueue(metadata)
+	s.cacheQueue.Enqueue(metadata)
 	log.Printf("Enqueuing track on all clients %v - %v\n", metadata.Title, metadata.Artist)
 	data, _ := json.Marshal(map[string]interface{}{
 		"op":    opTrackEnqueued,
 		"track": metadata,
 	})
-	webSocketAnnounce(data)
+	s.webSocketAnnounce(data)
 }
-func dequeueCallback() {
-	removed := cacheQueue.Pop().(common.TrackMetadata)
+func (s *Server) dequeueCallback() {
+	removed := s.cacheQueue.Pop().(common.TrackMetadata)
 	data, _ := json.Marshal(map[string]interface{}{
 		"op":      opClientRemoveTrack,
 		"success": true,
 		"track":   removed,
 		"silent":  true,
 	})
-	webSocketAnnounce(data)
+	s.webSocketAnnounce(data)
 }

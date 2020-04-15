@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package main
+package server
 
 import (
 	"io"
@@ -25,10 +25,9 @@ import (
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-	_ "github.com/joho/godotenv/autoload"
 )
 
-func encodeRadio(stream io.ReadCloser, encodedTime *time.Duration, quit chan int) (ended bool) {
+func (s *Server) encodeRadio(stream io.ReadCloser, encodedTime *time.Duration, quit chan int) (ended bool) {
 
 	defer stream.Close()
 	for {
@@ -39,18 +38,18 @@ func encodeRadio(stream io.ReadCloser, encodedTime *time.Duration, quit chan int
 		}
 		buf := make([]byte, 3840)
 		n, err := stream.Read(buf)
-		pushPCMAudio(buf[:n], encodedTime)
+		s.pushPCMAudio(buf[:n], encodedTime)
 		if err != nil {
 			return false
 		}
 	}
 }
-func preloadRadio(quit chan int) {
+func (s *Server) preloadRadio(quit chan int) {
 	var encodedTime time.Duration
-	time.Sleep(time.Until(etaDone.Load().(time.Time)))
+	time.Sleep(time.Until(s.etaDone.Load().(time.Time)))
 	log.Println("Radio preloading started!")
-	defer endCurrentStream()
-	defer pushSilentFrames(&encodedTime)
+	defer s.endCurrentStream()
+	defer s.pushSilentFrames(&encodedTime)
 	defer log.Println("Radio preloading stopped!")
 	quitRadioTrackUpdate := make(chan int, 1)
 	go func() {
@@ -64,7 +63,7 @@ func preloadRadio(quit chan int) {
 			default:
 			}
 			if !firstTime {
-				radioTrack.WaitForTrackUpdate()
+				s.radioTrack.WaitForTrackUpdate()
 			} else {
 				firstTime = false
 			}
@@ -73,35 +72,35 @@ func preloadRadio(quit chan int) {
 				return
 			default:
 			}
-			if atomic.LoadInt32(&isRadioStreaming) > 0 {
-				pos := int64(encoder.GranulePos())
-				atomic.StoreInt64(&startPos, pos)
-				deltaChannel <- pos
-				setTrack(common.GetMetadata(radioTrack))
+			if atomic.LoadInt32(&s.isRadioStreaming) > 0 {
+				pos := int64(s.encoder.GranulePos())
+				atomic.StoreInt64(&s.startPos, pos)
+				s.deltaChannel <- pos
+				s.setTrack(common.GetMetadata(s.radioTrack))
 			}
 		}
 	}()
 	for {
-		stream, err := radioTrack.Download()
+		stream, err := s.radioTrack.Download()
 		if err != nil {
 			continue
 		}
-		if encodeRadio(stream, &encodedTime, quit) {
+		if s.encodeRadio(stream, &encodedTime, quit) {
 			break
 		}
 	}
 	quitRadioTrackUpdate <- 1
 }
-func processRadio(quit chan int) {
+func (s *Server) processRadio(quit chan int) {
 	quitPreload := make(chan int, 10)
-	radioTrack.InitWS()
-	time.Sleep(time.Until(etaDone.Load().(time.Time)))
-	currentTrack = radioTrack
-	go preloadRadio(quitPreload)
-	atomic.StoreInt32(&isRadioStreaming, 1)
-	defer atomic.StoreInt32(&isRadioStreaming, 0)
+	s.radioTrack.InitWS()
+	time.Sleep(time.Until(s.etaDone.Load().(time.Time)))
+	s.currentTrack = s.radioTrack
+	go s.preloadRadio(quitPreload)
+	atomic.StoreInt32(&s.isRadioStreaming, 1)
+	defer atomic.StoreInt32(&s.isRadioStreaming, 0)
 	defer log.Println("Radio stream ended")
-	defer radioTrack.CloseWS()
+	defer s.radioTrack.CloseWS()
 	defer func() { log.Println("Resuming track streaming...") }()
-	streamToClients(quit, quitPreload)
+	s.streamToClients(quit, quitPreload)
 }
