@@ -165,6 +165,8 @@ func (track *Track) Populate() (err error) {
 	if err != nil {
 		return
 	}
+	track.ytTrack.CoverURL = videoInfo.GetThumbnailURL(ytdl.ThumbnailQualityHigh).String()
+	track.ytTrack.Duration = int(videoInfo.Duration.Seconds())
 	formats := videoInfo.Formats.Extremes(ytdl.FormatAudioBitrateKey, true)
 	streamURL, err := ytdl.DefaultClient.GetDownloadURL(context.Background(), videoInfo, formats[0])
 	if err != nil {
@@ -344,7 +346,7 @@ func GetTrackFromVideoID(videoID string) (track common.Track, err error) {
 	return
 }
 
-//Search finds and returns a track from Youtube with the provided query
+//Search finds and returns a list of tracks from Youtube with the provided query
 func Search(query string) (tracks []common.Track, err error) {
 	videoID, err := extractVideoID(query)
 	if err == nil && len(videoID) > 0 {
@@ -378,10 +380,20 @@ func Search(query string) (tracks []common.Track, err error) {
 		err = errors.New("No track found")
 		return
 	}
-	itrack, err := GetTrackFromVideoID(resp.Items[0].ID.VideoID)
-	if err != nil {
-		return
+	itracks := make([]common.Track, len(resp.Items))
+	for i, item := range resp.Items {
+		itrack := &Track{
+			ytTrack: ytTrack{
+				ID:           item.ID.VideoID,
+				Title:        item.Snippet.Title,
+				ChannelTitle: item.Snippet.ChannelTitle,
+				CoverURL:     item.Snippet.Thumbnails.High.URL,
+				Duration:     0,
+			},
+			playID: common.GenerateID(),
+		}
+		itracks[i] = itrack
 	}
-	tracks = []common.Track{itrack}
+	tracks = itracks
 	return
 }
