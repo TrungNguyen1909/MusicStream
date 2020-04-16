@@ -41,7 +41,8 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 	notify := r.Context().Done()
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		log.Fatal("expected http.ResponseWriter to be an http.Flusher")
+		log.Println("expected http.ResponseWriter to be an http.Flusher")
+		return
 	}
 	atomic.AddInt32(&s.listenersCount, 1)
 	s.newListenerC <- 1

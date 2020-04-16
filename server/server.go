@@ -27,6 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/TrungNguyen1909/MusicStream"
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/deezer"
 	"github.com/TrungNguyen1909/MusicStream/queue"
@@ -91,7 +92,7 @@ type Server struct {
 }
 
 //Serve starts the server, listening at addr
-func (s *Server) Serve(addr string) {
+func (s *Server) Serve(addr string) (err error) {
 	go s.selfPinger()
 	go s.inactivityMonitor()
 	go func() {
@@ -99,9 +100,9 @@ func (s *Server) Serve(addr string) {
 			s.processTrack()
 		}
 	}()
-	log.Printf("Serving on %s", addr)
+	log.Printf("Starting MusicStream v%s at %s", MusicStream.Version, addr)
 	s.server = &http.Server{Addr: addr, Handler: logRequest(s.serveMux)}
-	log.Fatal(s.server.ListenAndServe())
+	return s.server.ListenAndServe()
 }
 
 //NewServer returns a new server

@@ -25,5 +25,5 @@ func main() {
 	}
 	port = ":" + port
 	s := server.NewServer()
-	s.Serve(port)
+	log.Fatal(s.Serve(port))
 }
