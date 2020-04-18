@@ -1,25 +1,7 @@
 FROM golang:alpine as build-env
 
 WORKDIR /go/src/github.com/TrungNguyen1909/MusicStream
-RUN apk --no-cache add --virtual .build-deps build-base ca-certificates curl linux-headers musl musl-dev tar perl pkgconfig tzdata
-ENV CC="x86_64-alpine-linux-musl-gcc" STATIC_CC="x86_64-alpine-linux-musl-gcc" CCOPT="-static -fPIC" BUILDMODE="static"
-RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/ogg/libogg-1.3.4.tar.gz
-RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.6.tar.gz
-RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/opus/opus-1.3.1.tar.gz
-RUN curl -sqLO https://ftp.osuosl.org/pub/xiph/releases/opus/opusfile-0.11.tar.gz
-RUN curl -sqLO https://www.openssl.org/source/openssl-1.1.1f.tar.gz
-RUN tar -xf libogg-1.3.4.tar.gz
-RUN tar -xf libvorbis-1.3.6.tar.gz
-RUN tar -xf opus-1.3.1.tar.gz
-RUN tar -xf opusfile-0.11.tar.gz
-RUN tar -xf openssl-1.1.1f.tar.gz
-RUN cd libogg-1.3.4 && ./configure && make && make install
-RUN cd libvorbis-1.3.6 && ./configure && make && make install
-RUN cd opus-1.3.1 && ./configure && make && make install
-RUN cd openssl-1.1.1f  && ./config -fPIC -static && make depend && make && make install
-ENV PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/ssl/lib/pkgconfig OPENSSL_STATIC=1
-RUN cd opusfile-0.11 && ./configure && make && make install
-
+RUN apk --no-cache add --virtual .build-deps build-base ca-certificates pkgconfig tzdata libogg-dev libvorbis-dev opus-dev opusfile-dev
 
 COPY go.mod .
 COPY go.sum .
@@ -28,11 +10,10 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_CFLAGS="-I/usr/local/musl/include/" CFLAGS="-I/usr/local/musl/include/" CGO_LDFLAGS="-w -s -L/usr/local/lib -logg -lvorbis -lvorbisenc -lopus -lopusfile" go build -a --ldflags '-w -s -linkmode external -extldflags "-static"' -v -o /bin/MusicStream cmd/MusicStream/main.go
+RUN GOOS=linux GOARCH=amd64 go build -a --ldflags '-w -s' -v -o /bin/MusicStream cmd/MusicStream/main.go
 
-FROM scratch
-COPY --from=build-env /usr/share/zoneinfo /usr/share/zoneinfo
-COPY --from=build-env /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+FROM alpine 
+RUN apk --no-cache add ca-certificates tzdata libogg libvorbis opus opusfile
 COPY --from=build-env /bin/MusicStream /bin/MusicStream
 COPY --from=build-env /go/src/github.com/TrungNguyen1909/MusicStream/www www
 
