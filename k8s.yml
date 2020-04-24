@@ -75,6 +75,6 @@ spec:
   type: ClusterIP  
   ports:
   - name: "musicstream"
-    port: 8890
+    port: 8080
   selector:
     app: musicstream

@@ -14,4 +14,4 @@ services:
             - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
             - RADIO_DISABLED=${RADIO_DISABLED}
         ports:
-            - 8080:8890
+            - 8080:8080

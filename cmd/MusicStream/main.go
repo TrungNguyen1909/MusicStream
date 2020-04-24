@@ -21,7 +21,7 @@ func main() {
 	}
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
-		port = "8890"
+		port = "8080"
 	}
 	port = ":" + port
 	s := server.NewServer()

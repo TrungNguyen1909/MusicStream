@@ -38,7 +38,7 @@ Installation
 
 - Run `./MusicStream` to start the server
 
-- By default, the server listens at port `:8890`, but you can set that in `$PORT`
+- By default, the server listens at port `:8080`, but you can set that in `$PORT`
 
 # API Tokens
 

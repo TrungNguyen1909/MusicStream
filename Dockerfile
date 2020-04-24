@@ -18,4 +18,4 @@ COPY --from=build-env /bin/MusicStream /bin/MusicStream
 COPY --from=build-env /go/src/github.com/TrungNguyen1909/MusicStream/www www
 
 ENTRYPOINT ["/bin/MusicStream"]
-EXPOSE 8890
+EXPOSE 8080 
