@@ -130,7 +130,7 @@ body {
 .player .control-panel .controls .pause,
 .player .control-panel .controls .next {
   width: 55px;
-  height: auto;
+  height: 80px;
   margin: 5px 0;
   background-color: #1b2b40;
   cursor: pointer;
