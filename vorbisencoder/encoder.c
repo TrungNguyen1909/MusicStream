@@ -37,7 +37,8 @@ struct tEncoderState
 	vorbis_dsp_state vd;
 	vorbis_block vb;
 	ogg_packet op;
-
+    
+    long bitrate;
 	int packet_id;
 	int rate;
 	int num_channels;
@@ -54,17 +55,17 @@ struct tEncoderState
 typedef struct tEncoderState Encoder;
 static int write_page(Encoder* state, ogg_page* page)
 {
-	memcpy(state->encoded_buffer + state->encoded_length, page->header, page->header_len);
-	state->encoded_length += page->header_len;
+		memcpy(state->encoded_buffer + state->encoded_length, page->header, page->header_len);
+		state->encoded_length += page->header_len;
 
-	memcpy(state->encoded_buffer + state->encoded_length, page->body, page->body_len);
-	state->encoded_length += page->body_len;
+		memcpy(state->encoded_buffer + state->encoded_length, page->body, page->body_len);
+		state->encoded_length += page->body_len;
 
-	//printf("write_page(); total encoded stream length: %i bytes\n", state->encoded_length);
-	return page->header_len+page->body_len;
+		//printf("write_page(); total encoded stream length: %i bytes\n", state->encoded_length);
+		return page->header_len+page->body_len;
 }
 
-static Encoder* encoder_start(int sample_rate, float quality)
+static Encoder* encoder_start(int sample_rate, long bitrate)
 {
 	Encoder *state = calloc(1,sizeof(struct tEncoderState));
 	srand(time(NULL));
@@ -73,13 +74,18 @@ static Encoder* encoder_start(int sample_rate, float quality)
 	state->sample_rate = sample_rate;
 	state->num_channels = 2;
 	state->encoded_buffer = malloc(3 * 1024 * 1024);
+    state->bitrate = bitrate;
 	//printf("encoder_start(); initializing vorbis encoder with sample_rate = %i Hz\n", state->sample_rate);
 
 	state->encoded_max_size = 0;
 	state->encoded_length = 0;
 	vorbis_info_init(&state->vi);
-	if(vorbis_encode_init_vbr(&state->vi, 2, state->sample_rate, quality)){
-		printf("encoder_start() failed: vorbis_encoder_init_vbr()\n");
+	// if(vorbis_encode_init_vbr(&state->vi, 2, state->sample_rate, 0.4f)){
+	// 	printf("encoder_start() failed: vorbis_encoder_init_vbr()\n");
+	// 	return NULL;
+	// }
+	if(vorbis_encode_init(&state->vi, 2, state->sample_rate, state->bitrate, state->bitrate, state->bitrate)){
+		printf("encoder_start() failed: vorbis_encoder_init()\n");
 		return NULL;
 	}
 	vorbis_comment_init(&state->vc);
@@ -138,10 +144,10 @@ static long encode(Encoder* state, char* outputSlice, char* inputSlice){
 			}
 		}
 	}
-	if(out_size<state->encoded_length){
-		fprintf(stderr,"Output size too small %ld < %ld\n",out_size,state->encoded_length);
-		fflush(stderr);
-	}
+    if(out_size<state->encoded_length){
+        fprintf(stderr,"Output size too small %ld < %ld\n",out_size,state->encoded_length);
+        fflush(stderr);
+    }
 	memcpy(out,state->encoded_buffer,min(state->encoded_length,out_size));
 	long ret = min(state->encoded_length,out_size);
 	state->encoded_length -=min(state->encoded_length,out_size);

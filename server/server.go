@@ -116,7 +116,7 @@ func NewServer() *Server {
 	s.deltaChannel = make(chan int64, 1)
 	s.quitRadio = make(chan int, 10)
 	s.newListenerC = make(chan int, 1)
-	s.encoder = vorbisencoder.NewEncoder(2, 48000, 0.9)
+	s.encoder = vorbisencoder.NewEncoder(2, 48000, 320000)
 	s.oggHeader = make([]byte, 5000)
 	n := s.encoder.Encode(s.oggHeader, make([]byte, 0))
 	s.oggHeader = s.oggHeader[:n]
