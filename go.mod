@@ -15,7 +15,7 @@ require (
 	github.com/tdewolff/minify v2.3.6+incompatible
 	github.com/tdewolff/parse v2.3.4+incompatible // indirect
 	github.com/tdewolff/test v1.0.6 // indirect
-	golang.org/x/crypto v0.0.0-20200414173820-0848c9571904
+	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
 	golang.org/x/text v0.3.2
 	gopkg.in/hraban/opus.v2 v2.0.0-20191117073431-57179dff69a6
 )
