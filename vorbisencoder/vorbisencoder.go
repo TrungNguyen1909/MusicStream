@@ -33,9 +33,9 @@ type Encoder struct {
 	mux     sync.Mutex
 }
 
-func NewEncoder(channels int32, sampleRate int32, bitRate uint) *Encoder {
+func NewEncoder(channels int32, sampleRate int32, quality float32) *Encoder {
 	encoder := &Encoder{}
-	encoder.encoder = (*C.struct_tEncoderState)(C.encoder_start(C.int(sampleRate), C.long(bitRate)))
+	encoder.encoder = (*C.struct_tEncoderState)(C.encoder_start(C.int(sampleRate), C.float(quality)))
 	return encoder
 }
 
