@@ -25,8 +25,6 @@ import (
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-	"github.com/TrungNguyen1909/MusicStream/lyrics"
-	"github.com/TrungNguyen1909/MusicStream/youtube"
 )
 
 func (s *Server) preloadTrack(stream io.ReadCloser, quit chan int) {
@@ -89,12 +87,12 @@ func (s *Server) processTrack() {
 	trackDict := common.GetMetadata(track)
 	var mxmlyrics common.LyricsResult
 	if track.Source() != common.Youtube {
-		mxmlyrics, err = lyrics.GetLyrics(track.Title(), track.Artist(), track.Album(), track.Artists(), track.ISRC(), track.SpotifyURI(), track.Duration())
+		mxmlyrics, err = s.mxmClient.GetLyrics(track.Title(), track.Artist(), track.Album(), track.Artists(), track.ISRC(), track.SpotifyURI(), track.Duration())
 		if err == nil {
 			trackDict.Lyrics = mxmlyrics
 		}
 	} else {
-		ytsub, err := youtube.GetLyrics(track.ID())
+		ytsub, err := s.ytClient.GetLyrics(track.ID())
 		if err == nil {
 			trackDict.Lyrics = ytsub
 		}

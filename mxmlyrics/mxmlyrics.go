@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lyrics
+package mxmlyrics
 
 import (
 	"compress/gzip"
@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"strconv"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
@@ -102,23 +101,27 @@ type mxmResponse struct {
 	} `json:"message"`
 }
 
+//Client represents a MusixMatch lyrics Client
+type Client struct {
+	httpClient  *http.Client
+	userToken   string
+	obUserToken string
+}
+
 //GetLyrics returns the lyrics of the song with provided information
-func GetLyrics(track, artist, album, artists, ISRC, SpotifyURI string, duration int) (result common.LyricsResult, err error) {
+func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI string, duration int) (result common.LyricsResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("GetLyrics: %v\n", r)
 		}
 	}()
-	cookiesJar, _ := cookiejar.New(nil)
-	client := &http.Client{Jar: cookiesJar}
 	rawURL := "http://apic.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&user_language=en&tags=playing&namespace=lyrics_synched&f_subtitle_length_max_deviation=1&subtitle_format=mxm&app_id=mac-ios-v2.0&part=subtitle_translated%2Clyrics_translated&selected_language=en"
 
 	reqURL, _ := url.Parse(rawURL)
 	queries := reqURL.Query()
-	queries.Add("usertoken", os.Getenv("MUSIXMATCH_USER_TOKEN"))
-	obUserToken, exists := os.LookupEnv("MUSIXMATCH_OB_USER_TOKEN")
-	if exists {
-		queries.Add("OB-USER-TOKEN", obUserToken)
+	queries.Add("usertoken", client.userToken)
+	if len(client.obUserToken) > 0 {
+		queries.Add("OB-USER-TOKEN", client.obUserToken)
 	}
 	queries.Add("q_track", track)
 	queries.Add("q_artist", artist)
@@ -144,7 +147,7 @@ func GetLyrics(track, artist, album, artists, ISRC, SpotifyURI string, duration 
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.4 Safari/605.1.15")
 	req.Header.Set("Accept-Language", "en-us")
 	req.Header.Set("Accept-Encoding", "gzip, deflate")
-	resp, err := client.Do(req)
+	resp, err := client.httpClient.Do(req)
 	if err != nil {
 		log.Println(err)
 		return
@@ -210,4 +213,12 @@ func GetLyrics(track, artist, album, artists, ISRC, SpotifyURI string, duration 
 		})
 	}
 	return
+}
+
+//NewClient returns a new MusixMatch client with provided tokens
+func NewClient(MXMUserToken, MXMOBUserToken string) (client *Client) {
+	cookiesJar, _ := cookiejar.New(nil)
+	client = &Client{httpClient: &http.Client{Jar: cookiesJar}, userToken: MXMUserToken, obUserToken: MXMOBUserToken}
+	return
+
 }

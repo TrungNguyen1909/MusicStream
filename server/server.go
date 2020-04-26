@@ -21,7 +21,6 @@ package server
 import (
 	"log"
 	"net/http"
-	"os"
 	"regexp"
 	"sync"
 	"sync/atomic"
@@ -30,9 +29,11 @@ import (
 	"github.com/TrungNguyen1909/MusicStream"
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/deezer"
+	"github.com/TrungNguyen1909/MusicStream/mxmlyrics"
 	"github.com/TrungNguyen1909/MusicStream/queue"
 	"github.com/TrungNguyen1909/MusicStream/radio"
 	"github.com/TrungNguyen1909/MusicStream/vorbisencoder"
+	"github.com/TrungNguyen1909/MusicStream/youtube"
 	"github.com/gorilla/websocket"
 	"github.com/tdewolff/minify"
 	"github.com/tdewolff/minify/css"
@@ -63,6 +64,8 @@ type Server struct {
 	currentTrack     common.Track
 	currentTrackMeta common.TrackMetadata
 	dzClient         *deezer.Client
+	ytClient         *youtube.Client
+	mxmClient        *mxmlyrics.Client
 	playQueue        *queue.Queue
 	channels         [2]chan chan chunk
 	currentChannel   int
@@ -106,7 +109,7 @@ func (s *Server) Serve(addr string) (err error) {
 }
 
 //NewServer returns a new server
-func NewServer() *Server {
+func NewServer(config Config) *Server {
 	s := &Server{}
 	for i := range s.channels {
 		s.channels[i] = make(chan chan chunk, 1000)
@@ -121,10 +124,12 @@ func NewServer() *Server {
 	n := s.encoder.Encode(s.oggHeader, make([]byte, 0))
 	s.oggHeader = s.oggHeader[:n]
 
-	s.dzClient = deezer.NewClient()
+	s.dzClient = deezer.NewClient(config.DeezerARL, config.SpotifyClientID, config.SpotifyClientSecret)
+	s.ytClient = youtube.NewClient(config.YoutubeDeveloperKey)
+	s.mxmClient = mxmlyrics.NewClient(config.MusixMatchUserToken, config.MusixMatchOBUserToken)
 	s.cacheQueue = queue.NewQueue()
 	s.playQueue = queue.NewQueue()
-	if radioDisabled, ok := os.LookupEnv("RADIO_DISABLED"); !ok && len(radioDisabled) > 0 {
+	if !config.RadioDisabled {
 		s.radioTrack = radio.NewTrack()
 	}
 	s.currentTrack = s.defaultTrack

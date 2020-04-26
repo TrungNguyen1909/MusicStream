@@ -25,6 +25,16 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+//Config contains the API keys for Server
+type Config struct {
+	DeezerARL             string
+	MusixMatchUserToken   string
+	MusixMatchOBUserToken string
+	YoutubeDeveloperKey   string
+	SpotifyClientID       string
+	SpotifyClientSecret   string
+	RadioDisabled         bool
+}
 type chunk struct {
 	buffer      []byte
 	encoderTime time.Duration

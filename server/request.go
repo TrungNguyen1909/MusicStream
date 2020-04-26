@@ -26,7 +26,6 @@ import (
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/csn"
-	"github.com/TrungNguyen1909/MusicStream/youtube"
 )
 
 func (s *Server) getPlaying() []byte {
@@ -63,7 +62,7 @@ func (s *Server) enqueue(msg wsMessage) []byte {
 	case common.CSN:
 		tracks, err = csn.Search(msg.Query)
 	case common.Youtube:
-		tracks, err = youtube.Search(msg.Query)
+		tracks, err = s.ytClient.Search(msg.Query)
 	default:
 		tracks, err = s.dzClient.SearchTrack(msg.Query, "")
 	}

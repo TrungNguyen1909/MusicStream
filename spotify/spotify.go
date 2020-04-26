@@ -24,7 +24,6 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 )
 
@@ -34,6 +33,8 @@ type Client struct {
 	AccessTokenExpirationTimestamp time.Time
 	TokenType                      string `json:"token_type"`
 	ExpiresIn                      int64  `json:"expires_in"`
+	clientID                       string
+	clientSecret                   string
 }
 type searchResponse struct {
 	BestMatch struct {
@@ -180,13 +181,7 @@ func (client *Client) fetchToken() (err error) {
 	if err != nil {
 		return
 	}
-	clientID := os.Getenv("SPOTIFY_CLIENT_ID")
-	clientSecret := os.Getenv("SPOTIFY_CLIENT_SECRET")
-	if len(clientID) <= 0 || len(clientSecret) <= 0 {
-		err = errors.New("Invalid Spotify Authorization")
-		return
-	}
-	req.SetBasicAuth(clientID, clientSecret)
+	req.SetBasicAuth(client.clientID, client.clientSecret)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -255,8 +250,15 @@ func (client *Client) SearchTrack(track, artist, album, isrc string) (sTrack, sA
 }
 
 //NewClient returns new Spotify Client
-func NewClient() (client *Client, err error) {
-	client = &Client{}
+func NewClient(clientID, clientSecret string) (client *Client, err error) {
+	if len(clientID) <= 0 || len(clientSecret) <= 0 {
+		err = errors.New("Invalid Spotify Authorization")
+		return
+	}
+	client = &Client{clientID: clientID, clientSecret: clientSecret}
 	err = client.fetchToken()
+	if err != nil {
+		client = nil
+	}
 	return
 }

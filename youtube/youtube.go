@@ -29,7 +29,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
@@ -209,7 +208,12 @@ type line struct {
 	Text     string  `xml:",chardata"`
 }
 
-func getLyricsWithLang(id, lang, name string) (result []line, err error) {
+//Client represents a Youtube client
+type Client struct {
+	apiKey string
+}
+
+func (client *Client) getLyricsWithLang(id, lang, name string) (result []line, err error) {
 	if len(id) == 0 || len(lang) == 0 {
 		return nil, errors.New("Invalid Arguments")
 	}
@@ -233,7 +237,7 @@ func getLyricsWithLang(id, lang, name string) (result []line, err error) {
 }
 
 //GetLyrics returns the subtitle for a video id
-func GetLyrics(id string) (result common.LyricsResult, err error) {
+func (client *Client) GetLyrics(id string) (result common.LyricsResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			e, ok := r.(error)
@@ -279,8 +283,8 @@ func GetLyrics(id string) (result common.LyricsResult, err error) {
 			}
 		}
 	}
-	def, _ := getLyricsWithLang(id, defaultLang, defaultLangName)
-	trans, _ := getLyricsWithLang(id, translatedLang, translatedLangName)
+	def, _ := client.getLyricsWithLang(id, defaultLang, defaultLangName)
+	trans, _ := client.getLyricsWithLang(id, translatedLang, translatedLangName)
 	if len(def) == 0 {
 		err = errors.New("No subtitles found")
 		return
@@ -299,7 +303,7 @@ func GetLyrics(id string) (result common.LyricsResult, err error) {
 	}
 	return
 }
-func extractVideoID(q string) (videoID string, err error) {
+func (client *Client) extractVideoID(q string) (videoID string, err error) {
 	u, err := url.Parse(q)
 	if err != nil {
 		return "", err
@@ -321,7 +325,7 @@ func extractVideoID(q string) (videoID string, err error) {
 }
 
 //GetTrackFromVideoID returns a track on Youtube with provided videoID
-func GetTrackFromVideoID(videoID string) (track common.Track, err error) {
+func (client *Client) GetTrackFromVideoID(videoID string) (track common.Track, err error) {
 	videoInfo, err := ytdl.DefaultClient.GetVideoInfoFromID(context.Background(), videoID)
 	if err != nil {
 		return
@@ -347,10 +351,10 @@ func GetTrackFromVideoID(videoID string) (track common.Track, err error) {
 }
 
 //Search finds and returns a list of tracks from Youtube with the provided query
-func Search(query string) (tracks []common.Track, err error) {
-	videoID, err := extractVideoID(query)
+func (client *Client) Search(query string) (tracks []common.Track, err error) {
+	videoID, err := client.extractVideoID(query)
 	if err == nil && len(videoID) > 0 {
-		track, err := GetTrackFromVideoID(videoID)
+		track, err := client.GetTrackFromVideoID(videoID)
 		if err == nil && track != nil {
 			return []common.Track{track}, nil
 		}
@@ -358,7 +362,7 @@ func Search(query string) (tracks []common.Track, err error) {
 	}
 	reqURL, _ := url.Parse("https://www.googleapis.com/youtube/v3/search")
 	queries := reqURL.Query()
-	queries.Add("key", os.Getenv("YOUTUBE_DEVELOPER_KEY"))
+	queries.Add("key", client.apiKey)
 	queries.Add("part", "id,snippet")
 	queries.Add("maxResults", "1")
 	queries.Add("type", "video")
@@ -395,5 +399,11 @@ func Search(query string) (tracks []common.Track, err error) {
 		itracks[i] = itrack
 	}
 	tracks = itracks
+	return
+}
+
+//NewClient returns a new Client with the provided Youtube Developer API key
+func NewClient(DeveloperAPIKey string) (client *Client) {
+	client = &Client{apiKey: DeveloperAPIKey}
 	return
 }

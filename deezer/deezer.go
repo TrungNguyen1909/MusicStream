@@ -34,7 +34,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 
@@ -259,7 +258,7 @@ func (decrypter *trackDecrypter) Close() error {
 //Client represents a Deezer client
 type Client struct {
 	httpHeaders        http.Header
-	arlCookie          *http.Cookie
+	arlCookie          string
 	httpClient         *http.Client
 	ajaxActionURL      *url.URL
 	unofficialAPIURL   *url.URL
@@ -269,7 +268,7 @@ type Client struct {
 }
 
 //NewClient returns a new Deezer Client
-func NewClient() (client *Client) {
+func NewClient(deezerARL, spotifyClientID, spotifyClientSecret string) (client *Client) {
 	client = &Client{}
 	cookiesJar, _ := cookiejar.New(nil)
 	client.httpClient = &http.Client{Jar: cookiesJar}
@@ -280,14 +279,15 @@ func NewClient() (client *Client) {
 	client.httpHeaders.Set("accept-language", "en-US,en;q=0.9,en-US;q=0.8,en;q=0.7")
 	client.httpHeaders.Set("accept-charset", "utf-8,ISO-8859-1;q=0.8,*;q=0.7")
 	client.httpHeaders.Set("content-type", "text/plain;charset=UTF-8")
-	client.httpHeaders.Set("cookie", "arl="+os.Getenv("DEEZER_ARL"))
+	client.httpHeaders.Set("cookie", "arl="+deezerARL)
+	client.arlCookie = deezerARL
 	client.ajaxActionURL, _ = url.Parse(ajaxActionURL)
 	client.unofficialAPIURL, _ = url.Parse(unofficialAPIURL)
 	client.unofficialAPIQuery.Set("api_version", "1.0")
 	client.unofficialAPIQuery.Set("input", "3")
 	client.unofficialAPIQuery.Set("api_token", "")
 	client.deezerURL, _ = url.Parse(deezerURL)
-	spotifyClient, err := spotify.NewClient()
+	spotifyClient, err := spotify.NewClient(spotifyClientID, spotifyClientSecret)
 	if err != nil {
 		log.Printf("spotify.NewClient() failed: %v\n", err)
 	} else {
