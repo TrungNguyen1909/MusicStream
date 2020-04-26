@@ -53,7 +53,7 @@ spec:
               valueFrom:
                   secretKeyRef:
                     name: musicstream
-                    key: MUSIXMATCH_OB_USER_TOKEN
+                    key: RADIO_DISABLED
                     optional: true
           resources:
             requests:
