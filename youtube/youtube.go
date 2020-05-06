@@ -33,8 +33,8 @@ import (
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
-	"github.com/lowerzero/ytdl"
 	"github.com/rs/zerolog"
+	"github.com/unxcepted/ytdl"
 )
 
 type youtubeResponse struct {
@@ -333,8 +333,8 @@ func (client *Client) GetTrackFromVideoID(videoID string) (track common.Track, e
 	itrack := &Track{
 		ytTrack: ytTrack{
 			ID:           videoInfo.ID,
-			Title:        videoInfo.Title,
-			ChannelTitle: videoInfo.Uploader,
+			Title:        html.UnescapeString(videoInfo.Title),
+			ChannelTitle: html.UnescapeString(videoInfo.Uploader),
 			CoverURL:     videoInfo.GetThumbnailURL(ytdl.ThumbnailQualityHigh).String(),
 			Duration:     0,
 		},
