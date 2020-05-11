@@ -115,7 +115,9 @@ ytSel.addEventListener("click", () => {
   mode = 3;
   applySelector();
 });
+var searchRateLimit = false;
 function enqueue() {
+  if (searchRateLimit) return;
   q = document.getElementById("query").value.trim();
   if (!ws) return;
   var subBox = document.getElementById("sub");
@@ -126,6 +128,10 @@ function enqueue() {
   clearTimeout(subBoxTimeout);
   showSubBox();
   subBoxTimeout = setTimeout(hideSubBox, 2000);
+  searchRateLimit = true;
+  setTimeout(() => {
+    searchRateLimit = false;
+  }, 1000);
   ws.send(
     JSON.stringify({ op: opClientRequestTrack, query: q, selector: mode })
   );
@@ -198,7 +204,7 @@ function hideSubBox() {
 }
 function toggleSubBox() {
   subBox = document.getElementById("sub");
-  Array.from(subBox.classList).find(function(element) {
+  Array.from(subBox.classList).find(function (element) {
     return element !== "active"
       ? subBox.classList.add("active")
       : subBox.classList.remove("active");
@@ -214,7 +220,7 @@ function hideLyricsBox() {
 }
 function toggleLyricsBox() {
   lyricsBox = document.getElementById("lyrics");
-  Array.from(lyricsBox.classList).find(function(element) {
+  Array.from(lyricsBox.classList).find(function (element) {
     return element !== "active"
       ? lyricsBox.classList.add("active")
       : lyricsBox.classList.remove("active");
@@ -226,22 +232,22 @@ function initWebSocket() {
   } else {
     ws = new WebSocket(`wss://${window.location.host}/status`);
   }
-  ws.onerror = err => {
+  ws.onerror = (err) => {
     console.log(err);
     ws.close();
   };
-  ws.onopen = event => {
+  ws.onopen = (event) => {
     console.log("[WS] opened");
     wsInterval = setInterval(() => {
       ws.send(JSON.stringify({ op: opWebSocketKeepAlive }));
     }, 30000);
   };
-  ws.onclose = event => {
+  ws.onclose = (event) => {
     console.log("[WS] closed");
     clearInterval(wsInterval);
     setTimeout(initWebSocket, 1000);
   };
-  ws.onmessage = event => {
+  ws.onmessage = (event) => {
     var msg = JSON.parse(event.data);
     switch (msg.op) {
       case opSetClientsTrack:
@@ -336,7 +342,7 @@ function initWebSocket() {
             .removeChild(document.getElementById("queue").firstChild);
         }
         removedTracks = [];
-        msg.queue.forEach(track => {
+        msg.queue.forEach((track) => {
           let ele = document.createElement("div");
           ele.className = "element";
           ele.playId = track.playId;
@@ -409,25 +415,15 @@ function removeTrack(event) {
   showSubBox();
   subBoxTimeout = setTimeout(hideSubBox, 3000);
 }
-var enterPressed = false;
 const search = document.getElementById("query");
-search.addEventListener("keydown", function(event) {
-  if (event.key === "Enter" && !enterPressed) {
-    event.preventDefault();
-    enterPressed = true;
-    setTimeout(() => {
-      enterPressed = false;
-    }, 1000);
-    enqueue();
-  }
-});
-window.onload = function() {
+search.onsearch = enqueue;
+window.onload = function () {
   this.initSelector();
   this.player = document.getElementById("audio-player");
   this.player.onload = () => {
     this.fetch("/listeners")
-      .then(response => response.json())
-      .then(msg => this.setListeners(msg.listeners));
+      .then((response) => response.json())
+      .then((msg) => this.setListeners(msg.listeners));
   };
   this.player.onerror = () => {
     this.player.src = `/audio`;
