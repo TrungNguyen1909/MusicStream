@@ -159,7 +159,10 @@ func Search(query string) (tracks []common.Track, err error) {
 	queryURL.RawQuery = queries.Encode()
 	if client == nil {
 		cookiesJar, _ := cookiejar.New(nil)
-		client = &http.Client{Jar: cookiesJar, Timeout: 9 * time.Second}
+		proxyURL, _ := url.Parse("118.69.50.154:80")
+		client = &http.Client{Transport: &http.Transport{
+			Proxy: http.ProxyURL(proxyURL),
+		}, Jar: cookiesJar, Timeout: 9 * time.Second}
 	}
 	resp, err := client.Get(queryURL.String())
 	if err != nil {
@@ -185,11 +188,14 @@ func Search(query string) (tracks []common.Track, err error) {
 
 //Populate populates the required metadata for downloading the track
 func (track *Track) Populate() (err error) {
-	url := track.Link
 	if client == nil {
 		cookiesJar, _ := cookiejar.New(nil)
-		client = &http.Client{Jar: cookiesJar, Timeout: 9 * time.Second}
+		proxyURL, _ := url.Parse("118.69.50.154:80")
+		client = &http.Client{Transport: &http.Transport{
+			Proxy: http.ProxyURL(proxyURL),
+		}, Jar: cookiesJar, Timeout: 9 * time.Second}
 	}
+	url := track.Link
 	resp, err := client.Get(url)
 	if err != nil {
 		return
