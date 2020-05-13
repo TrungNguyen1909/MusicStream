@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-	"github.com/TrungNguyen1909/MusicStream/csn"
 )
 
 func (s *Server) getPlaying() []byte {
@@ -60,7 +59,7 @@ func (s *Server) enqueue(msg wsMessage) []byte {
 	log.Printf("Client Queried: %s", msg.Query)
 	switch msg.Selector {
 	case common.CSN:
-		tracks, err = csn.Search(msg.Query)
+		tracks, err = s.csnClient.Search(msg.Query)
 	case common.Youtube:
 		tracks, err = s.ytClient.Search(msg.Query)
 	default:

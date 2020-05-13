@@ -27,6 +27,7 @@ import (
 
 	"github.com/TrungNguyen1909/MusicStream"
 	"github.com/TrungNguyen1909/MusicStream/common"
+	"github.com/TrungNguyen1909/MusicStream/csn"
 	"github.com/TrungNguyen1909/MusicStream/deezer"
 	"github.com/TrungNguyen1909/MusicStream/mxmlyrics"
 	"github.com/TrungNguyen1909/MusicStream/queue"
@@ -65,6 +66,7 @@ type Server struct {
 	dzClient         *deezer.Client
 	ytClient         *youtube.Client
 	mxmClient        *mxmlyrics.Client
+	csnClient        *csn.Client
 	playQueue        *queue.Queue
 	channels         [2]chan chan chunk
 	currentChannel   int
@@ -125,6 +127,7 @@ func NewServer(config Config) *Server {
 	s.dzClient = deezer.NewClient(config.DeezerARL, config.SpotifyClientID, config.SpotifyClientSecret)
 	s.ytClient = youtube.NewClient(config.YoutubeDeveloperKey)
 	s.mxmClient = mxmlyrics.NewClient(config.MusixMatchUserToken, config.MusixMatchOBUserToken)
+	s.csnClient = csn.NewClient(config.CSNProxyURL)
 	s.cacheQueue = queue.NewQueue()
 	s.playQueue = queue.NewQueue()
 	if !config.RadioDisabled {

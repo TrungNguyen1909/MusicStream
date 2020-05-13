@@ -33,6 +33,7 @@ type Config struct {
 	YoutubeDeveloperKey   string
 	SpotifyClientID       string
 	SpotifyClientSecret   string
+	CSNProxyURL           string
 	RadioDisabled         bool
 }
 type chunk struct {

@@ -39,6 +39,9 @@ func main() {
 	} else {
 		config.YoutubeDeveloperKey = ytDevKey
 	}
+	if csnProxyURL, ok := os.LookupEnv("CSN_PROXY_URL"); ok {
+		config.CSNProxyURL = csnProxyURL
+	}
 	if radioDisabled, ok := os.LookupEnv("RADIO_DISABLED"); ok && len(radioDisabled) > 0 {
 		config.RadioDisabled = true
 	}

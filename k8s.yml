@@ -55,6 +55,12 @@ spec:
                     name: musicstream
                     key: RADIO_DISABLED
                     optional: true
+            - name: CSN_PROXY_URL
+              valueFrom:
+                  secretKeyRef:
+                    name: musicstream
+                    key: CSN_PROXY_URL
+                    optional: true
           resources:
             requests:
               cpu: "1"

@@ -54,6 +54,7 @@ type Track struct {
 	csnTrack
 	StreamURL string
 	playID    string
+	client    *Client
 }
 
 //ID returns the track's ID number on CSN
@@ -107,7 +108,7 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 		err = errors.New("Metadata not populated")
 		return
 	}
-	response, err := http.Get(track.StreamURL)
+	response, err := track.client.HTTPClient.Get(track.StreamURL)
 	if err != nil {
 		return
 	}
@@ -145,11 +146,15 @@ type csnSearchResult struct {
 	}
 }
 
-var pattern *regexp.Regexp
-var client *http.Client
+//Client represents a CSN client
+type Client struct {
+	pattern *regexp.Regexp
+	//HTTPClient is a proxy-configured client
+	HTTPClient *http.Client
+}
 
 //Search takes a query string and returns a slice of matching tracks
-func Search(query string) (tracks []common.Track, err error) {
+func (client *Client) Search(query string) (tracks []common.Track, err error) {
 	queryURL, _ := url.Parse("https://chiasenhac.vn/search/real")
 	queries := queryURL.Query()
 	queries.Add("type", "json")
@@ -157,14 +162,8 @@ func Search(query string) (tracks []common.Track, err error) {
 	queries.Add("view_all", "true")
 	queries.Add("q", query)
 	queryURL.RawQuery = queries.Encode()
-	if client == nil {
-		cookiesJar, _ := cookiejar.New(nil)
-		proxyURL, _ := url.Parse("118.69.50.154:80")
-		client = &http.Client{Transport: &http.Transport{
-			Proxy: http.ProxyURL(proxyURL),
-		}, Jar: cookiesJar, Timeout: 9 * time.Second}
-	}
-	resp, err := client.Get(queryURL.String())
+
+	resp, err := client.HTTPClient.Get(queryURL.String())
 	if err != nil {
 		return
 	}
@@ -181,22 +180,15 @@ func Search(query string) (tracks []common.Track, err error) {
 		result.Music.Data[i].Artist = result.Music.Data[i].Artists[0]
 	}
 	for i, v := range result.Music.Data {
-		tracks[i] = &Track{csnTrack: v, playID: common.GenerateID()}
+		tracks[i] = &Track{csnTrack: v, playID: common.GenerateID(), client: client}
 	}
 	return
 }
 
 //Populate populates the required metadata for downloading the track
 func (track *Track) Populate() (err error) {
-	if client == nil {
-		cookiesJar, _ := cookiejar.New(nil)
-		proxyURL, _ := url.Parse("118.69.50.154:80")
-		client = &http.Client{Transport: &http.Transport{
-			Proxy: http.ProxyURL(proxyURL),
-		}, Jar: cookiesJar, Timeout: 9 * time.Second}
-	}
 	url := track.Link
-	resp, err := client.Get(url)
+	resp, err := track.client.HTTPClient.Get(url)
 	if err != nil {
 		return
 	}
@@ -206,10 +198,7 @@ func (track *Track) Populate() (err error) {
 		return
 	}
 	log.Println("csnTrack.Populate: got buf")
-	if pattern == nil {
-		pattern, _ = regexp.Compile("sources: \\[([^\\]]*)\\]")
-	}
-	m := pattern.FindSubmatch(buf)
+	m := track.client.pattern.FindSubmatch(buf)
 	log.Println("csnTrack.Populate: got match")
 	res := bytes.Join([][]byte{[]byte("["), bytes.Trim(m[1], ", \n"), []byte("]")}, []byte(""))
 	log.Printf("res: %s\n", res)
@@ -250,4 +239,20 @@ func (track *Track) Populate() (err error) {
 	track.csnTrack.Album = album
 	log.Println("csnTrack.Populate: got album")
 	return
+}
+
+//NewClient returns a new CSN Client
+func NewClient(proxy string) *Client {
+	cookiesJar, _ := cookiejar.New(nil)
+	httpTransport := &http.Transport{}
+	if len(proxy) > 0 {
+		proxyURL, err := url.Parse(proxy)
+		if err != nil {
+			log.Panic("csn.NewClient panicked:", err)
+		}
+		httpTransport.Proxy = http.ProxyURL(proxyURL)
+	}
+	client := &http.Client{Transport: httpTransport, Jar: cookiesJar, Timeout: 9 * time.Second}
+	pattern, _ := regexp.Compile("sources: \\[([^\\]]*)\\]")
+	return &Client{HTTPClient: client, pattern: pattern}
 }
