@@ -23,7 +23,6 @@ import (
 	"net/http"
 	"regexp"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream"
@@ -72,7 +71,6 @@ type Server struct {
 	oggHeader        []byte
 	listenersCount   int32
 	bufferingChannel chan chunk
-	etaDone          atomic.Value
 	skipChannel      chan int
 	quitRadio        chan int
 	isRadioStreaming int32
@@ -134,7 +132,6 @@ func NewServer(config Config) *Server {
 	}
 	s.currentTrack = s.defaultTrack
 	s.currentTrackID = ""
-	s.etaDone.Store(time.Now())
 	s.minifier = minify.New()
 	s.minifier.AddFunc("text/css", css.Minify)
 	s.minifier.AddFunc("text/html", html.Minify)

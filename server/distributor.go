@@ -48,11 +48,11 @@ func (s *Server) pushSilentFrames(encodedTime *time.Duration) {
 func (s *Server) endCurrentStream() {
 	s.bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
 }
-func (s *Server) streamToClients(quit chan int, quitPreload chan int) {
+func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time {
 	s.streamMux.Lock()
 	defer s.streamMux.Unlock()
 	start := time.Now()
-	s.etaDone.Store(start)
+	playbackCompleteTime := time.Now()
 	interrupted := false
 	for {
 		select {
@@ -87,7 +87,7 @@ func (s *Server) streamToClients(quit chan int, quitPreload chan int) {
 					done = true
 				}
 			}
-			s.etaDone.Store(start.Add(Chunk.encoderTime))
+			playbackCompleteTime = start.Add(Chunk.encoderTime)
 			time.Sleep(Chunk.encoderTime - time.Since(start) - chunkDelayMS*time.Millisecond)
 		} else {
 			for {
@@ -97,9 +97,10 @@ func (s *Server) streamToClients(quit chan int, quitPreload chan int) {
 					break
 				}
 			}
-			return
+			return playbackCompleteTime
 		}
 	}
+	return playbackCompleteTime
 }
 func (s *Server) setTrack(trackMeta common.TrackMetadata) {
 	s.currentTrackMeta = trackMeta

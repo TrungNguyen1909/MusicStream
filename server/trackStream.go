@@ -109,10 +109,9 @@ func (s *Server) processTrack() {
 		default:
 		}
 	}
-	time.Sleep(time.Until(s.etaDone.Load().(time.Time)))
 	s.startTime = time.Now()
 	s.setTrack(trackDict)
-	s.streamToClients(s.skipChannel, quit)
+	time.Sleep(time.Until(s.streamToClients(s.skipChannel, quit)))
 	log.Println("Stream ended!")
 	s.currentTrackID = ""
 	s.watchDog = 0
