@@ -47,7 +47,6 @@ func (s *Server) streamVorbis(encodedDuration chan time.Duration) chan chunk {
 	var bufferedTime time.Duration
 	source := make(chan chunk, 5000)
 	go func() {
-		defer log.Println("Stopped vorbis stream")
 		start := time.Now()
 		for {
 			var Chunk chunk
@@ -122,7 +121,6 @@ func (s *Server) streamMP3(encodedDuration chan time.Duration) chan chunk {
 			output := make([]byte, 20000)
 			n := s.mp3Encoder.Encode(output, Chunk.buffer)
 			output = output[:n]
-
 			encodedTime += (time.Duration)(len(Chunk.buffer)/4/48) * time.Millisecond
 			if n > 0 {
 				done := false
@@ -219,60 +217,6 @@ func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time 
 	return start.Add(streamTime)
 }
 
-// func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time {
-// 	s.streamMux.Lock()
-// 	defer s.streamMux.Unlock()
-// 	start := time.Now()
-// 	playbackCompleteTime := time.Now()
-// 	interrupted := false
-// 	for {
-// 		select {
-// 		case <-quit:
-// 			quitPreload <- 0
-// 			interrupted = true
-// 			for len(quit) > 0 {
-// 				select {
-// 				case <-quit:
-// 				default:
-// 				}
-// 			}
-// 		default:
-// 		}
-// 		if !interrupted {
-// 			Chunk := <-s.bufferingChannel
-// 			if Chunk.buffer == nil {
-// 				log.Println("Found last chunk, breaking...")
-// 				break
-// 			}
-// 			done := false
-// 			Chunk.channel = ((s.currentChannel + 1) % 2)
-// 			for !done {
-// 				select {
-// 				case c := <-s.channels[s.currentChannel]:
-// 					select {
-// 					case c <- Chunk:
-// 					default:
-// 					}
-// 				default:
-// 					s.currentChannel = (s.currentChannel + 1) % 2
-// 					done = true
-// 				}
-// 			}
-// 			playbackCompleteTime = start.Add(Chunk.encoderTime)
-// 			time.Sleep(Chunk.encoderTime - time.Since(start) - chunkDelayMS*time.Millisecond)
-// 		} else {
-// 			for {
-// 				Chunk := <-s.bufferingChannel
-// 				if Chunk.buffer == nil {
-// 					log.Println("Found last chunk, breaking...")
-// 					break
-// 				}
-// 			}
-// 			return playbackCompleteTime
-// 		}
-// 	}
-// 	return playbackCompleteTime
-// }
 func (s *Server) setTrack(trackMeta common.TrackMetadata) {
 	s.currentTrackMeta = trackMeta
 	log.Printf("Setting track on all clients %v - %v\n", trackMeta.Title, trackMeta.Artist)
