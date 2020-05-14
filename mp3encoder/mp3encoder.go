@@ -19,7 +19,7 @@
 package mp3encoder
 
 // #include "encoder.c"
-// #cgo LDFLAGS: -L/usr/local/lib -lmp3lame
+// #cgo LDFLAGS: -lmp3lame
 import "C"
 import (
 	"sync"

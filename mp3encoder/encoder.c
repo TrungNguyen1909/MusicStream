@@ -35,7 +35,7 @@ struct tEncoderState
 	int rate;
 	int num_channels;
 	int sample_rate;
-	int64_t granulepos;
+	long long granulepos;
 
 	long encoded_max_size;
 	long encoded_length;
