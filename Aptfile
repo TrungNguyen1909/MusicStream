@@ -2,3 +2,4 @@ libogg-dev
 libvorbis-dev
 libopus-dev
 libopusfile-dev
+libmp3lame-dev
