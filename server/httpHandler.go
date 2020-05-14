@@ -52,15 +52,23 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "Keep-Alive")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Transfer-Encoding", "chunked")
-	w.Header().Set("Content-Type", "application/ogg")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("pragma", "no-cache")
 	w.Header().Set("status", "200")
-	w.Write(s.oggHeader)
-	flusher.Flush()
 	channel := make(chan chunk, 500)
-	s.channels[0] <- channel
-	chanidx := 0
+	var bufferChannel [2]chan chan chunk
+	var chanidx int
+	if r.URL.Path == "/fallback" {
+		w.Header().Set("Content-Type", "audio/mpeg")
+		w.Write(s.mp3Header)
+		bufferChannel = s.mp3Channel
+	} else {
+		w.Header().Set("Content-Type", "application/ogg")
+		w.Write(s.oggHeader)
+		bufferChannel = s.vorbisChannel
+	}
+	bufferChannel[chanidx] <- channel
+	flusher.Flush()
 	for {
 		select {
 		case <-notify:
@@ -73,7 +81,7 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			flusher.Flush()
-			s.channels[chanidx] <- channel
+			bufferChannel[chanidx] <- channel
 		}
 	}
 }

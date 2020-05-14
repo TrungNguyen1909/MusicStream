@@ -67,8 +67,6 @@ static Encoder* encoder_start(int sample_rate, long bitrate)
         printf("encoder_start(): Failed to initialize mp3 lame.\n");
         abort();
     }
-	state->encoded_length = lame_encode_flush(state->gfp,state->encoded_buffer,3*1024*1024);
-	state->hasHeader = 1;
 	return state;
 }
 
@@ -80,10 +78,7 @@ static long encode(Encoder* state, char* outputSlice, char* inputSlice){
 	long out_size = outSlice->len;
 	long data_size = dataSlice->len;
 	if(data_size==0){
-		memcpy(out,state->encoded_buffer,state->encoded_length);
-		long ret = state->encoded_length;
-		state->encoded_length = 0;
-		return ret;
+		return 0;
 	}
 	long ret =  lame_encode_buffer_interleaved(state->gfp,(short*)pcm,data_size/4,(unsigned char*)out,out_size);
 	return ret;

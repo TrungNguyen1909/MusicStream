@@ -29,6 +29,7 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/csn"
 	"github.com/TrungNguyen1909/MusicStream/deezer"
+	"github.com/TrungNguyen1909/MusicStream/mp3encoder"
 	"github.com/TrungNguyen1909/MusicStream/mxmlyrics"
 	"github.com/TrungNguyen1909/MusicStream/queue"
 	"github.com/TrungNguyen1909/MusicStream/radio"
@@ -59,39 +60,46 @@ const (
 
 //Server is a MusicStream server
 type Server struct {
-	upgrader         websocket.Upgrader
-	connections      sync.Map
-	currentTrack     common.Track
-	currentTrackMeta common.TrackMetadata
-	dzClient         *deezer.Client
-	ytClient         *youtube.Client
-	mxmClient        *mxmlyrics.Client
-	csnClient        *csn.Client
-	playQueue        *queue.Queue
-	channels         [2]chan chan chunk
-	currentChannel   int
-	oggHeader        []byte
-	listenersCount   int32
-	bufferingChannel chan chunk
-	skipChannel      chan int
-	quitRadio        chan int
-	isRadioStreaming int32
-	currentTrackID   string
-	watchDog         int
-	radioTrack       *radio.Track
-	defaultTrack     *common.DefaultTrack
-	startPos         int64
-	encoder          *vorbisencoder.Encoder
-	deltaChannel     chan int64
-	startTime        time.Time
-	cacheQueue       *queue.Queue
-	streamMux        sync.Mutex
-	encoderWg        sync.WaitGroup
-	minifier         *minify.M
-	activityWg       sync.WaitGroup
-	newListenerC     chan int
-	serveMux         *http.ServeMux
-	server           *http.Server
+	upgrader             websocket.Upgrader
+	connections          sync.Map
+	currentTrack         common.Track
+	currentTrackMeta     common.TrackMetadata
+	dzClient             *deezer.Client
+	ytClient             *youtube.Client
+	mxmClient            *mxmlyrics.Client
+	csnClient            *csn.Client
+	playQueue            *queue.Queue
+	currentVorbisChannel int
+	currentMP3Channel    int
+	vorbisChannel        [2]chan chan chunk
+	mp3Channel           [2]chan chan chunk
+	vorbisBuffer         chan chunk
+	mp3Buffer            chan chunk
+	oggHeader            []byte
+	mp3Header            []byte
+	listenersCount       int32
+	bufferingChannel     chan chunk
+	skipChannel          chan int
+	quitRadio            chan int
+	isRadioStreaming     int32
+	currentTrackID       string
+	watchDog             int
+	radioTrack           *radio.Track
+	defaultTrack         *common.DefaultTrack
+	startPos             int64
+	lastStreamEnded      time.Time
+	vorbisEncoder        *vorbisencoder.Encoder
+	mp3Encoder           *mp3encoder.Encoder
+	deltaChannel         chan int64
+	startTime            time.Time
+	cacheQueue           *queue.Queue
+	streamMux            sync.Mutex
+	encoderWg            sync.WaitGroup
+	minifier             *minify.M
+	activityWg           sync.WaitGroup
+	newListenerC         chan int
+	serveMux             *http.ServeMux
+	server               *http.Server
 }
 
 //Serve starts the server, listening at addr
@@ -111,18 +119,25 @@ func (s *Server) Serve(addr string) (err error) {
 //NewServer returns a new server
 func NewServer(config Config) *Server {
 	s := &Server{}
-	for i := range s.channels {
-		s.channels[i] = make(chan chan chunk, 1000)
-	}
 	s.bufferingChannel = make(chan chunk, 5000)
+	for i := 0; i < 2; i++ {
+		s.mp3Channel[i] = make(chan chan chunk, 5000)
+		s.vorbisChannel[i] = make(chan chan chunk, 5000)
+	}
+	s.vorbisBuffer = make(chan chunk, 5000)
+	s.mp3Buffer = make(chan chunk, 5000)
 	s.skipChannel = make(chan int, 500)
 	s.deltaChannel = make(chan int64, 1)
 	s.quitRadio = make(chan int, 10)
 	s.newListenerC = make(chan int, 1)
-	s.encoder = vorbisencoder.NewEncoder(2, 48000, 320000)
+	s.vorbisEncoder = vorbisencoder.NewEncoder(2, 48000, 320000)
 	s.oggHeader = make([]byte, 5000)
-	n := s.encoder.Encode(s.oggHeader, make([]byte, 0))
+	n := s.vorbisEncoder.Encode(s.oggHeader, make([]byte, 0))
 	s.oggHeader = s.oggHeader[:n]
+	s.mp3Encoder = mp3encoder.NewEncoder(2, 48000, 32000)
+	// s.mp3Header = make([]byte, 5000)
+	// n = s.mp3Encoder.Encode(s.mp3Header, make([]byte, 0))
+	// s.mp3Header = s.mp3Header[:n]
 
 	s.dzClient = deezer.NewClient(config.DeezerARL, config.SpotifyClientID, config.SpotifyClientSecret)
 	s.ytClient = youtube.NewClient(config.YoutubeDeveloperKey)
@@ -147,6 +162,7 @@ func NewServer(config Config) *Server {
 	s.serveMux.HandleFunc("/queue", s.queueHandler)
 	s.serveMux.HandleFunc("/listeners", s.listenersHandler)
 	s.serveMux.HandleFunc("/audio", s.audioHandler)
+	s.serveMux.HandleFunc("/fallback", s.audioHandler)
 	s.serveMux.HandleFunc("/status", s.wsHandler)
 	s.serveMux.HandleFunc("/playing", s.playingHandler)
 	s.serveMux.HandleFunc("/skip", s.skipHandler)

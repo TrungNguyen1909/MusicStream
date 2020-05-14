@@ -116,6 +116,14 @@ ytSel.addEventListener("click", () => {
   applySelector();
 });
 var searchRateLimit = false;
+function chooseSrc() {
+  let player = document.getElementById("audio-player");
+  let src = "/audio";
+  if (!player.canPlayType("audio/ogg")) {
+    src = "/fallback";
+  }
+  return src;
+}
 function enqueue() {
   if (searchRateLimit) return;
   q = document.getElementById("query").value.trim();
@@ -186,7 +194,7 @@ function setTrack(track) {
         break;
     }
   }
-  // window.player.src = `/audio`;
+  // window.player.src = chooseSrc();
   lyricsControl();
   //let artworkBox = document.getElementsByClassName("album-art")[0];
   //artworkBox.style.backgroundImage = `url(${ctrack.album.cover})`;
@@ -253,22 +261,26 @@ function initWebSocket() {
       case opSetClientsTrack:
         delta = msg.pos / 48000.0;
         diff = delta - player.currentTime;
-        if (
-          isSkipped ||
-          !ctrack ||
-          (ctrack.source == 0 && msg.track.source != 0)
-        ) {
-          player.src = `/audio`;
-        } else if (Math.abs(diff) > 8) {
-          if (msg.track.source == 0) {
-            setTimeout(() => {
-              player.src = `/audio`;
-            }, (diff - 3.168) * 1000);
-          } else {
-            player.src = `/audio`;
+        try {
+          if (
+            isSkipped ||
+            !ctrack ||
+            (ctrack.source == 0 && msg.track.source != 0)
+          ) {
+            if (chooseSrc() != "fallback") player.src = chooseSrc();
+          } else if (Math.abs(diff) > 8 && chooseSrc() != "/fallback") {
+            if (msg.track.source == 0) {
+              setTimeout(() => {
+                player.src = chooseSrc();
+              }, (diff - 3.168) * 1000);
+            } else {
+              player.src = chooseSrc();
+            }
           }
+          console.log(`Audio diff: ${diff}`);
+        } catch (e) {
+          console.error(e);
         }
-        console.log(`Audio diff: ${diff}`);
         isSkipped = false;
         setTrack(msg.track);
         setListeners(msg.listeners);
@@ -415,8 +427,7 @@ function removeTrack(event) {
   showSubBox();
   subBoxTimeout = setTimeout(hideSubBox, 3000);
 }
-const search = document.getElementById("query");
-search.onsearch = enqueue;
+document.getElementById("search__form").onsubmit = () => (enqueue(), false);
 window.onload = function () {
   this.initSelector();
   this.player = document.getElementById("audio-player");
@@ -426,14 +437,16 @@ window.onload = function () {
       .then((msg) => this.setListeners(msg.listeners));
   };
   this.player.onerror = () => {
-    this.player.src = `/audio`;
+    this.player.src = chooseSrc();
   };
   this.initWebSocket();
+  this.player.autoplay = true;
 };
 
 function lyricsControl() {
   clearInterval(lyricsInterval);
   hideLyricsBox();
+  if (chooseSrc() == "/fallback") return;
   var player = document.getElementById("audio-player");
   var lyricsBox = document.getElementById("lyrics");
   let originalBox = lyricsBox.getElementsByClassName("original")[0];

@@ -34,8 +34,10 @@
       <div id="csn-sel">CSN</div>
       <div id="yt-sel">YT</div>
     </div>
-    <input id="query" autocomplete="off" class="search__input" type="search" placeholder="Search" />
-
+    <form id="search__form">
+      <input id="query" autocomplete="off" autocorrect="off" autocapitalize="off" class="search__input" type="text"
+        placeholder="Search" />
+    </form>
   </div>
   <div class="player">
     <div id="lyrics" class="lyrics">
@@ -79,8 +81,9 @@
       <span class="name"></span>
       <span class="artist"></span>
     </div>
-    <audio id="audio-player" crossorigin="anonymous" preload="auto" muted="true" autoplay="true">
+    <audio id="audio-player" crossorigin="anonymous" preload="auto" muted="true">
       <source src="/audio" type="audio/ogg" />
+      <source src="/fallback" type="audio/mpeg" />
     </audio>
   </div>
   <div class="queue" id="queue"></div>

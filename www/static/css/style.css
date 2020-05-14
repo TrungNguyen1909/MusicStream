@@ -283,6 +283,7 @@ body {
 }
 
 .search__input {
+  -webkit-appearance: none;
   margin-top: 0;
   float: left;
   position: relative;

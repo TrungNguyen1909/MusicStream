@@ -28,12 +28,11 @@ import (
 )
 
 func (s *Server) preloadTrack(stream io.ReadCloser, quit chan int) {
-	var encodedTime time.Duration
 	defer stream.Close()
 	defer s.endCurrentStream()
-	s.pushSilentFrames(&encodedTime)
-	defer s.pushSilentFrames(&encodedTime)
-	pos := int64(s.encoder.GranulePos())
+	s.pushSilentFrames()
+	defer s.pushSilentFrames()
+	pos := int64(s.vorbisEncoder.GranulePos())
 	atomic.StoreInt64(&s.startPos, pos)
 	s.deltaChannel <- pos
 	log.Println("Track preloading started")
@@ -46,7 +45,7 @@ func (s *Server) preloadTrack(stream io.ReadCloser, quit chan int) {
 		}
 		buf := make([]byte, 3840)
 		n, err := stream.Read(buf)
-		s.pushPCMAudio(buf[:n], &encodedTime)
+		s.pushPCMAudio(buf[:n])
 		if err != nil {
 			return
 		}
@@ -67,7 +66,7 @@ func (s *Server) processTrack() {
 		go s.processRadio(s.quitRadio)
 	} else if s.playQueue.Empty() {
 		s.currentTrack = s.defaultTrack
-		pos := int64(s.encoder.GranulePos())
+		pos := int64(s.vorbisEncoder.GranulePos())
 		atomic.StoreInt64(&s.startPos, pos)
 		s.deltaChannel <- pos
 		s.setTrack(common.GetMetadata(s.currentTrack))
@@ -109,9 +108,10 @@ func (s *Server) processTrack() {
 		default:
 		}
 	}
+	time.Sleep(time.Until(s.lastStreamEnded))
 	s.startTime = time.Now()
 	s.setTrack(trackDict)
-	time.Sleep(time.Until(s.streamToClients(s.skipChannel, quit)))
+	s.lastStreamEnded = s.streamToClients(s.skipChannel, quit)
 	log.Println("Stream ended!")
 	s.currentTrackID = ""
 	s.watchDog = 0

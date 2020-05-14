@@ -90,7 +90,7 @@ func (s *Server) inactivityMonitor() {
 			} else {
 				s.skipChannel <- 1
 			}
-			pos := int64(s.encoder.GranulePos())
+			pos := int64(s.vorbisEncoder.GranulePos())
 			atomic.StoreInt64(&s.startPos, pos)
 			s.deltaChannel <- pos
 			s.setTrack(common.GetMetadata(s.defaultTrack))

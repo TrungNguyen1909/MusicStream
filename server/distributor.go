@@ -28,35 +28,140 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func (s *Server) pushPCMAudio(pcm []byte, encodedTime *time.Duration) {
-	output := make([]byte, 20000)
-	encodedLen := s.encoder.Encode(output, pcm)
-	output = output[:encodedLen]
-	*encodedTime += (time.Duration)(len(pcm)/4/48) * time.Millisecond
-	if len(output) > 0 {
-		s.bufferingChannel <- chunk{buffer: output, encoderTime: *encodedTime}
-	}
+func (s *Server) pushPCMAudio(pcm []byte) {
+	s.bufferingChannel <- chunk{buffer: pcm}
 }
-func (s *Server) pushSilentFrames(encodedTime *time.Duration) {
+func (s *Server) pushSilentFrames() {
 	silenceBuffer := make([]byte, 76032)
 	for j := 0; j < 2; j++ {
 		for i := 0; i < 2; i++ {
-			s.pushPCMAudio(silenceBuffer, encodedTime)
+			s.pushPCMAudio(silenceBuffer)
 		}
 	}
 }
 func (s *Server) endCurrentStream() {
 	s.bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
 }
+func (s *Server) streamVorbis(encodedDuration chan time.Duration) chan chunk {
+	var encodedTime time.Duration
+	var bufferedTime time.Duration
+	source := make(chan chunk, 5000)
+	go func() {
+		defer log.Println("Stopped vorbis stream")
+		start := time.Now()
+		for {
+			var Chunk chunk
+			select {
+			case <-encodedDuration:
+				for len(source) > 0 {
+					select {
+					case <-source:
+					default:
+					}
+				}
+				encodedDuration <- bufferedTime
+				return
+			case Chunk = <-source:
+			}
+			if Chunk.buffer == nil {
+				encodedDuration <- bufferedTime
+				return
+			}
+			output := make([]byte, 20000)
+			n := s.vorbisEncoder.Encode(output, Chunk.buffer)
+			output = output[:n]
+			encodedTime += (time.Duration)(len(Chunk.buffer)/4/48) * time.Millisecond
+			if n > 0 {
+				done := false
+				Chunk = chunk{}
+				Chunk.buffer = output
+				Chunk.channel = ((s.currentVorbisChannel + 1) % 2)
+				for !done {
+					select {
+					case c := <-s.vorbisChannel[s.currentVorbisChannel]:
+						select {
+						case c <- Chunk:
+						default:
+						}
+					default:
+						s.currentVorbisChannel = (s.currentVorbisChannel + 1) % 2
+						done = true
+					}
+				}
+				bufferedTime = encodedTime
+				time.Sleep(bufferedTime - time.Since(start))
+			}
+		}
+	}()
+	return source
+}
+func (s *Server) streamMP3(encodedDuration chan time.Duration) chan chunk {
+	var encodedTime time.Duration
+	var bufferedTime time.Duration
+	source := make(chan chunk, 5000)
+	go func() {
+		start := time.Now()
+		for {
+			var Chunk chunk
+			select {
+			case <-encodedDuration:
+				for len(source) > 0 {
+					select {
+					case <-source:
+					default:
+					}
+				}
+				encodedDuration <- bufferedTime
+				return
+			case Chunk = <-source:
+			}
+			if Chunk.buffer == nil {
+				encodedDuration <- bufferedTime
+				return
+			}
+			output := make([]byte, 20000)
+			n := s.mp3Encoder.Encode(output, Chunk.buffer)
+			output = output[:n]
+
+			encodedTime += (time.Duration)(len(Chunk.buffer)/4/48) * time.Millisecond
+			if n > 0 {
+				done := false
+				Chunk = chunk{}
+				Chunk.buffer = output
+				Chunk.channel = ((s.currentMP3Channel + 1) % 2)
+				for !done {
+					select {
+					case c := <-s.mp3Channel[s.currentMP3Channel]:
+						select {
+						case c <- Chunk:
+						default:
+						}
+					default:
+						s.currentMP3Channel = (s.currentMP3Channel + 1) % 2
+						done = true
+					}
+				}
+				bufferedTime = encodedTime
+				time.Sleep(bufferedTime - time.Since(start))
+			}
+		}
+	}()
+	return source
+}
 func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time {
 	s.streamMux.Lock()
 	defer s.streamMux.Unlock()
 	start := time.Now()
-	playbackCompleteTime := time.Now()
 	interrupted := false
+	quitVorbis := make(chan time.Duration)
+	quitMP3 := make(chan time.Duration)
+	vorbisStream := s.streamVorbis(quitVorbis)
+	mp3Stream := s.streamMP3(quitMP3)
 	for {
 		select {
 		case <-quit:
+			quitVorbis <- time.Duration(0)
+			quitMP3 <- time.Duration(0)
 			quitPreload <- 0
 			interrupted = true
 			for len(quit) > 0 {
@@ -69,26 +174,12 @@ func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time 
 		}
 		if !interrupted {
 			Chunk := <-s.bufferingChannel
+			vorbisStream <- Chunk
+			mp3Stream <- Chunk
 			if Chunk.buffer == nil {
 				log.Println("Found last chunk, breaking...")
 				break
 			}
-			done := false
-			Chunk.channel = ((s.currentChannel + 1) % 2)
-			for !done {
-				select {
-				case c := <-s.channels[s.currentChannel]:
-					select {
-					case c <- Chunk:
-					default:
-					}
-				default:
-					s.currentChannel = (s.currentChannel + 1) % 2
-					done = true
-				}
-			}
-			playbackCompleteTime = start.Add(Chunk.encoderTime)
-			time.Sleep(Chunk.encoderTime - time.Since(start) - chunkDelayMS*time.Millisecond)
 		} else {
 			for {
 				Chunk := <-s.bufferingChannel
@@ -97,11 +188,91 @@ func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time 
 					break
 				}
 			}
-			return playbackCompleteTime
+			break
 		}
 	}
-	return playbackCompleteTime
+	var vorbisTime, mp3Time time.Duration
+	for !interrupted {
+		select {
+		case <-quit:
+			quitVorbis <- time.Duration(0)
+			quitMP3 <- time.Duration(0)
+			for len(quit) > 0 {
+				select {
+				case <-quit:
+				default:
+				}
+			}
+			quit = nil
+		case vorbisTime = <-quitVorbis:
+			select {
+			case mp3Time = <-quitMP3:
+				interrupted = true
+			}
+		}
+	}
+	streamTime := vorbisTime
+	if vorbisTime < mp3Time {
+		streamTime = mp3Time
+	}
+	log.Println("streamTime: ", streamTime)
+	return start.Add(streamTime)
 }
+
+// func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time {
+// 	s.streamMux.Lock()
+// 	defer s.streamMux.Unlock()
+// 	start := time.Now()
+// 	playbackCompleteTime := time.Now()
+// 	interrupted := false
+// 	for {
+// 		select {
+// 		case <-quit:
+// 			quitPreload <- 0
+// 			interrupted = true
+// 			for len(quit) > 0 {
+// 				select {
+// 				case <-quit:
+// 				default:
+// 				}
+// 			}
+// 		default:
+// 		}
+// 		if !interrupted {
+// 			Chunk := <-s.bufferingChannel
+// 			if Chunk.buffer == nil {
+// 				log.Println("Found last chunk, breaking...")
+// 				break
+// 			}
+// 			done := false
+// 			Chunk.channel = ((s.currentChannel + 1) % 2)
+// 			for !done {
+// 				select {
+// 				case c := <-s.channels[s.currentChannel]:
+// 					select {
+// 					case c <- Chunk:
+// 					default:
+// 					}
+// 				default:
+// 					s.currentChannel = (s.currentChannel + 1) % 2
+// 					done = true
+// 				}
+// 			}
+// 			playbackCompleteTime = start.Add(Chunk.encoderTime)
+// 			time.Sleep(Chunk.encoderTime - time.Since(start) - chunkDelayMS*time.Millisecond)
+// 		} else {
+// 			for {
+// 				Chunk := <-s.bufferingChannel
+// 				if Chunk.buffer == nil {
+// 					log.Println("Found last chunk, breaking...")
+// 					break
+// 				}
+// 			}
+// 			return playbackCompleteTime
+// 		}
+// 	}
+// 	return playbackCompleteTime
+// }
 func (s *Server) setTrack(trackMeta common.TrackMetadata) {
 	s.currentTrackMeta = trackMeta
 	log.Printf("Setting track on all clients %v - %v\n", trackMeta.Title, trackMeta.Artist)
