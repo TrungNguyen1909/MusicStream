@@ -60,9 +60,9 @@ static Encoder* encoder_start(int sample_rate, long bitrate)
 	state->gfp = lame_init();
     lame_set_in_samplerate(state->gfp, 48000);
 	lame_set_out_samplerate(state->gfp,48000);
-    lame_set_VBR_max_bitrate_kbps(state->gfp, 256);
-	lame_set_VBR_mean_bitrate_kbps(state->gfp, 256);
-	lame_set_VBR_min_bitrate_kbps(state->gfp, 256);
+    lame_set_VBR_max_bitrate_kbps(state->gfp, bitrate/1000);
+	lame_set_VBR_mean_bitrate_kbps(state->gfp, bitrate/1000);
+	lame_set_VBR_min_bitrate_kbps(state->gfp, bitrate/1000);
     if (lame_init_params(state->gfp)!=0){
         printf("encoder_start(): Failed to initialize mp3 lame.\n");
         abort();

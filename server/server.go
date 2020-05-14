@@ -121,8 +121,8 @@ func NewServer(config Config) *Server {
 	s := &Server{}
 	s.bufferingChannel = make(chan chunk, 5000)
 	for i := 0; i < 2; i++ {
-		s.mp3Channel[i] = make(chan chan chunk, 5000)
-		s.vorbisChannel[i] = make(chan chan chunk, 5000)
+		s.mp3Channel[i] = make(chan chan chunk, 500)
+		s.vorbisChannel[i] = make(chan chan chunk, 500)
 	}
 	s.vorbisBuffer = make(chan chunk, 5000)
 	s.mp3Buffer = make(chan chunk, 5000)
@@ -134,7 +134,7 @@ func NewServer(config Config) *Server {
 	s.oggHeader = make([]byte, 5000)
 	n := s.vorbisEncoder.Encode(s.oggHeader, make([]byte, 0))
 	s.oggHeader = s.oggHeader[:n]
-	s.mp3Encoder = mp3encoder.NewEncoder(2, 48000, 32000)
+	s.mp3Encoder = mp3encoder.NewEncoder(2, 48000, 320000)
 	// s.mp3Header = make([]byte, 5000)
 	// n = s.mp3Encoder.Encode(s.mp3Header, make([]byte, 0))
 	// s.mp3Header = s.mp3Header[:n]
