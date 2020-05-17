@@ -269,7 +269,6 @@ function initWebSocket() {
             (ctrack.source == 0 && msg.track.source != 0)
           ) {
             if (chooseSrc() != "/fallback") player.src = chooseSrc();
-            else player.load();
           } else if (Math.abs(diff) > 8 && chooseSrc() != "/fallback") {
             if (msg.track.source == 0) {
               setTimeout(() => {

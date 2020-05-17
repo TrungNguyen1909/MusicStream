@@ -135,9 +135,9 @@ func NewServer(config Config) *Server {
 	n := s.vorbisEncoder.Encode(s.oggHeader, make([]byte, 0))
 	s.oggHeader = s.oggHeader[:n]
 	s.mp3Encoder = mp3encoder.NewEncoder(2, 48000, 320000)
-	//s.mp3Header = make([]byte, 8000)
-	//n = s.mp3Encoder.Encode(s.mp3Header, make([]byte, 1152*4))
-	//s.mp3Header = s.mp3Header[:n]
+	s.mp3Header = make([]byte, 8000)
+	n = s.mp3Encoder.Encode(s.mp3Header, make([]byte, 1152*4))
+	s.mp3Header = s.mp3Header[:n]
 
 	s.dzClient = deezer.NewClient(config.DeezerARL, config.SpotifyClientID, config.SpotifyClientSecret)
 	s.ytClient = youtube.NewClient(config.YoutubeDeveloperKey)
