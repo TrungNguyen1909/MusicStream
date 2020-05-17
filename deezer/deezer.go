@@ -441,7 +441,7 @@ func (client *Client) GetTrackByID(trackID string) (track common.Track, err erro
 	if err == nil && len(sURI) > 0 {
 		dTrack.SpotifyURI = sURI
 	}
-
+	dTrack.client = client
 	itrack := &Track{deezerTrack: dTrack, playID: common.GenerateID()}
 	err = client.PopulateMetadata(itrack)
 	track = itrack
