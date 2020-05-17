@@ -19,6 +19,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"sync/atomic"
@@ -99,6 +100,10 @@ func (s *Server) streamMP3(encodedDuration chan time.Duration) chan chunk {
 	var bufferedTime time.Duration
 	source := make(chan chunk, 5000)
 	go func() {
+		defer func() {
+			encodedDuration <- bufferedTime
+		}()
+		var buffer bytes.Buffer
 		start := time.Now()
 		for {
 			var Chunk chunk
@@ -110,21 +115,30 @@ func (s *Server) streamMP3(encodedDuration chan time.Duration) chan chunk {
 					default:
 					}
 				}
-				encodedDuration <- bufferedTime
 				return
 			case Chunk = <-source:
 			}
-			if Chunk.buffer == nil {
-				encodedDuration <- bufferedTime
-				return
+			buffer.Write(Chunk.buffer)
+			if buffer.Len() < 1152*4 && Chunk.buffer != nil {
+				continue
+			}
+			var pcm []byte
+			if Chunk.buffer != nil {
+				pcm = make([]byte, (1152*4)*(buffer.Len()/(1152*4)))
+				buffer.Read(pcm)
+			} else {
+				sz := buffer.Len()
+				sz += (1152*4 - sz%(1152*4))
+				pcm = make([]byte, sz)
+				buffer.Read(pcm)
 			}
 			output := make([]byte, 20000)
-			n := s.mp3Encoder.Encode(output, Chunk.buffer)
+			n := s.mp3Encoder.Encode(output, pcm)
 			output = output[:n]
-			encodedTime += (time.Duration)(len(Chunk.buffer)/4/48) * time.Millisecond
+			encodedTime += (time.Duration)(len(pcm)/4/48) * time.Millisecond
 			if n > 0 {
 				done := false
-				Chunk = chunk{}
+				Chunk := chunk{}
 				Chunk.buffer = output
 				Chunk.channel = ((s.currentMP3Channel + 1) % 2)
 				for !done {
@@ -141,6 +155,9 @@ func (s *Server) streamMP3(encodedDuration chan time.Duration) chan chunk {
 				}
 				bufferedTime = encodedTime
 				time.Sleep(bufferedTime - time.Since(start))
+			}
+			if Chunk.buffer == nil {
+				return
 			}
 		}
 	}()

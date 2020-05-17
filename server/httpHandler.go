@@ -60,14 +60,14 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 	var chanidx int
 	if r.URL.Path == "/fallback" {
 		w.Header().Set("Content-Type", "audio/mpeg")
-		isRanged := len(r.Header.Get("Range")) > 0
-		if isRanged {
-			w.WriteHeader(206)
-		}
-		w.Write(s.mp3Header)
-		if isRanged {
-			return
-		}
+		// isRanged := len(r.Header.Get("Range")) > 0
+		// if isRanged {
+		// 	w.WriteHeader(200)
+		// }
+		// w.Write(s.mp3Header)
+		// if isRanged {
+		// 	return
+		// }
 		bufferChannel = s.mp3Channel
 	} else {
 		w.Header().Set("Content-Type", "application/ogg")
@@ -83,12 +83,12 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		case Chunk := <-channel:
 			chanidx = Chunk.channel
+			bufferChannel[chanidx] <- channel
 			_, err := w.Write(Chunk.buffer)
 			if err != nil {
 				break
 			}
 			flusher.Flush()
-			bufferChannel[chanidx] <- channel
 		}
 	}
 }
