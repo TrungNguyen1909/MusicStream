@@ -389,8 +389,8 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 		itrack := &Track{
 			ytTrack: ytTrack{
 				ID:           item.ID.VideoID,
-				Title:        item.Snippet.Title,
-				ChannelTitle: item.Snippet.ChannelTitle,
+				Title:        html.UnescapeString(item.Snippet.Title),
+				ChannelTitle: html.UnescapeString(item.Snippet.ChannelTitle),
 				CoverURL:     item.Snippet.Thumbnails.High.URL,
 				Duration:     0,
 			},
