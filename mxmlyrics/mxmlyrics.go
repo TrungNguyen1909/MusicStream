@@ -21,7 +21,9 @@ package mxmlyrics
 import (
 	"compress/gzip"
 	"encoding/json"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
@@ -162,7 +164,10 @@ func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI 
 		reader = resp.Body
 	}
 	var d mxmResponse
-	err = json.NewDecoder(reader).Decode(&d)
+	buf, err := ioutil.ReadAll(reader)
+	fmt.Printf("%s\n", buf)
+	// err = json.NewDecoder(reader).Decode(&d)
+	err = json.Unmarshal(buf, &d)
 	if err != nil {
 		log.Println(err)
 		return
@@ -192,7 +197,7 @@ func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI 
 	err = json.Unmarshal(([]byte)(sd), &originalSyncedLyrics)
 	if err != nil {
 		log.Println(err)
-		return
+		err = nil
 	}
 	if len(result.SyncedLyrics) == 0 {
 		result.SyncedLyrics = originalSyncedLyrics
