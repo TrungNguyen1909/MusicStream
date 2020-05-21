@@ -30,7 +30,7 @@ import (
 )
 
 func (s *Server) pushPCMAudio(pcm []byte) {
-	s.bufferingChannel <- chunk{buffer: pcm}
+	s.bufferingChannel <- &chunk{buffer: pcm}
 }
 func (s *Server) pushSilentFrames() {
 	silenceBuffer := make([]byte, 76032)
@@ -41,30 +41,28 @@ func (s *Server) pushSilentFrames() {
 	}
 }
 func (s *Server) endCurrentStream() {
-	s.bufferingChannel <- chunk{buffer: nil, encoderTime: 0}
+	s.bufferingChannel <- &chunk{buffer: nil, encoderTime: 0}
 }
-func (s *Server) streamVorbis(encodedDuration chan time.Duration) chan chunk {
+func (s *Server) streamVorbis(encodedDuration chan time.Duration) chan *chunk {
 	var encodedTime time.Duration
 	var bufferedTime time.Duration
-	source := make(chan chunk, 5000)
+	source := make(chan *chunk, 5000)
 	go func() {
 		start := time.Now()
+		defer func() {
+			encodedDuration <- bufferedTime
+		}()
 		for {
-			var Chunk chunk
+			var Chunk *chunk
 			select {
 			case <-encodedDuration:
 				for len(source) > 0 {
-					select {
-					case <-source:
-					default:
-					}
+					<-source
 				}
-				encodedDuration <- bufferedTime
 				return
 			case Chunk = <-source:
 			}
 			if Chunk.buffer == nil {
-				encodedDuration <- bufferedTime
 				return
 			}
 			output := make([]byte, 20000)
@@ -72,33 +70,28 @@ func (s *Server) streamVorbis(encodedDuration chan time.Duration) chan chunk {
 			output = output[:n]
 			encodedTime += (time.Duration)(len(Chunk.buffer)/4/48) * time.Millisecond
 			if n > 0 {
-				done := false
-				Chunk = chunk{}
+				Chunk := &chunk{}
 				Chunk.buffer = output
 				Chunk.channel = ((s.currentVorbisChannel + 1) % 2)
-				for !done {
-					select {
-					case c := <-s.vorbisChannel[s.currentVorbisChannel]:
-						select {
-						case c <- Chunk:
-						default:
-						}
-					default:
-						s.currentVorbisChannel = (s.currentVorbisChannel + 1) % 2
-						done = true
-					}
-				}
-				bufferedTime = encodedTime
+				Chunk.chunkID = atomic.AddInt64(s.vorbisChunkID, 1)
 				time.Sleep(bufferedTime - time.Since(start))
+				sent := int64(0)
+				for len(s.vorbisChannel[s.currentVorbisChannel]) > 0 || sent < atomic.LoadInt64(s.vorbisSubscribers) {
+					c := <-s.vorbisChannel[s.currentVorbisChannel]
+					c <- Chunk
+					sent++
+				}
+				s.currentVorbisChannel = (s.currentVorbisChannel + 1) % 2
+				bufferedTime = encodedTime
 			}
 		}
 	}()
 	return source
 }
-func (s *Server) streamMP3(encodedDuration chan time.Duration) chan chunk {
+func (s *Server) streamMP3(encodedDuration chan time.Duration) chan *chunk {
 	var encodedTime time.Duration
 	var bufferedTime time.Duration
-	source := make(chan chunk, 5000)
+	source := make(chan *chunk, 5000)
 	go func() {
 		defer func() {
 			encodedDuration <- bufferedTime
@@ -106,14 +99,11 @@ func (s *Server) streamMP3(encodedDuration chan time.Duration) chan chunk {
 		var buffer bytes.Buffer
 		start := time.Now()
 		for {
-			var Chunk chunk
+			var Chunk *chunk
 			select {
 			case <-encodedDuration:
 				for len(source) > 0 {
-					select {
-					case <-source:
-					default:
-					}
+					<-source
 				}
 				return
 			case Chunk = <-source:
@@ -137,24 +127,19 @@ func (s *Server) streamMP3(encodedDuration chan time.Duration) chan chunk {
 			output = output[:n]
 			encodedTime += (time.Duration)(len(pcm)/4/48) * time.Millisecond
 			if n > 0 {
-				done := false
-				Chunk := chunk{}
+				Chunk := &chunk{}
 				Chunk.buffer = output
 				Chunk.channel = ((s.currentMP3Channel + 1) % 2)
-				for !done {
-					select {
-					case c := <-s.mp3Channel[s.currentMP3Channel]:
-						select {
-						case c <- Chunk:
-						default:
-						}
-					default:
-						s.currentMP3Channel = (s.currentMP3Channel + 1) % 2
-						done = true
-					}
-				}
-				bufferedTime = encodedTime
+				Chunk.chunkID = atomic.AddInt64(s.mp3ChunkID, 1)
 				time.Sleep(bufferedTime - time.Since(start))
+				sent := int64(0)
+				for len(s.mp3Channel[s.currentMP3Channel]) > 0 || sent < atomic.LoadInt64(s.mp3Subscribers) {
+					c := <-s.mp3Channel[s.currentMP3Channel]
+					c <- Chunk
+					sent++
+				}
+				s.currentMP3Channel = (s.currentMP3Channel + 1) % 2
+				bufferedTime = encodedTime
 			}
 			if Chunk.buffer == nil {
 				return

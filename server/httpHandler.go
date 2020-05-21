@@ -55,9 +55,11 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("pragma", "no-cache")
 	w.Header().Set("status", "200")
-	channel := make(chan chunk, 500)
-	var bufferChannel [2]chan chan chunk
+	channel := make(chan *chunk, 500)
+	var bufferChannel []chan chan *chunk
 	var chanidx int
+	isMP3Stream := false
+	chunkID := int64(-1)
 	if r.URL.Path == "/fallback" {
 		w.Header().Set("Content-Type", "audio/mpeg")
 		isRanged := len(r.Header.Get("Range")) > 0
@@ -67,11 +69,19 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Write(s.mp3Header)
+		isMP3Stream = true
 		bufferChannel = s.mp3Channel
 	} else {
 		w.Header().Set("Content-Type", "application/ogg")
 		w.Write(s.oggHeader)
 		bufferChannel = s.vorbisChannel
+	}
+	if isMP3Stream {
+		atomic.AddInt64(s.mp3Subscribers, 1)
+		defer atomic.AddInt64(s.mp3Subscribers, -1)
+	} else {
+		atomic.AddInt64(s.vorbisSubscribers, 1)
+		defer atomic.AddInt64(s.vorbisSubscribers, -1)
 	}
 	bufferChannel[chanidx] <- channel
 	flusher.Flush()
@@ -79,15 +89,19 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-notify:
 			log.Printf("%s %s %s: client disconnected\n", r.RemoteAddr, r.Method, r.URL)
+			<-channel
 			return
 		case Chunk := <-channel:
 			chanidx = Chunk.channel
 			bufferChannel[chanidx] <- channel
+			if chunkID != -1 && chunkID+1 != Chunk.chunkID {
+				log.Println("[", r.URL.Path, "]", "[WARN] chunks from ", chunkID+1, " to ", Chunk.chunkID-1, " have been lost.")
+			}
+			chunkID = Chunk.chunkID
 			_, err := w.Write(Chunk.buffer)
 			if err != nil {
 				break
 			}
-			flusher.Flush()
 		}
 	}
 }

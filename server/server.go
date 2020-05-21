@@ -71,14 +71,16 @@ type Server struct {
 	playQueue            *queue.Queue
 	currentVorbisChannel int
 	currentMP3Channel    int
-	vorbisChannel        [2]chan chan chunk
-	mp3Channel           [2]chan chan chunk
-	vorbisBuffer         chan chunk
-	mp3Buffer            chan chunk
+	vorbisSubscribers    *int64
+	mp3Subscribers       *int64
+	vorbisChannel        []chan chan *chunk
+	mp3Channel           []chan chan *chunk
 	oggHeader            []byte
 	mp3Header            []byte
+	vorbisChunkID        *int64
+	mp3ChunkID           *int64
 	listenersCount       int32
-	bufferingChannel     chan chunk
+	bufferingChannel     chan *chunk
 	skipChannel          chan int
 	quitRadio            chan int
 	isRadioStreaming     int32
@@ -119,13 +121,17 @@ func (s *Server) Serve(addr string) (err error) {
 //NewServer returns a new server
 func NewServer(config Config) *Server {
 	s := &Server{}
-	s.bufferingChannel = make(chan chunk, 5000)
+	s.bufferingChannel = make(chan *chunk, 5000)
+	s.mp3Channel = make([]chan chan *chunk, 2)
+	s.vorbisChannel = make([]chan chan *chunk, 2)
 	for i := 0; i < 2; i++ {
-		s.mp3Channel[i] = make(chan chan chunk, 500)
-		s.vorbisChannel[i] = make(chan chan chunk, 500)
+		s.mp3Channel[i] = make(chan chan *chunk, 500)
+		s.vorbisChannel[i] = make(chan chan *chunk, 500)
 	}
-	s.vorbisBuffer = make(chan chunk, 5000)
-	s.mp3Buffer = make(chan chunk, 5000)
+	s.vorbisSubscribers = new(int64)
+	s.mp3Subscribers = new(int64)
+	s.vorbisChunkID = new(int64)
+	s.mp3ChunkID = new(int64)
 	s.skipChannel = make(chan int, 500)
 	s.deltaChannel = make(chan int64, 1)
 	s.quitRadio = make(chan int, 10)

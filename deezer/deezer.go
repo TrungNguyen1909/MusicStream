@@ -227,10 +227,11 @@ func (decrypter *trackDecrypter) createCipher() cipher.BlockMode {
 	blowfishCBC := cipher.NewCBCDecrypter(blowfishEngine, []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07})
 	return blowfishCBC
 }
-func (decrypter *trackDecrypter) decrypt(n int) {
+func (decrypter *trackDecrypter) decrypt(n int) (err error) {
 	for decrypter.buffer.Len() < n && !decrypter.ended {
 		buf := make([]byte, 2048)
-		size, err := decrypter.r.Read(buf)
+		var size int
+		size, err = decrypter.r.Read(buf)
 		if decrypter.counter%3 == 0 && size == 2048 {
 			blowfish := decrypter.createCipher()
 			blowfish.CryptBlocks(buf, buf)
@@ -242,12 +243,19 @@ func (decrypter *trackDecrypter) decrypt(n int) {
 			break
 		}
 	}
+	return
 }
 func (decrypter *trackDecrypter) Read(p []byte) (n int, err error) {
-	decrypter.decrypt(len(p))
+	err = decrypter.decrypt(len(p))
+	if err != nil && err != io.EOF {
+		log.Println("trackDecrypter.decrypt failed: ", err)
+	}
 	n, err = decrypter.buffer.Read(p)
-	if err != nil || decrypter.ended {
+	if err == nil && decrypter.ended {
 		err = io.EOF
+	}
+	if err != nil && err != io.EOF {
+		log.Println("trackDecrypter.Read failed: ", err)
 	}
 	return n, err
 }
@@ -544,5 +552,22 @@ start:
 		v.client = client
 		tracks[i] = &Track{deezerTrack: v, playID: common.GenerateID()}
 	}
+	//TODO: Populate all tracks' online metadata from here
+	// fetch("https://www.deezer.com/ajax/gw-light.php?method=song.getListData&input=3&api_version=1.0&api_token=T6I7~D-Ran-Xb.K.l~ySpPkjbboWTwSh&cid=396110828", {
+	// 	"headers": {
+	// 	  "accept": "*/*",
+	// 	  "accept-language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+	// 	  "content-type": "text/plain;charset=UTF-8",
+	// 	  "sec-fetch-dest": "empty",
+	// 	  "sec-fetch-mode": "same-origin",
+	// 	  "sec-fetch-site": "same-origin"
+	// 	},
+	// 	"referrer": "https://www.deezer.com/us/track/13572702",
+	// 	"referrerPolicy": "no-referrer-when-downgrade",
+	// 	"body": "{\"sng_ids\":[\"13572702\"]}",
+	// 	"method": "POST",
+	// 	"mode": "cors",
+	// 	"credentials": "include"
+	//   });
 	return tracks, nil
 }

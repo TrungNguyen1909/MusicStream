@@ -40,6 +40,7 @@ type chunk struct {
 	buffer      []byte
 	encoderTime time.Duration
 	channel     int
+	chunkID     int64
 }
 type wsMessage struct {
 	Operation int    `json:"op"`

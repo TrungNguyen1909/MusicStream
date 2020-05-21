@@ -103,10 +103,7 @@ func (s *Server) processTrack() {
 	quit := make(chan int, 10)
 	go s.preloadTrack(stream, quit)
 	for len(s.skipChannel) > 0 {
-		select {
-		case <-s.skipChannel:
-		default:
-		}
+		<-s.skipChannel
 	}
 	time.Sleep(time.Until(s.lastStreamEnded))
 	s.startTime = time.Now()
