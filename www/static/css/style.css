@@ -380,11 +380,11 @@ body {
   display: inline-block;
 }
 
-.queue .element .remove{
-  float:right;
+.queue .element .remove {
+  float: right;
   color: #d92b3a;
   margin-top: 0px;
-  width:40px;
+  width: 40px;
   stroke: #c2c6cf;
 }
 .queue .element .remove:hover {
@@ -413,7 +413,7 @@ body {
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: 14px;
-  margin-right: 0px;  
+  margin-right: 0px;
   color: #c2c6cfb9;
   height: 20px;
 }
