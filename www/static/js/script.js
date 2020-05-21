@@ -59,7 +59,7 @@ class musicPlayer {
       this.controlPanel.classList.add("playing");
       window.player.muted = false;
       if (!window.player.src) window.player.src = chooseSrc();
-      
+
       this.isPlaying = 1;
     } else {
       this.controlPanel.classList.remove("playing");
@@ -333,17 +333,27 @@ function initWebSocket() {
             let ele = document.createElement("div");
             ele.className = "element";
             ele.playId = msg.track.playId;
-            ele.addEventListener("contextmenu", this.removeTrack);
+            //ele.addEventListener("contextmenu", this.removeTrack);
+            let container = document.createElement("div");
+            container.className = "metadata-container";
             let titleBox = document.createElement("div");
             titleBox.className = "title";
             titleBox.innerText = msg.track.title;
             titleBox.playId = msg.track.playId;
-            ele.appendChild(titleBox);
+            container.appendChild(titleBox);
             let artistBox = document.createElement("div");
             artistBox.className = "artist";
             artistBox.innerText = msg.track.artists;
             artistBox.playId = msg.track.playId;
-            ele.appendChild(artistBox);
+            container.appendChild(artistBox);
+            ele.append(container);
+            let removeButton = document.createElement("div");
+            removeButton.className = "remove";
+            let svg = document.createElement("svg");
+            svg.innerHTML = '<svg viewBox="-2 -2 30 30"><use xlink:href="#remove-button"></svg>'.trim();
+            removeButton.appendChild(svg);
+            removeButton.addEventListener("click", this.removeTrack);
+            ele.append(removeButton);
             document.getElementById("queue").appendChild(ele);
           }
         }
@@ -359,17 +369,27 @@ function initWebSocket() {
           let ele = document.createElement("div");
           ele.className = "element";
           ele.playId = track.playId;
-          ele.addEventListener("contextmenu", this.removeTrack);
+          //ele.addEventListener("contextmenu", this.removeTrack);
+          let container = document.createElement("div");
+          container.className = "metadata-container";
           let titleBox = document.createElement("div");
           titleBox.className = "title";
           titleBox.innerText = track.title;
           titleBox.playId = track.playId;
-          ele.appendChild(titleBox);
+          container.appendChild(titleBox);
           let artistBox = document.createElement("div");
           artistBox.className = "artist";
           artistBox.innerText = track.artists;
           artistBox.playId = track.playId;
-          ele.appendChild(artistBox);
+          container.appendChild(artistBox);
+          ele.append(container);
+          let removeButton = document.createElement("div");
+          removeButton.className = "remove";
+          let svg = document.createElement("svg");
+          svg.innerHTML = '<svg viewBox="-2 -2 30 30"><use xlink:href="#remove-button"></svg>'.trim();
+          removeButton.appendChild(svg);
+          removeButton.addEventListener("click", this.removeTrack);
+          ele.append(removeButton);
           document.getElementById("queue").appendChild(ele);
         });
         break;
@@ -412,7 +432,10 @@ function initWebSocket() {
 function removeTrack(event) {
   event.preventDefault();
   ws.send(
-    JSON.stringify({ op: opClientRemoveTrack, query: event.target.playId })
+    JSON.stringify({
+      op: opClientRemoveTrack,
+      query: event.currentTarget.parentElement.playId,
+    })
   );
   var subBox = document.getElementById("sub");
   var artistBox = subBox.getElementsByClassName("artist")[0];
@@ -421,9 +444,13 @@ function removeTrack(event) {
   titleBox.innerText = "";
   titleBox.innerText = `Removing`;
   artistBox.innerText = `${
-    event.currentTarget.getElementsByClassName("title")[0].innerText
-  } - ${event.currentTarget.getElementsByClassName("artist")[0].innerText}`;
-  event.currentTarget.disabled = true;
+    event.currentTarget.parentElement.getElementsByClassName("title")[0]
+      .innerText
+  } - ${
+    event.currentTarget.parentElement.getElementsByClassName("artist")[0]
+      .innerText
+  }`;
+  event.currentTarget.parentElement.disabled = true;
   clearTimeout(subBoxTimeout);
   showSubBox();
   subBoxTimeout = setTimeout(hideSubBox, 3000);

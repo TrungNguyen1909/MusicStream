@@ -369,13 +369,26 @@ body {
 }
 .queue .element {
   position: relative;
-  height: 20px;
+  height: 40px;
   padding: 10px 10px;
   padding-bottom: 5px;
-  padding-right: 20px;
   line-height: 20px;
   border-bottom: 1px solid #c2c6cf;
   transition: all 0.5s ease;
+}
+.queue .element .metadata-container {
+  display: inline-block;
+}
+
+.queue .element .remove{
+  float:right;
+  color: #d92b3a;
+  margin-top: 0px;
+  width:40px;
+  stroke: #c2c6cf;
+}
+.queue .element .remove:hover {
+  stroke: #d92b3a;
 }
 .queue .element:hover {
   background-color: #c2c6cf;
@@ -385,40 +398,30 @@ body {
 }
 .queue .element div {
   text-align: left;
-  height: 20px;
+  height: 100%;
 }
 .queue .element .title {
   color: #d92b3a;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  max-width: 60%;
   font-size: 18px;
-  float: left;
+  height: 20px;
 }
 .queue .element .artist {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 15px;
-  color: #c2c6cf;
+  font-size: 14px;
+  margin-right: 0px;  
+  color: #c2c6cfb9;
+  height: 20px;
 }
 
 .queue .element:hover .title {
   color: #d92b3a;
 }
 .queue .element:hover .artist {
-  color: #1b2b40;
-}
-
-.queue .element .artist::before {
-  color: #c2c6cf;
-  padding-left: 5px;
-  padding-right: 5px;
-  content: "-";
-  width: 18px;
-}
-.queue .element:hover .artist::before {
   color: #1b2b40;
 }
 
