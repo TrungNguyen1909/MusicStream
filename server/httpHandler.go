@@ -83,7 +83,9 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 		atomic.AddInt64(s.vorbisSubscribers, 1)
 		defer atomic.AddInt64(s.vorbisSubscribers, -1)
 	}
-	bufferChannel[chanidx] <- channel
+	firstChunk := true
+	bufferChannel[0] <- channel
+	bufferChannel[1] <- channel
 	flusher.Flush()
 	for {
 		select {
@@ -93,7 +95,11 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		case Chunk := <-channel:
 			chanidx = Chunk.channel
-			bufferChannel[chanidx] <- channel
+			if !firstChunk {
+				bufferChannel[chanidx] <- channel
+			} else {
+				firstChunk = false
+			}
 			if chunkID != -1 && chunkID+1 != Chunk.chunkID {
 				log.Println("[", r.URL.Path, "]", "[WARN] chunks from ", chunkID+1, " to ", Chunk.chunkID-1, " have been lost.")
 			}

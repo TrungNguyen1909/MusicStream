@@ -74,7 +74,6 @@ func (s *Server) streamVorbis(encodedDuration chan time.Duration) chan *chunk {
 				Chunk.buffer = output
 				Chunk.channel = ((s.currentVorbisChannel + 1) % 2)
 				Chunk.chunkID = atomic.AddInt64(s.vorbisChunkID, 1)
-				time.Sleep(bufferedTime - time.Since(start))
 				sent := int64(0)
 				for len(s.vorbisChannel[s.currentVorbisChannel]) > 0 || sent < atomic.LoadInt64(s.vorbisSubscribers) {
 					c := <-s.vorbisChannel[s.currentVorbisChannel]
@@ -83,6 +82,7 @@ func (s *Server) streamVorbis(encodedDuration chan time.Duration) chan *chunk {
 				}
 				s.currentVorbisChannel = (s.currentVorbisChannel + 1) % 2
 				bufferedTime = encodedTime
+				time.Sleep(bufferedTime - time.Since(start))
 			}
 		}
 	}()
@@ -131,7 +131,6 @@ func (s *Server) streamMP3(encodedDuration chan time.Duration) chan *chunk {
 				Chunk.buffer = output
 				Chunk.channel = ((s.currentMP3Channel + 1) % 2)
 				Chunk.chunkID = atomic.AddInt64(s.mp3ChunkID, 1)
-				time.Sleep(bufferedTime - time.Since(start))
 				sent := int64(0)
 				for len(s.mp3Channel[s.currentMP3Channel]) > 0 || sent < atomic.LoadInt64(s.mp3Subscribers) {
 					c := <-s.mp3Channel[s.currentMP3Channel]
@@ -140,6 +139,7 @@ func (s *Server) streamMP3(encodedDuration chan time.Duration) chan *chunk {
 				}
 				s.currentMP3Channel = (s.currentMP3Channel + 1) % 2
 				bufferedTime = encodedTime
+				time.Sleep(bufferedTime - time.Since(start))
 			}
 			if Chunk.buffer == nil {
 				return
