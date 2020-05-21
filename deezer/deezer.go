@@ -136,8 +136,7 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 		err = errors.New("Metadata not yet populated")
 		return
 	}
-	req := track.client.makeRequest("GET", track.StreamURL, []byte(""))
-	response, err := http.DefaultClient.Do(req)
+	response, err := http.DefaultClient.Get(track.StreamURL)
 	if err != nil {
 		return
 	}
@@ -180,12 +179,58 @@ type getUserDataResponse struct {
 	Results getUserDataResults `json:"results"`
 }
 type pageTrackData struct {
-	MD5Origin    string `json:"MD5_ORIGIN"`
-	SNGId        string `json:"SNG_ID"`
-	MediaVersion string `json:"MEDIA_VERSION"`
+	AlbID      string `json:"ALB_ID"`
+	AlbPicture string `json:"ALB_PICTURE"`
+	AlbTitle   string `json:"ALB_TITLE"`
+	Artists    []struct {
+		ArtID      string `json:"ART_ID"`
+		ArtName    string `json:"ART_NAME"`
+		ArtPicture string `json:"ART_PICTURE"`
+	} `json:"ARTISTS"`
+	ArtID              string `json:"ART_ID"`
+	ArtName            string `json:"ART_NAME"`
+	DigitalReleaseDate string `json:"DIGITAL_RELEASE_DATE"`
+	DiskNumber         string `json:"DISK_NUMBER"`
+	Duration           string `json:"DURATION"`
+	ExplicitLyrics     string `json:"EXPLICIT_LYRICS"`
+	Filesize           string `json:"FILESIZE"`
+	FileSizeAAC64      string `json:"FILESIZE_AAC_64"`
+	FilesizeFlac       string `json:"FILESIZE_FLAC"`
+	FilesizeMP3_128    string `json:"FILESIZE_MP3_128"`
+	FilesizeMP3_256    string `json:"FILESIZE_MP3_256"`
+	FilesizeMP3_320    string `json:"FILESIZE_MP3_320"`
+	FilesizeMP3_64     string `json:"FILESIZE_MP3_64"`
+	FilesizeMP4RA1     string `json:"FILESIZE_MP4_RA1"`
+	FilesizeMP4RA2     string `json:"FILESIZE_MP4_RA2"`
+	FilesizeMP4RA3     string `json:"FILESIZE_MP4_RA3"`
+	Gain               string `json:"GAIN"`
+	GenreID            string `json:"GENRE_ID"`
+	Isrc               string `json:"ISRC"`
+	LyricsID           int64  `json:"LYRICS_ID"`
+	MD5Origin          string `json:"MD5_ORIGIN"`
+	Media              []struct {
+		Href string `json:"HREF"`
+		Type string `json:"TYPE"`
+	} `json:"MEDIA"`
+	MediaVersion        string `json:"MEDIA_VERSION"`
+	PhysicalReleaseDate string `json:"PHYSICAL_RELEASE_DATE"`
+	ProviderID          string `json:"PROVIDER_ID"`
+	RankSng             string `json:"RANK_SNG"`
+	Smartradio          int64  `json:"SMARTRADIO"`
+	SngID               string `json:"SNG_ID"`
+	SngTitle            string `json:"SNG_TITLE"`
+	Status              int64  `json:"STATUS"`
+	TrackNumber         string `json:"TRACK_NUMBER"`
+	TrackToken          string `json:"TRACK_TOKEN"`
+	TrackTokenExpire    int64  `json:"TRACK_TOKEN_EXPIRE"`
+	UploadID            int64  `json:"UPLOAD_ID"`
+	UserID              int64  `json:"USER_ID"`
+	Version             string `json:"VERSION"`
+	Type                string `json:"__TYPE__"`
 }
 type pageTrackResults struct {
-	Data pageTrackData `json:"DATA"`
+	Data  []pageTrackData `json:"data"`
+	Count int64           `json:"count"`
 }
 type pageTrackResponse struct {
 	Error   []interface{}    `json:"error"`
@@ -206,6 +251,8 @@ type deezerTrack struct {
 	Rank         int      `json:"rank"`
 	ISRC         string   `json:"isrc"`
 	SpotifyURI   string
+	MD5Origin    string
+	MediaVersion string
 	client       *Client
 }
 
@@ -341,35 +388,9 @@ func (client *Client) initDeezerAPI() {
 	client.unofficialAPIQuery.Set("api_token", resp.Results.CheckForm)
 	log.Printf("Successfully initiated Deezer API. Checkform: \"%s\"\n", resp.Results.CheckForm)
 }
-func (client *Client) getTrackInfo(trackID int, secondTry bool) (trackInfo pageTrackData, err error) {
-	data := map[string]interface{}{
-		"SNG_ID": trackID,
-	}
-	encoded, _ := json.Marshal(data)
-	request := client.makeUnofficialAPIRequest("deezer.pageTrack", encoded)
-	response, err := client.httpClient.Do(request)
-	var resp pageTrackResponse
-	if err == nil {
-		defer response.Body.Close()
-		err = json.NewDecoder(response.Body).Decode(&resp)
-	}
-	if err != nil || len(resp.Results.Data.MD5Origin) <= 0 {
-		if secondTry {
-			if err != nil {
-				err = errors.New("Failed to get trackInfo adequately " + err.Error())
-			} else {
-				err = errors.New("Failed to get trackInfo adequately")
-			}
-			return
-		}
-		client.initDeezerAPI()
-		return client.getTrackInfo(trackID, true)
-	}
-	return resp.Results.Data, nil
-}
-func (client *Client) getSongFileName(trackInfo pageTrackData) string {
+func getSongFileName(trackInfo deezerTrack) string {
 	encoder := charmap.Windows1252.NewEncoder()
-	step1 := strings.Join([]string{trackInfo.MD5Origin, strconv.Itoa(trackQualityID), trackInfo.SNGId, trackInfo.MediaVersion}, "¤")
+	step1 := strings.Join([]string{trackInfo.MD5Origin, strconv.Itoa(trackQualityID), strconv.Itoa(trackInfo.ID), trackInfo.MediaVersion}, "¤")
 	step1encoded, _ := encoder.Bytes([]byte(step1))
 	step2 := fmt.Sprintf("%x¤%s¤", md5.Sum([]byte(step1encoded)), step1)
 
@@ -383,7 +404,7 @@ func (client *Client) getSongFileName(trackInfo pageTrackData) string {
 	}
 	return fmt.Sprintf("%x", result)
 }
-func (client *Client) getBlowfishKey(trackInfo pageTrackData) (bfKey []byte, err error) {
+func getBlowfishKey(trackInfo deezerTrack) (bfKey []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			bfKey = nil
@@ -393,7 +414,7 @@ func (client *Client) getBlowfishKey(trackInfo pageTrackData) (bfKey []byte, err
 	}()
 	SECRET := "g4el58wc0zvf9na1"
 	encoder := charmap.Windows1252.NewEncoder()
-	sngid, _ := encoder.Bytes([]byte(trackInfo.SNGId))
+	sngid, _ := encoder.Bytes([]byte(strconv.Itoa(trackInfo.ID)))
 	idMd5 := fmt.Sprintf("%x", md5.Sum(sngid))
 	bfKey = make([]byte, 16)
 	for i := range bfKey {
@@ -401,7 +422,7 @@ func (client *Client) getBlowfishKey(trackInfo pageTrackData) (bfKey []byte, err
 	}
 	return
 }
-func (client *Client) getTrackDownloadURL(trackInfo pageTrackData) (url string, err error) {
+func getTrackDownloadURL(trackInfo deezerTrack) (url string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			url = ""
@@ -410,24 +431,26 @@ func (client *Client) getTrackDownloadURL(trackInfo pageTrackData) (url string, 
 		}
 	}()
 	cdn := trackInfo.MD5Origin[0]
-	url = strings.Join([]string{"https://e-cdns-proxy-", string(cdn), ".dzcdn.net/mobile/1/", client.getSongFileName(trackInfo)}, "")
+	url = strings.Join([]string{"https://e-cdns-proxy-", string(cdn), ".dzcdn.net/mobile/1/", getSongFileName(trackInfo)}, "")
 	return
 }
 
 //PopulateMetadata populates the required metadata for downloading the track
 func (client *Client) PopulateMetadata(dTrack *Track) (err error) {
-	if client == nil {
-		err = errors.New("PopulateMetadata: nil Deezer Client")
+	if len(dTrack.deezerTrack.MD5Origin) <= 0 {
+		if client == nil {
+			err = errors.New("PopulateMetadata: nil Deezer Client")
+		}
+		err = client.populateTracks([]deezerTrack{dTrack.deezerTrack})
+		if err != nil {
+			return
+		}
 	}
-	trackInfo, err := client.getTrackInfo(dTrack.deezerTrack.ID, false)
+	dTrack.StreamURL, err = getTrackDownloadURL(dTrack.deezerTrack)
 	if err != nil {
 		return
 	}
-	dTrack.StreamURL, err = client.getTrackDownloadURL(trackInfo)
-	if err != nil {
-		return
-	}
-	dTrack.BlowfishKey, err = client.getBlowfishKey(trackInfo)
+	dTrack.BlowfishKey, err = getBlowfishKey(dTrack.deezerTrack)
 	if err != nil {
 		return
 	}
@@ -453,6 +476,46 @@ func (client *Client) GetTrackByID(trackID string) (track common.Track, err erro
 	itrack := &Track{deezerTrack: dTrack, playID: common.GenerateID()}
 	err = client.PopulateMetadata(itrack)
 	track = itrack
+	return
+}
+
+func (client *Client) populateTracks(tracks []deezerTrack) (err error) {
+	sngIDs := make([]string, len(tracks))
+	for i, track := range tracks {
+		sngIDs[i] = strconv.Itoa(track.ID)
+	}
+	body, err := json.Marshal(map[string][]string{
+		"sng_ids": sngIDs,
+	})
+	if err != nil {
+		return
+	}
+	req := client.makeUnofficialAPIRequest("song.getListData", body)
+	response, err := client.httpClient.Do(req)
+	if err != nil {
+		client.initDeezerAPI()
+		response, err = client.httpClient.Do(req)
+		if err != nil {
+			return
+		}
+	}
+	var resp pageTrackResponse
+	err = json.NewDecoder(response.Body).Decode(&resp)
+	if err != nil {
+		client.initDeezerAPI()
+		response, err = client.httpClient.Do(req)
+		if err != nil {
+			return
+		}
+		err = json.NewDecoder(response.Body).Decode(&resp)
+		if err != nil {
+			return
+		}
+	}
+	for i := range tracks {
+		tracks[i].MD5Origin = resp.Results.Data[i].MD5Origin
+		tracks[i].MediaVersion = resp.Results.Data[i].MediaVersion
+	}
 	return
 }
 
@@ -537,8 +600,11 @@ start:
 		return nil, errors.New("No track found")
 	}
 	tracks := make([]common.Track, len(itracks))
+	err = client.populateTracks(itracks)
+	if err != nil {
+		return nil, err
+	}
 	for i, v := range itracks {
-
 		if withSpotify && (v.ISRC == sISRC || (v.Title == sTrack && v.Artist.Name == sArtist && v.Album.Title == sAlbum)) {
 			v.SpotifyURI = sURI
 			if withISRC && i == 0 {
@@ -549,25 +615,7 @@ start:
 				}
 			}
 		}
-		v.client = client
 		tracks[i] = &Track{deezerTrack: v, playID: common.GenerateID()}
 	}
-	//TODO: Populate all tracks' online metadata from here
-	// fetch("https://www.deezer.com/ajax/gw-light.php?method=song.getListData&input=3&api_version=1.0&api_token=T6I7~D-Ran-Xb.K.l~ySpPkjbboWTwSh&cid=396110828", {
-	// 	"headers": {
-	// 	  "accept": "*/*",
-	// 	  "accept-language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
-	// 	  "content-type": "text/plain;charset=UTF-8",
-	// 	  "sec-fetch-dest": "empty",
-	// 	  "sec-fetch-mode": "same-origin",
-	// 	  "sec-fetch-site": "same-origin"
-	// 	},
-	// 	"referrer": "https://www.deezer.com/us/track/13572702",
-	// 	"referrerPolicy": "no-referrer-when-downgrade",
-	// 	"body": "{\"sng_ids\":[\"13572702\"]}",
-	// 	"method": "POST",
-	// 	"mode": "cors",
-	// 	"credentials": "include"
-	//   });
 	return tracks, nil
 }
