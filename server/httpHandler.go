@@ -44,11 +44,6 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println("expected http.ResponseWriter to be an http.Flusher")
 		return
 	}
-	atomic.AddInt32(&s.listenersCount, 1)
-	s.newListenerC <- 1
-	go s.setListenerCount()
-	defer s.setListenerCount()
-	defer atomic.AddInt32(&s.listenersCount, -1)
 	w.Header().Set("Connection", "Keep-Alive")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Transfer-Encoding", "chunked")
@@ -84,6 +79,12 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 		defer atomic.AddInt64(s.vorbisSubscribers, -1)
 	}
 	firstChunk := true
+	defer func() { <-channel }()
+	atomic.AddInt32(&s.listenersCount, 1)
+	s.newListenerC <- 1
+	go s.setListenerCount()
+	defer s.setListenerCount()
+	defer atomic.AddInt32(&s.listenersCount, -1)
 	bufferChannel[0] <- channel
 	bufferChannel[1] <- channel
 	flusher.Flush()
@@ -91,7 +92,6 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-notify:
 			log.Printf("%s %s %s: client disconnected\n", r.RemoteAddr, r.Method, r.URL)
-			<-channel
 			return
 		case Chunk := <-channel:
 			chanidx = Chunk.channel
