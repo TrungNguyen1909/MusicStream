@@ -27,7 +27,7 @@ import (
 	"sync/atomic"
 
 	"github.com/gorilla/websocket"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 )
 
 func (s *Server) audioHandler(c echo.Context) (err error) {
@@ -103,7 +103,6 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 }
 
 func (s *Server) wsHandler(c echo.Context) (err error) {
-	s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	_c, err := s.upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
 		log.Print("upgrade:", err)
@@ -117,7 +116,11 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 	ws.WriteMessage(websocket.TextMessage, s.getQueue())
 	for {
 		var msg wsMessage
-		err = ws.ReadJSON(&msg)
+		_, msgbuf, err := ws.ReadMessage()
+		if err != nil {
+			break
+		}
+		err = json.Unmarshal(msgbuf, &msg)
 		if err != nil {
 			break
 		}

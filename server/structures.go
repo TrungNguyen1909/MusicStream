@@ -66,3 +66,6 @@ func (socket *webSocket) Close() error {
 func (socket *webSocket) ReadJSON(v interface{}) error {
 	return socket.conn.ReadJSON(v)
 }
+func (socket *webSocket) ReadMessage() (messageType int, p []byte, err error) {
+	return socket.conn.ReadMessage()
+}

@@ -20,6 +20,7 @@ package server
 
 import (
 	"log"
+	"net/http"
 	"regexp"
 	"sync"
 	"time"
@@ -35,8 +36,8 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/vorbisencoder"
 	"github.com/TrungNguyen1909/MusicStream/youtube"
 	"github.com/gorilla/websocket"
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/tdewolff/minify"
 	"github.com/tdewolff/minify/css"
 	"github.com/tdewolff/minify/html"
@@ -162,6 +163,7 @@ func NewServer(config Config) *Server {
 	s.minifier.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
 	s.minifier.AddFuncRegexp(regexp.MustCompile("[/+]json$"), mJSON.Minify)
 	s.minifier.AddFuncRegexp(regexp.MustCompile("[/+]xml$"), xml.Minify)
+	s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
