@@ -148,7 +148,18 @@ body {
   width: 100%;
   height: 100%;
 }
-
+@media (hover: hover) {
+  .player .control-panel.playing .controls .play .svg:hover .pauseIcon {
+    stroke: #d92b3a;
+  }
+  .player .control-panel .controls .play .svg:hover .playIcon {
+    stroke: #d92b3a;
+  }
+  .player .control-panel .controls .prev .svg :hover,
+  .player .control-panel .controls .next .svg :hover {
+    stroke: #d92b3a;
+  }
+}
 .player .control-panel .controls .prev .svg,
 .player .control-panel .controls .next .svg {
   stroke: #c2c6cf;
@@ -156,10 +167,6 @@ body {
 
 .player .control-panel .controls .play .svg .playIcon {
   stroke: #c2c6cf;
-}
-
-.player .control-panel .controls .play .svg:hover .playIcon {
-  stroke: #d92b3a;
 }
 
 .player .control-panel .controls .play .svg .pauseIcon {
@@ -171,14 +178,6 @@ body {
 }
 .player .control-panel.playing .controls .play .svg .pauseIcon {
   stroke: #c2c6cf;
-}
-.player .control-panel.playing .controls .play .svg:hover .pauseIcon {
-  stroke: #d92b3a;
-}
-
-.player .control-panel .controls .prev .svg :hover,
-.player .control-panel .controls .next .svg :hover {
-  stroke: #d92b3a;
 }
 
 .player .control-panel .controls .info .artist,
@@ -309,8 +308,15 @@ body {
   text-transform: uppercase;
   letter-spacing: 1.5px;
 }
-
-.search__input:hover,
+@media (hover: hover) {
+  .search__input:hover {
+    padding: 12px 10px;
+    border: 1px solid transparent;
+    border-bottom: 1px solid #c2c6cf;
+    border-radius: 0;
+    background-position: 100% center;
+  }
+}
 .search__input:not(:placeholder-shown) {
   padding: 12px 10px;
   border: 1px solid transparent;
@@ -342,8 +348,13 @@ body {
   border-right: none; /* Prevent double borders */
 }
 /* Add a background color on hover */
-.btn-group div:hover,
-.btn-group div:focus,
+@media (hover: hover) {
+  .btn-group div:hover,
+  .btn-group div:focus {
+    background-color: #c2c6cf;
+    color: #1b2b40;
+  }
+}
 .btn-group .active {
   background-color: #c2c6cf;
   color: #1b2b40;
@@ -387,11 +398,14 @@ body {
   width: 40px;
   stroke: #c2c6cf;
 }
-.queue .element .remove:hover {
-  stroke: #d92b3a;
-}
-.queue .element:hover {
-  background-color: #c2c6cf;
+
+@media (hover: hover) {
+  .queue .element .remove:hover {
+    stroke: #d92b3a;
+  }
+  .queue .element:hover {
+    background-color: #c2c6cf;
+  }
 }
 .queue .element:first-child {
   margin-top: 24px;
@@ -417,12 +431,13 @@ body {
   color: #c2c6cfb9;
   height: 20px;
 }
-
-.queue .element:hover .title {
-  color: #d92b3a;
-}
-.queue .element:hover .artist {
-  color: #1b2b40;
+@media (hover: hover) {
+  .queue .element:hover .title {
+    color: #d92b3a;
+  }
+  .queue .element:hover .artist {
+    color: #1b2b40;
+  }
 }
 
 .marquee2 {
@@ -461,8 +476,10 @@ a[href="#"] {
   pointer-events: none;
   cursor: default;
 }
-a:hover:not([href="#"]) {
-  text-decoration: underline;
-  cursor: url;
-  color: #d92b3a;
+@media (hover: hover) {
+  a:hover:not([href="#"]) {
+    text-decoration: underline;
+    cursor: url;
+    color: #d92b3a;
+  }
 }
