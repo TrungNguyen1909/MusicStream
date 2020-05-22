@@ -20,7 +20,6 @@ package server
 
 import (
 	"log"
-	"net/http"
 	"regexp"
 	"sync"
 	"time"
@@ -36,6 +35,8 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/vorbisencoder"
 	"github.com/TrungNguyen1909/MusicStream/youtube"
 	"github.com/gorilla/websocket"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 	"github.com/tdewolff/minify"
 	"github.com/tdewolff/minify/css"
 	"github.com/tdewolff/minify/html"
@@ -100,8 +101,7 @@ type Server struct {
 	minifier             *minify.M
 	activityWg           sync.WaitGroup
 	newListenerC         chan int
-	serveMux             *http.ServeMux
-	server               *http.Server
+	server               *echo.Echo
 }
 
 //Serve starts the server, listening at addr
@@ -114,8 +114,7 @@ func (s *Server) Serve(addr string) (err error) {
 		}
 	}()
 	log.Printf("Starting MusicStream v%s at %s", MusicStream.Version, addr)
-	s.server = &http.Server{Addr: addr, Handler: logRequest(s.serveMux)}
-	return s.server.ListenAndServe()
+	return s.server.Start(addr)
 }
 
 //NewServer returns a new server
@@ -163,16 +162,21 @@ func NewServer(config Config) *Server {
 	s.minifier.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
 	s.minifier.AddFuncRegexp(regexp.MustCompile("[/+]json$"), mJSON.Minify)
 	s.minifier.AddFuncRegexp(regexp.MustCompile("[/+]xml$"), xml.Minify)
-	s.serveMux = http.NewServeMux()
-	s.serveMux.HandleFunc("/enqueue", s.enqueueHandler)
-	s.serveMux.HandleFunc("/queue", s.queueHandler)
-	s.serveMux.HandleFunc("/listeners", s.listenersHandler)
-	s.serveMux.HandleFunc("/audio", s.audioHandler)
-	s.serveMux.HandleFunc("/fallback", s.audioHandler)
-	s.serveMux.HandleFunc("/status", s.wsHandler)
-	s.serveMux.HandleFunc("/playing", s.playingHandler)
-	s.serveMux.HandleFunc("/skip", s.skipHandler)
-	s.serveMux.HandleFunc("/remove", s.removeTrackHandler)
-	s.serveMux.HandleFunc("/", s.fileServer(http.Dir("www")))
+	e := echo.New()
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+	e.Use(middleware.Gzip())
+	e.HideBanner = true
+	e.POST("/enqueue", s.enqueueHandler)
+	e.GET("/queue", s.queueHandler)
+	e.GET("/listeners", s.listenersHandler)
+	e.GET("/audio", s.audioHandler)
+	e.GET("/fallback", s.audioHandler)
+	e.GET("/status", s.wsHandler)
+	e.GET("/playing", s.playingHandler)
+	e.GET("/skip", s.skipHandler)
+	e.POST("/remove", s.removeTrackHandler)
+	e.Static("/", "www")
+	s.server = e
 	return s
 }

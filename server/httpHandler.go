@@ -19,31 +19,21 @@
 package server
 
 import (
-	"bytes"
-	"crypto/sha1"
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"log"
-	"mime"
 	"net/http"
 	"os"
-	"path"
-	"path/filepath"
-	"strings"
 	"sync"
 	"sync/atomic"
 
 	"github.com/gorilla/websocket"
+	"github.com/labstack/echo"
 )
 
-func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) audioHandler(c echo.Context) (err error) {
+	r := c.Request()
+	w := c.Response()
 	notify := r.Context().Done()
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		log.Println("expected http.ResponseWriter to be an http.Flusher")
-		return
-	}
 	w.Header().Set("Connection", "Keep-Alive")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Transfer-Encoding", "chunked")
@@ -87,7 +77,7 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 	defer atomic.AddInt32(&s.listenersCount, -1)
 	bufferChannel[0] <- channel
 	bufferChannel[1] <- channel
-	flusher.Flush()
+	w.Flush()
 	for {
 		select {
 		case <-notify:
@@ -112,49 +102,50 @@ func (s *Server) audioHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) wsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) wsHandler(c echo.Context) (err error) {
 	s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-	_c, err := s.upgrader.Upgrade(w, r, nil)
+	_c, err := s.upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
 		log.Print("upgrade:", err)
 		return
 	}
-	c := &webSocket{conn: _c, mux: &sync.Mutex{}}
-	s.connections.Store(c, c)
-	defer c.Close()
-	defer s.connections.Delete(c)
-	c.WriteMessage(websocket.TextMessage, s.getPlaying())
-	c.WriteMessage(websocket.TextMessage, s.getQueue())
+	ws := &webSocket{conn: _c, mux: &sync.Mutex{}}
+	s.connections.Store(ws, ws)
+	defer ws.Close()
+	defer s.connections.Delete(ws)
+	ws.WriteMessage(websocket.TextMessage, s.getPlaying())
+	ws.WriteMessage(websocket.TextMessage, s.getQueue())
 	for {
 		var msg wsMessage
-		err = c.ReadJSON(&msg)
+		err = ws.ReadJSON(&msg)
 		if err != nil {
 			break
 		}
 		switch msg.Operation {
 		case opSetClientsTrack:
-			c.WriteMessage(websocket.TextMessage, s.getPlaying())
+			ws.WriteMessage(websocket.TextMessage, s.getPlaying())
 		case opClientRequestTrack:
-			c.WriteMessage(websocket.TextMessage, s.enqueue(msg))
+			ws.WriteMessage(websocket.TextMessage, s.enqueue(msg))
 		case opClientRequestSkip:
-			c.WriteMessage(websocket.TextMessage, s.skip())
+			ws.WriteMessage(websocket.TextMessage, s.skip())
 		case opSetClientsListeners:
-			c.WriteMessage(websocket.TextMessage, s.getListenersCount())
+			ws.WriteMessage(websocket.TextMessage, s.getListenersCount())
 		case opClientRemoveTrack:
-			c.WriteMessage(websocket.TextMessage, s.removeTrack(msg))
+			ws.WriteMessage(websocket.TextMessage, s.removeTrack(msg))
 		case opClientRequestQueue:
-			c.WriteMessage(websocket.TextMessage, s.getQueue())
+			ws.WriteMessage(websocket.TextMessage, s.getQueue())
 		case opWebSocketKeepAlive:
 			data, _ := json.Marshal(map[string]interface{}{
 				"op": opWebSocketKeepAlive,
 			})
-			c.WriteMessage(websocket.TextMessage, data)
+			ws.WriteMessage(websocket.TextMessage, data)
 		}
 	}
-
+	return
 }
 
-func (s *Server) playingHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) playingHandler(c echo.Context) (err error) {
+	w := c.Response()
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
@@ -162,7 +153,8 @@ func (s *Server) playingHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (s *Server) listenersHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) listenersHandler(c echo.Context) (err error) {
+	w := c.Response()
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
@@ -170,9 +162,11 @@ func (s *Server) listenersHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (s *Server) enqueueHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) enqueueHandler(c echo.Context) (err error) {
+	r := c.Request()
 	var msg wsMessage
-	err := json.NewDecoder(r.Body).Decode(&msg)
+	err = json.NewDecoder(r.Body).Decode(&msg)
+	w := c.Response()
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
@@ -187,22 +181,29 @@ func (s *Server) enqueueHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write(s.enqueue(msg))
+	return
 }
-func (s *Server) skipHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) skipHandler(c echo.Context) (err error) {
+	w := c.Response()
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 	w.Write(s.skip())
+	return
 }
-func (s *Server) queueHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) queueHandler(c echo.Context) (err error) {
+	w := c.Response()
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 	w.Write(s.getQueue())
+	return
 }
-func (s *Server) removeTrackHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) removeTrackHandler(c echo.Context) (err error) {
+	r := c.Request()
+	w := c.Response()
 	var msg wsMessage
-	err := json.NewDecoder(r.Body).Decode(&msg)
+	err = json.NewDecoder(r.Body).Decode(&msg)
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
@@ -217,6 +218,7 @@ func (s *Server) removeTrackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write(s.removeTrack(msg))
+	return
 }
 func redirectToRoot(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -231,115 +233,8 @@ func toHTTPError(err error) (msg string, httpStatus int) {
 	// Default:
 	return "500 Internal Server Error", http.StatusInternalServerError
 }
-func (s *Server) fileServer(fs http.Dir) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		upath := r.URL.Path
-		if !strings.HasPrefix(upath, "/") {
-			upath = "/" + upath
-			r.URL.Path = upath
-		}
-		name := path.Clean(upath)
-		const indexPage = "/index.html"
 
-		// redirect .../index.html to .../
-		// can't use Redirect() because that would make the path absolute,
-		// which would be a problem running under StripPrefix
-		if strings.HasSuffix(r.URL.Path, indexPage) {
-			http.Redirect(w, r, "./", http.StatusSeeOther)
-			return
-		}
-
-		f, err := fs.Open(name)
-		if err != nil {
-			msg, code := toHTTPError(err)
-			http.Error(w, msg, code)
-			return
-		}
-		defer f.Close()
-
-		d, err := f.Stat()
-		if err != nil {
-			msg, code := toHTTPError(err)
-			http.Error(w, msg, code)
-			return
-		}
-
-		// redirect to canonical path: / at end of directory url
-		// r.URL.Path always begins with /
-		url := r.URL.Path
-		if d.IsDir() {
-			if url[len(url)-1] != '/' {
-				http.Redirect(w, r, path.Base(url)+"/", http.StatusSeeOther)
-				return
-			}
-		} else {
-			if url[len(url)-1] == '/' {
-				http.Redirect(w, r, "../"+path.Base(url), http.StatusSeeOther)
-				return
-			}
-		}
-
-		// redirect if the directory name doesn't end in a slash
-		if d.IsDir() {
-			url := r.URL.Path
-			if url[len(url)-1] != '/' {
-				http.Redirect(w, r, path.Base(url)+"/", http.StatusSeeOther)
-				return
-			}
-		}
-
-		// use contents of index.html for directory, if present
-		if d.IsDir() {
-			index := strings.TrimSuffix(name, "/") + indexPage
-			ff, err := fs.Open(index)
-			if err == nil {
-				defer ff.Close()
-				dd, err := ff.Stat()
-				if err == nil {
-					name = index
-					d = dd
-					f = ff
-				}
-			}
-		}
-
-		// Still a directory? (we didn't find an index.html file)
-		if d.IsDir() {
-			msg, code := toHTTPError(os.ErrPermission)
-			http.Error(w, msg, code)
-			return
-		}
-
-		// serveContent will check modification time
-		content, err := ioutil.ReadAll(f)
-		if err != nil {
-			msg, code := toHTTPError(err)
-			http.Error(w, msg, code)
-			return
-		}
-		mediaType := mime.TypeByExtension(filepath.Ext(d.Name()))
-		if mediaType == "" {
-			mediaType = http.DetectContentType(content)
-		}
-		mContent, err := s.minifier.Bytes(mediaType, content)
-		etag := sha1.Sum(mContent)
-		w.Header().Set("ETag", "W/"+fmt.Sprintf("%x", etag))
-		if match := r.Header.Get("If-None-Match"); match != "" {
-			if strings.Contains(match, w.Header().Get("ETag")) {
-				w.WriteHeader(http.StatusNotModified)
-				return
-			}
-		}
-		http.ServeContent(w, r, d.Name(), d.ModTime(), bytes.NewReader(mContent))
-		return
-
-	}
-}
-func logRequest(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		handler.ServeHTTP(w, r)
-	})
+// NotFoundHandler handles the "not found" situation. It should be a catch-all for all urls.
+func NotFoundHandler(c echo.Context) error {
+	return echo.NewHTTPError(http.StatusNotFound, "The page you are looking for does not exist")
 }
