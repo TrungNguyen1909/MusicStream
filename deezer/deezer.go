@@ -278,8 +278,9 @@ func (decrypter *trackDecrypter) decrypt(n int) (err error) {
 	for decrypter.buffer.Len() < n && !decrypter.ended {
 		buf := make([]byte, 2048)
 		var size int
-		size, err = decrypter.r.Read(buf)
-		if decrypter.counter%3 == 0 && size == 2048 {
+		size, err = io.ReadFull(decrypter.r, buf)
+		buf = buf[:size]
+		if decrypter.counter%3 == 0 && len(buf) == 2048 {
 			blowfish := decrypter.createCipher()
 			blowfish.CryptBlocks(buf, buf)
 		}
