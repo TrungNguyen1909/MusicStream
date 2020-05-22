@@ -358,7 +358,6 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 		if err == nil && track != nil {
 			return []common.Track{track}, nil
 		}
-		err = nil
 	}
 	reqURL, _ := url.Parse("https://www.googleapis.com/youtube/v3/search")
 	queries := reqURL.Query()

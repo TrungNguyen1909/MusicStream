@@ -495,6 +495,7 @@ func (client *Client) populateTracks(tracks []deezerTrack) (err error) {
 	response, err := client.httpClient.Do(req)
 	if err != nil {
 		client.initDeezerAPI()
+		req = client.makeUnofficialAPIRequest("song.getListData", body)
 		response, err = client.httpClient.Do(req)
 		if err != nil {
 			return
@@ -504,6 +505,7 @@ func (client *Client) populateTracks(tracks []deezerTrack) (err error) {
 	err = json.NewDecoder(response.Body).Decode(&resp)
 	if err != nil {
 		client.initDeezerAPI()
+		req = client.makeUnofficialAPIRequest("song.getListData", body)
 		response, err = client.httpClient.Do(req)
 		if err != nil {
 			return
