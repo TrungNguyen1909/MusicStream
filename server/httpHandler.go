@@ -57,7 +57,7 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 		isMP3Stream = true
 		bufferChannel = s.mp3Channel
 	} else {
-		w.Header().Set("Content-Type", "application/ogg")
+		w.Header().Set("Content-Type", "audio/ogg")
 		w.Write(s.oggHeader)
 		bufferChannel = s.vorbisChannel
 	}

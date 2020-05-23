@@ -22,6 +22,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -164,21 +165,41 @@ func NewServer(config Config) *Server {
 	s.minifier.AddFuncRegexp(regexp.MustCompile("[/+]json$"), mJSON.Minify)
 	s.minifier.AddFuncRegexp(regexp.MustCompile("[/+]xml$"), xml.Minify)
 	s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-	e := echo.New()
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Use(middleware.Gzip())
-	e.HideBanner = true
-	e.POST("/enqueue", s.enqueueHandler)
-	e.GET("/queue", s.queueHandler)
-	e.GET("/listeners", s.listenersHandler)
-	e.GET("/audio", s.audioHandler)
-	e.GET("/fallback", s.audioHandler)
-	e.GET("/status", s.wsHandler)
-	e.GET("/playing", s.playingHandler)
-	e.GET("/skip", s.skipHandler)
-	e.POST("/remove", s.removeTrackHandler)
-	e.Static("/", "www")
-	s.server = e
+	s.server = echo.New()
+	s.server.Use(middleware.Logger())
+	s.server.Use(middleware.Recover())
+	s.server.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Response().Header().Set("Access-Control-Allow-Origin", "*")
+			c.Response().Header().Set("Cache-Control", "no-cache")
+			return next(c)
+		}
+	})
+	s.server.Use(middleware.Gzip())
+	s.server.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			res := c.Response()
+			r := c.Request()
+			if c.IsWebSocket() || strings.HasPrefix(r.URL.Path, "/audio") || strings.HasPrefix(r.URL.Path, "/fallback") {
+				return next(c)
+			}
+			mw := s.minifier.ResponseWriter(res.Writer, c.Request())
+			defer mw.Close()
+			res.Writer = mw
+			return next(c)
+		}
+	})
+	s.server.Use(middleware.Static("www"))
+
+	s.server.HideBanner = true
+	s.server.POST("/enqueue", s.enqueueHandler)
+	s.server.GET("/listeners", s.listenersHandler)
+	s.server.GET("/audio", s.audioHandler)
+	s.server.GET("/fallback", s.audioHandler)
+	s.server.GET("/status", s.wsHandler)
+	s.server.GET("/playing", s.playingHandler)
+	s.server.GET("/skip", s.skipHandler)
+	s.server.POST("/remove", s.removeTrackHandler)
+	s.server.GET("/queue", s.queueHandler)
 	return s
 }
