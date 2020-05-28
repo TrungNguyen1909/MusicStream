@@ -1,5 +1,9 @@
 name: Go
-on: [push]
+on:
+  push:
+    tags:
+      - 'v*'
+    
 jobs:
 
   build:
@@ -37,10 +41,10 @@ jobs:
     - name: Upload artifact (main server)
       uses: actions/upload-artifact@v1.0.0
       with:
-        name: MusicStream-${{ runner.os }}-${{ github.sha }}.zip
+        name: MusicStream-${{ runner.os }}-${{ github.ref }}.zip
         path: MusicStream
     - name: Upload artifact (website)
       uses: actions/upload-artifact@v1.0.0
       with:
-        name: MusicStream-${{ runner.os }}-${{ github.sha }}-www.zip
+        name: MusicStream-${{ runner.os }}-${{ github.ref }}-www.zip
         path: www
