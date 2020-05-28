@@ -179,7 +179,6 @@ func NewServer(config Config) *Server {
 	s.minifier.AddFuncRegexp(regexp.MustCompile("[/+]xml$"), xml.Minify)
 	s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	s.server = echo.New()
-	s.server.Use(middleware.Logger())
 	s.server.Use(middleware.Recover())
 	s.server.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
