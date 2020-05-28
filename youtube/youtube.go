@@ -340,12 +340,15 @@ func (client *Client) GetTrackFromVideoID(videoID string) (track common.Track, e
 		},
 		playID: common.GenerateID(),
 	}
-	formats := videoInfo.Formats.Extremes(ytdl.FormatAudioBitrateKey, true)
+	formats := videoInfo.Formats
+	formats.Sort(ytdl.FormatAudioBitrateKey, true)
+	formats = formats.Filter(ytdl.FormatExtensionKey, []interface{}{"webm"}).Filter(ytdl.FormatAudioEncodingKey, []interface{}{"opus"})
 	streamURL, err := ytdl.DefaultClient.GetDownloadURL(context.Background(), videoInfo, formats[0])
 	if err != nil {
 		return
 	}
 	itrack.StreamURL = streamURL.String()
+	log.Println(itrack.StreamURL)
 	track = itrack
 	return
 }
