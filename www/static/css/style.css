@@ -389,6 +389,11 @@ body {
 }
 .queue .element .metadata-container {
   display: inline-block;
+  max-width: calc(100% - 40px);
+  max-width: -webkit-calc(100% - 40px);
+  max-width: -moz-calc(100% - 40px);
+  overflow-x: hidden;
+  text-overflow: ellipsis;
 }
 
 .queue .element .remove {
