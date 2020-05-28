@@ -73,7 +73,6 @@ func (s *Server) processTrack() {
 	}
 	s.activityWg.Wait()
 	track = s.playQueue.Pop().(common.Track)
-	s.dequeueCallback()
 	s.currentTrackID = ""
 	s.watchDog = 0
 	s.activityWg.Wait()

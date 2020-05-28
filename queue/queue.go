@@ -25,9 +25,11 @@ import (
 
 //Queue is a wrapper around container/list. Queue is atomic
 type Queue struct {
-	queue    *list.List
-	mux      sync.RWMutex
-	enqueued *sync.Cond
+	queue           *list.List
+	mux             sync.RWMutex
+	enqueued        *sync.Cond
+	EnqueueCallback func(interface{})
+	DequeueCallback func()
 }
 
 //Enqueue atomically inserts a new element e with value v to the back of queue c
@@ -36,19 +38,14 @@ func (c *Queue) Enqueue(v interface{}) {
 	defer c.mux.Unlock()
 	c.queue.PushBack(v)
 	c.enqueued.Signal()
+	if c.EnqueueCallback != nil {
+		c.EnqueueCallback(v)
+	}
 }
 
 //Dequeue atomically removes the back element of l. If the queue is empty, Dequeue waits for a new element to be enqueued and then removes it
 func (c *Queue) Dequeue() {
-	if c.Size() <= 0 {
-		c.enqueued.L.Lock()
-		defer c.enqueued.L.Unlock()
-		c.enqueued.Wait()
-	}
-	c.mux.Lock()
-	defer c.mux.Unlock()
-	ele := c.queue.Front()
-	c.queue.Remove(ele)
+	c.Pop()
 }
 
 //Front atomically fetch the front element of c
@@ -75,6 +72,9 @@ func (c *Queue) Pop() interface{} {
 	defer c.mux.Unlock()
 	ele := c.queue.Front()
 	c.queue.Remove(ele)
+	if c.DequeueCallback != nil {
+		c.DequeueCallback()
+	}
 	return ele.Value
 }
 

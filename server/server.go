@@ -165,6 +165,8 @@ func NewServer(config Config) *Server {
 	s.csnClient = csn.NewClient(config.CSNProxyURL)
 	s.cacheQueue = queue.NewQueue()
 	s.playQueue = queue.NewQueue()
+	s.playQueue.EnqueueCallback = s.enqueueCallback
+	s.playQueue.DequeueCallback = s.dequeueCallback
 	if !config.RadioDisabled {
 		s.radioTrack = radio.NewTrack()
 	}

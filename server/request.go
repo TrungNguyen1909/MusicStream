@@ -93,7 +93,6 @@ func (s *Server) enqueue(msg wsMessage) []byte {
 			return data
 		}
 		s.playQueue.Enqueue(track)
-		s.enqueueCallback(track)
 		log.Printf("Track enqueued: %v - %v\n", track.Title(), track.Artist())
 		data, _ := json.Marshal(map[string]interface{}{
 			"op":      opClientRequestTrack,
