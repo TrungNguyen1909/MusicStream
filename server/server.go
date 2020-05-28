@@ -202,7 +202,6 @@ func NewServer(config Config) *Server {
 			return next(c)
 		}
 	})
-	s.server.Use(middleware.Static("www"))
 
 	s.server.HideBanner = true
 	s.server.POST("/enqueue", s.enqueueHandler)
@@ -214,5 +213,6 @@ func NewServer(config Config) *Server {
 	s.server.GET("/skip", s.skipHandler)
 	s.server.POST("/remove", s.removeTrackHandler)
 	s.server.GET("/queue", s.queueHandler)
+	s.server.Static("/", "www")
 	return s
 }
