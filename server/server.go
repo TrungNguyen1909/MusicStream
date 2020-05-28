@@ -106,8 +106,8 @@ type Server struct {
 	server               *echo.Echo
 }
 
-//Serve starts the server, listening at addr
-func (s *Server) Serve(addr string) (err error) {
+//Start starts the server, listening at addr
+func (s *Server) Start(addr string) (err error) {
 	go s.selfPinger()
 	go s.inactivityMonitor()
 	go func() {
@@ -117,6 +117,19 @@ func (s *Server) Serve(addr string) (err error) {
 	}()
 	log.Printf("Starting MusicStream v%s at %s", MusicStream.Version, addr)
 	return s.server.Start(addr)
+}
+
+//StartWithTLS starts the server, listening at addr, also tries to get a cert from LetsEncrypt
+func (s *Server) StartWithTLS(addr string) (err error) {
+	go s.selfPinger()
+	go s.inactivityMonitor()
+	go func() {
+		for {
+			s.processTrack()
+		}
+	}()
+	log.Printf("Starting MusicStream v%s at %s with TLS", MusicStream.Version, addr)
+	return s.server.StartAutoTLS(addr)
 }
 
 //NewServer returns a new server
