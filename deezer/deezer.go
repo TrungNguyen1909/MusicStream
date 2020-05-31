@@ -295,14 +295,14 @@ func (decrypter *trackDecrypter) decrypt(n int) (err error) {
 }
 func (decrypter *trackDecrypter) Read(p []byte) (n int, err error) {
 	err = decrypter.decrypt(len(p))
-	if err != nil && err != io.EOF {
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 		log.Println("trackDecrypter.decrypt failed: ", err)
 	}
 	n, err = decrypter.buffer.Read(p)
 	if err == nil && decrypter.ended {
 		err = io.EOF
 	}
-	if err != nil && err != io.EOF {
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
 		log.Println("trackDecrypter.Read failed: ", err)
 	}
 	return n, err

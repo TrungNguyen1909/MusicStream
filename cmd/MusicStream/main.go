@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/TrungNguyen1909/MusicStream"
 	"github.com/TrungNguyen1909/MusicStream/server"
 	_ "github.com/joho/godotenv/autoload"
 )
@@ -50,6 +51,7 @@ func main() {
 		port = "8080"
 	}
 	port = ":" + port
+	log.Printf("Intializing MusicStream v%s...", MusicStream.Version)
 	s := server.NewServer(config)
 	log.Fatal(s.Start(port))
 }
