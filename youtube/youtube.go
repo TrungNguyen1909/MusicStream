@@ -34,7 +34,7 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
 	"github.com/rs/zerolog"
-	"github.com/unxcepted/ytdl"
+	"github.com/rylio/ytdl"
 )
 
 type youtubeResponse struct {
