@@ -149,8 +149,6 @@ func (s *Server) streamMP3(encodedDuration chan time.Duration) chan *chunk {
 	return source
 }
 func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time {
-	s.streamMux.Lock()
-	defer s.streamMux.Unlock()
 	start := time.Now()
 	interrupted := false
 	quitVorbis := make(chan time.Duration)

@@ -28,7 +28,8 @@ import (
 )
 
 func (s *Server) encodeRadio(stream io.ReadCloser, quit chan int) (ended bool) {
-
+	s.streamMux.Lock()
+	defer s.streamMux.Unlock()
 	defer stream.Close()
 	for {
 		select {

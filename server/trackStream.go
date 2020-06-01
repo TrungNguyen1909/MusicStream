@@ -28,6 +28,8 @@ import (
 )
 
 func (s *Server) preloadTrack(stream io.ReadCloser, quit chan int) {
+	s.streamMux.Lock()
+	defer s.streamMux.Unlock()
 	defer stream.Close()
 	defer s.endCurrentStream()
 	s.pushSilentFrames()
