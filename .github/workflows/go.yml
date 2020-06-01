@@ -33,18 +33,35 @@ jobs:
         sudo apt-get update
         xargs sudo apt-get install < Aptfile
         go get -v -t -d ./...
-
     - name: Build
       run: |
         go build -v -o MusicStream cmd/MusicStream/main.go
-        
-    - name: Upload artifact (main server)
+    - name: Get the version
+      id: get_version
+      run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+    - name: Packaging
+      id: packaging
+      env:
+        RUNNER_OS: ${{ runner.os }}
+        VERSION: ${{ steps.get_version.outputs.VERSION }}
+      run: |
+        BACKEND_DIST=MusicStream-$RUNNER_OS-$VERSION
+        FRONTEND_DIST=MusicStream-$RUNNER_OS-$VERSION-www
+        echo ::set-output name=BACKEND_DIST::$BACKEND_DIST
+        echo ::set-output name=FRONTEND_DIST::$FRONTEND_DIST
+        mkdir $BACKEND_DIST
+        mkdir $FRONTEND_DIST
+        cp MusicStream $BACKEND_DIST
+        cp LICENSE $BACKEND_DIST
+        cp -R www $FRONTEND_DIST
+        cp LICENSE $FRONTEND_DIST
+    - name: Upload artifact (backend)
       uses: actions/upload-artifact@v1.0.0
       with:
-        name: MusicStream-${{ runner.os }}-${{ github.ref }}.zip
-        path: MusicStream
-    - name: Upload artifact (website)
+        name: ${{ steps.packaging.outputs.BACKEND_DIST }}
+        path: ${{ steps.packaging.outputs.BACKEND_DIST }}
+    - name: Upload artifact (frontend)
       uses: actions/upload-artifact@v1.0.0
       with:
-        name: MusicStream-${{ runner.os }}-${{ github.ref }}-www.zip
-        path: www
+        name: ${{ steps.packaging.outputs.FRONTEND_DIST }}
+        path: ${{ steps.packaging.outputs.FRONTEND_DIST }}
