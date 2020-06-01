@@ -172,10 +172,18 @@ func (track *Track) heartbeat() {
 }
 
 //WaitForTrackUpdate waits until a new track update event from WS broadcast
-func (track *Track) WaitForTrackUpdate() {
-	track.trackUpdateEvent.L.Lock()
-	defer track.trackUpdateEvent.L.Unlock()
-	track.trackUpdateEvent.Wait()
+func (track *Track) WaitForTrackUpdate() chan common.TrackMetadata {
+	c := make(chan common.TrackMetadata, 1)
+	go func() {
+		track.trackUpdateEvent.L.Lock()
+		defer track.trackUpdateEvent.L.Unlock()
+		track.trackUpdateEvent.Wait()
+		select {
+		case c <- common.GetMetadata(track):
+		default:
+		}
+	}()
+	return c
 }
 
 //InitWS starts a thread to receive track info from radio

@@ -60,21 +60,23 @@ func (s *Server) preloadRadio(quit chan int) {
 				return
 			default:
 			}
-			if !firstTime {
-				s.radioTrack.WaitForTrackUpdate()
-			} else {
+			var metadata common.TrackMetadata
+			c := s.radioTrack.WaitForTrackUpdate()
+			if firstTime {
 				firstTime = false
-			}
-			select {
-			case <-quitRadioTrackUpdate:
-				return
-			default:
+				metadata = common.GetMetadata(s.radioTrack)
+			} else {
+				select {
+				case <-quitRadioTrackUpdate:
+					return
+				case metadata = <-c:
+				}
 			}
 			if atomic.LoadInt32(&s.isRadioStreaming) > 0 {
 				pos := int64(s.vorbisEncoder.GranulePos())
 				atomic.StoreInt64(&s.startPos, pos)
 				s.deltaChannel <- pos
-				s.setTrack(common.GetMetadata(s.radioTrack))
+				s.setTrack(metadata)
 			}
 		}
 	}()
