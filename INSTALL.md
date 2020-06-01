@@ -32,7 +32,7 @@ Installation
 
 ## Building
 
-- Run `go build` to build the server
+- Run `go build -o MusicStream cmd/MusicStream/main.go` to build the server
 
 ## Start
 
