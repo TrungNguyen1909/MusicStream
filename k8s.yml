@@ -49,11 +49,11 @@ spec:
                   secretKeyRef:
                     name: musicstream
                     key: SPOTIFY_CLIENT_SECRET
-            - name: RADIO_DISABLED
+            - name: RADIO_ENABLED
               valueFrom:
                   secretKeyRef:
                     name: musicstream
-                    key: RADIO_DISABLED
+                    key: RADIO_ENABLED
                     optional: true
             - name: CSN_PROXY_URL
               valueFrom:

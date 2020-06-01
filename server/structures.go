@@ -34,7 +34,7 @@ type Config struct {
 	SpotifyClientID       string
 	SpotifyClientSecret   string
 	CSNProxyURL           string
-	RadioDisabled         bool
+	RadioEnabled          bool
 }
 type chunk struct {
 	buffer      []byte

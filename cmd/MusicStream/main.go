@@ -43,8 +43,8 @@ func main() {
 	if csnProxyURL, ok := os.LookupEnv("CSN_PROXY_URL"); ok {
 		config.CSNProxyURL = csnProxyURL
 	}
-	if radioDisabled, ok := os.LookupEnv("RADIO_DISABLED"); ok && len(radioDisabled) > 0 {
-		config.RadioDisabled = true
+	if radioEnabled, ok := os.LookupEnv("RADIO_ENABLED"); ok && radioEnabled == "1" {
+		config.RadioEnabled = true
 	}
 	port, ok := os.LookupEnv("PORT")
 	if !ok {

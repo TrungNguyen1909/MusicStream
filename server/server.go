@@ -167,7 +167,7 @@ func NewServer(config Config) *Server {
 	s.playQueue = queue.NewQueue()
 	s.playQueue.EnqueueCallback = s.enqueueCallback
 	s.playQueue.DequeueCallback = s.dequeueCallback
-	if !config.RadioDisabled {
+	if config.RadioEnabled {
 		s.radioTrack = radio.NewTrack()
 	}
 	s.currentTrack = s.defaultTrack
