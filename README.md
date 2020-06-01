@@ -1,7 +1,8 @@
-Music Stream
----
+# Music Stream
+
 ![Go](https://github.com/TrungNguyen1909/MusicStream/workflows/Go/badge.svg)
 ![Docker](https://github.com/TrungNguyen1909/MusicStream/workflows/Docker/badge.svg)
+[![godoc](https://godoc.org/github.com/TrungNguyen1909/MusicStream?status.svg)](https://godoc.org/github.com/TrungNguyen1909/MusicStream?status.svg)
 [![GitHub license](https://img.shields.io/github/license/TrungNguyen1909/MusicStream)](https://github.com/TrungNguyen1909/MusicStream/blob/master/LICENSE)
 ###### Listen to music together with your friends from everywhere, at the same time
 
