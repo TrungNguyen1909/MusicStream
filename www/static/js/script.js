@@ -260,7 +260,7 @@ function initWebSocket() {
     var msg = JSON.parse(event.data);
     switch (msg.op) {
       case opSetClientsTrack:
-        delta = msg.pos / 48000.0;
+        delta = msg.pos / 48000.0 + 1.584;
         diff = delta - player.currentTime;
         try {
           if (
