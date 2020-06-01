@@ -93,12 +93,12 @@ func (s *Server) preloadRadio(quit chan int) {
 }
 func (s *Server) processRadio(quit chan int) {
 	time.Sleep(time.Until(s.lastStreamEnded))
+	atomic.StoreInt32(&s.isRadioStreaming, 1)
+	defer atomic.StoreInt32(&s.isRadioStreaming, 0)
 	quitPreload := make(chan int, 10)
 	s.radioTrack.InitWS()
 	s.currentTrack = s.radioTrack
 	go s.preloadRadio(quitPreload)
-	atomic.StoreInt32(&s.isRadioStreaming, 1)
-	defer atomic.StoreInt32(&s.isRadioStreaming, 0)
 	defer log.Println("Radio stream ended")
 	defer s.radioTrack.CloseWS()
 	defer func() { log.Println("Resuming track streaming...") }()
