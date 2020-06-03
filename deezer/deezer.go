@@ -47,10 +47,11 @@ import (
 )
 
 const (
-	deezerURL        = "https://www.deezer.com"
-	ajaxActionURL    = "https://www.deezer.com/ajax/action.php"
-	unofficialAPIURL = "https://www.deezer.com/ajax/gw-light.php"
-	trackQualityID   = 3
+	deezerURL          = "https://www.deezer.com"
+	ajaxActionURL      = "https://www.deezer.com/ajax/action.php"
+	unofficialAPIURL   = "https://www.deezer.com/ajax/gw-light.php"
+	searchResultsLimit = 4
+	trackQualityID     = 3
 )
 
 //Artist represents an artist on Deezer
@@ -540,14 +541,14 @@ start:
 			if withISRC && len(sISRC) > 0 {
 				url = fmt.Sprint("https://api.deezer.com/2.0/track/isrc:", sISRC)
 			} else {
-				url = fmt.Sprintf("https://api.deezer.com/search/track/?q=track:\"%s\"artist:\"%s\"album:\"%s\"", template.URLQueryEscaper(sTrack), template.URLQueryEscaper(sArtist), template.URLQueryEscaper(sAlbum))
+				url = fmt.Sprintf("https://api.deezer.com/search/track/?limit=%d&q=track:\"%s\"artist:\"%s\"album:\"%s\"", searchResultsLimit, template.URLQueryEscaper(sTrack), template.URLQueryEscaper(sArtist), template.URLQueryEscaper(sAlbum))
 			}
 		}
 	} else {
 		if len(artist) == 0 {
-			url = fmt.Sprintf("https://api.deezer.com/search/track/?q=%s", template.URLQueryEscaper(track))
+			url = fmt.Sprintf("https://api.deezer.com/search/track/?limit=%d&q=%s", searchResultsLimit, template.URLQueryEscaper(track))
 		} else {
-			url = fmt.Sprintf("https://api.deezer.com/search/track/?q=track:\"%s\"artist:\"%s\"", template.URLQueryEscaper(track), template.URLQueryEscaper(artist))
+			url = fmt.Sprintf("https://api.deezer.com/search/track/?limit=%d&q=track:\"%s\"artist:\"%s\"", searchResultsLimit, template.URLQueryEscaper(track), template.URLQueryEscaper(artist))
 		}
 	}
 	response, err := http.Get(url)
