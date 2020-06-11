@@ -108,7 +108,7 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 		err = errors.New("Metadata not populated")
 		return
 	}
-	response, err := track.client.HTTPClient.Get(track.StreamURL)
+	response, err := http.Get(track.StreamURL)
 	if err != nil {
 		return
 	}
