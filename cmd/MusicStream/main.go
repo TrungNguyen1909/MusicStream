@@ -15,15 +15,15 @@ func main() {
 		log.Println("Warning: Deezer token not found")
 	} else {
 		config.DeezerARL = deezerARL
-		if spotifyClientID, ok := os.LookupEnv("SPOTIFY_CLIENT_ID"); !ok {
+	}
+	if spotifyClientID, ok := os.LookupEnv("SPOTIFY_CLIENT_ID"); !ok {
+		log.Println("Warning: no spotify token found")
+	} else {
+		if spotifyClientSecret, ok := os.LookupEnv("SPOTIFY_CLIENT_SECRET"); !ok {
 			log.Println("Warning: no spotify token found")
 		} else {
-			if spotifyClientSecret, ok := os.LookupEnv("SPOTIFY_CLIENT_SECRET"); !ok {
-				log.Println("Warning: no spotify token found")
-			} else {
-				config.SpotifyClientID = spotifyClientID
-				config.SpotifyClientSecret = spotifyClientSecret
-			}
+			config.SpotifyClientID = spotifyClientID
+			config.SpotifyClientSecret = spotifyClientSecret
 		}
 	}
 	if mxmUserToken, ok := os.LookupEnv("MUSIXMATCH_USER_TOKEN"); !ok {

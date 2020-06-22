@@ -325,7 +325,10 @@ type Client struct {
 }
 
 //NewClient returns a new Deezer Client
-func NewClient(deezerARL, spotifyClientID, spotifyClientSecret string) (client *Client) {
+func NewClient(deezerARL, spotifyClientID, spotifyClientSecret string) (client *Client, err error) {
+	if len(deezerARL) <= 0 {
+		return nil, errors.New("Please provide Deezer ARL token")
+	}
 	client = &Client{}
 	cookiesJar, _ := cookiejar.New(nil)
 	client.httpClient = &http.Client{Jar: cookiesJar}
@@ -344,13 +347,16 @@ func NewClient(deezerARL, spotifyClientID, spotifyClientSecret string) (client *
 	client.unofficialAPIQuery.Set("input", "3")
 	client.unofficialAPIQuery.Set("api_token", "")
 	client.deezerURL, _ = url.Parse(deezerURL)
+	err = client.initDeezerAPI()
+	if err != nil {
+		return nil, err
+	}
 	spotifyClient, err := spotify.NewClient(spotifyClientID, spotifyClientSecret)
 	if err != nil {
 		log.Printf("spotify.NewClient() failed: %v\n", err)
 	} else {
 		client.spotifyClient = spotifyClient
 	}
-	client.initDeezerAPI()
 	return
 }
 
@@ -372,7 +378,7 @@ func (client *Client) makeUnofficialAPIRequest(method string, body []byte) *http
 	client.unofficialAPIURL.RawQuery = client.unofficialAPIQuery.Encode()
 	return client.makeRequest("POST", client.unofficialAPIURL.String(), body)
 }
-func (client *Client) initDeezerAPI() {
+func (client *Client) initDeezerAPI() (err error) {
 	client.unofficialAPIQuery.Set("api_token", "")
 	request := client.makeUnofficialAPIRequest("deezer.getUserData", []byte(""))
 	client.cleanupCookieJar()
@@ -385,10 +391,13 @@ func (client *Client) initDeezerAPI() {
 	var resp getUserDataResponse
 	err = json.NewDecoder(response.Body).Decode(&resp)
 	if err != nil || len(resp.Results.CheckForm) <= 0 {
+		if err == nil {
+			return errors.New("Can't initailized Deezer API")
+		}
 		return
 	}
 	client.unofficialAPIQuery.Set("api_token", resp.Results.CheckForm)
-	log.Printf("Successfully initiated Deezer API. Checkform: \"%s\"\n", resp.Results.CheckForm)
+	return
 }
 func getSongFileName(trackInfo deezerTrack) string {
 	encoder := charmap.Windows1252.NewEncoder()
@@ -495,7 +504,10 @@ func (client *Client) populateTracks(tracks []deezerTrack) (err error) {
 	req := client.makeUnofficialAPIRequest("song.getListData", body)
 	response, err := client.httpClient.Do(req)
 	if err != nil {
-		client.initDeezerAPI()
+		err = client.initDeezerAPI()
+		if err != nil {
+			return
+		}
 		req = client.makeUnofficialAPIRequest("song.getListData", body)
 		response, err = client.httpClient.Do(req)
 		if err != nil {
@@ -505,7 +517,10 @@ func (client *Client) populateTracks(tracks []deezerTrack) (err error) {
 	var resp pageTrackResponse
 	err = json.NewDecoder(response.Body).Decode(&resp)
 	if err != nil {
-		client.initDeezerAPI()
+		err = client.initDeezerAPI()
+		if err != nil {
+			return
+		}
 		req = client.makeUnofficialAPIRequest("song.getListData", body)
 		response, err = client.httpClient.Do(req)
 		if err != nil {

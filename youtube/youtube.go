@@ -404,7 +404,10 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 }
 
 //NewClient returns a new Client with the provided Youtube Developer API key
-func NewClient(DeveloperAPIKey string) (client *Client) {
+func NewClient(DeveloperAPIKey string) (client *Client, err error) {
+	if len(DeveloperAPIKey) <= 0 {
+		return nil, errors.New("Please provide Youtube Data API v3 key")
+	}
 	client = &Client{apiKey: DeveloperAPIKey}
 	return
 }

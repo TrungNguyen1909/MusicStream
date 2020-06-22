@@ -217,7 +217,6 @@ func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time 
 
 func (s *Server) setTrack(trackMeta common.TrackMetadata) {
 	s.currentTrackMeta = trackMeta
-	log.Printf("Setting track on all clients %v - %v\n", trackMeta.Title, trackMeta.Artist)
 	data, _ := json.Marshal(map[string]interface{}{
 		"op":        opSetClientsTrack,
 		"track":     trackMeta,

@@ -159,10 +159,27 @@ func NewServer(config Config) *Server {
 	n = s.mp3Encoder.Encode(s.mp3Header, make([]byte, 1152*4))
 	s.mp3Header = s.mp3Header[:n]
 
-	s.dzClient = deezer.NewClient(config.DeezerARL, config.SpotifyClientID, config.SpotifyClientSecret)
-	s.ytClient = youtube.NewClient(config.YoutubeDeveloperKey)
-	s.mxmClient = mxmlyrics.NewClient(config.MusixMatchUserToken, config.MusixMatchOBUserToken)
-	s.csnClient, _ = csn.NewClient()
+	var err error
+	s.dzClient, err = deezer.NewClient(config.DeezerARL, config.SpotifyClientID, config.SpotifyClientSecret)
+	if err != nil {
+		log.Println("[DZ] Failed to initalized source:", err)
+		err = nil
+	}
+	s.csnClient, err = csn.NewClient()
+	if err != nil {
+		log.Println("[CSN] Failed to initalized source:", err)
+		err = nil
+	}
+	s.ytClient, err = youtube.NewClient(config.YoutubeDeveloperKey)
+	if err != nil {
+		log.Println("[YT] Failed to initalized source:", err)
+		err = nil
+	}
+	s.mxmClient, err = mxmlyrics.NewClient(config.MusixMatchUserToken, config.MusixMatchOBUserToken)
+	if err != nil {
+		log.Println("[MXM] Failed to initalized source:", err)
+		err = nil
+	}
 	s.cacheQueue = queue.NewQueue()
 	s.playQueue = queue.NewQueue()
 	s.playQueue.EnqueueCallback = s.enqueueCallback

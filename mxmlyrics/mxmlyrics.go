@@ -21,6 +21,7 @@ package mxmlyrics
 import (
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http"
@@ -213,7 +214,10 @@ func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI 
 }
 
 //NewClient returns a new MusixMatch client with provided tokens
-func NewClient(MXMUserToken, MXMOBUserToken string) (client *Client) {
+func NewClient(MXMUserToken, MXMOBUserToken string) (client *Client, err error) {
+	if len(MXMUserToken) <= 0 {
+		return nil, errors.New("Please provide Musixmatch User Token")
+	}
 	cookiesJar, _ := cookiejar.New(nil)
 	client = &Client{httpClient: &http.Client{Jar: cookiesJar}, userToken: MXMUserToken, obUserToken: MXMOBUserToken}
 	return
