@@ -24,7 +24,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -149,7 +148,7 @@ type csnSearchResult struct {
 //Client represents a CSN client
 type Client struct {
 	pattern *regexp.Regexp
-	//HTTPClient is a proxy-configured client
+	//HTTPClient is a configured http client
 	HTTPClient *http.Client
 }
 
@@ -197,17 +196,13 @@ func (track *Track) Populate() (err error) {
 	if err != nil {
 		return
 	}
-	log.Println("csnTrack.Populate: got buf")
 	m := track.client.pattern.FindSubmatch(buf)
-	log.Println("csnTrack.Populate: got match")
 	res := bytes.Join([][]byte{[]byte("["), bytes.Trim(m[1], ", \n"), []byte("]")}, []byte(""))
-	log.Printf("res: %s\n", res)
 	var csnResults []csnResult
 	err = json.Unmarshal(res, &csnResults)
 	if err != nil {
 		return
 	}
-	log.Println("csnTrack.Populate: got csnResults")
 	var streamURL string
 	for i := len(csnResults) - 1; i >= 0; i-- {
 		if csnResults[i].Type == "mp3" && csnResults[i].File != "" && strings.HasSuffix(csnResults[i].File, ".mp3") {
@@ -219,11 +214,9 @@ func (track *Track) Populate() (err error) {
 		err = errors.New("no stream URL found")
 		return
 	}
-	log.Println("csnTrack.Populate: got streamURL")
 	track.StreamURL = streamURL
 
 	doc := soup.HTMLParse(string(buf))
-	log.Println("csnTrack.Populate: got doc parsed")
 	list := doc.Find("div", "id", "companion_cover").FindNextElementSibling().Find("h2", "class", "card-title").FindNextElementSibling()
 	var album string
 	for _, child := range list.Children() {
@@ -237,22 +230,13 @@ func (track *Track) Populate() (err error) {
 		}
 	}
 	track.csnTrack.Album = album
-	log.Println("csnTrack.Populate: got album")
 	return
 }
 
 //NewClient returns a new CSN Client
-func NewClient(proxy string) *Client {
+func NewClient() (*Client, error) {
 	cookiesJar, _ := cookiejar.New(nil)
-	httpTransport := &http.Transport{}
-	if len(proxy) > 0 {
-		proxyURL, err := url.Parse(proxy)
-		if err != nil {
-			log.Panic("csn.NewClient panicked:", err)
-		}
-		httpTransport.Proxy = http.ProxyURL(proxyURL)
-	}
-	client := &http.Client{Transport: httpTransport, Jar: cookiesJar, Timeout: 9 * time.Second}
+	client := &http.Client{Jar: cookiesJar, Timeout: 9 * time.Second}
 	pattern, _ := regexp.Compile("sources: \\[([^\\]]*)\\]")
-	return &Client{HTTPClient: client, pattern: pattern}
+	return &Client{HTTPClient: client, pattern: pattern}, nil
 }

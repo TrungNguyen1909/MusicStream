@@ -195,7 +195,7 @@ func (track *Track) InitWS() {
 	log.Println("Connecting to listen.moe WS")
 	ws, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		log.Panic("dial:", err)
+		log.Panic("radioTrack.InitWS:dial:", err)
 	}
 	track.ws = ws
 	for len(track.heartbeatInterrupt) > 0 {

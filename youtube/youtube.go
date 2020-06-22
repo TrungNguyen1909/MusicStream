@@ -348,7 +348,6 @@ func (client *Client) GetTrackFromVideoID(videoID string) (track common.Track, e
 		return
 	}
 	itrack.StreamURL = streamURL.String()
-	log.Println(itrack.StreamURL)
 	track = itrack
 	return
 }

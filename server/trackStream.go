@@ -86,12 +86,12 @@ func (s *Server) processTrack() {
 	log.Printf("Playing %v - %v\n", track.Title(), track.Artist())
 	trackDict := common.GetMetadata(track)
 	var mxmlyrics common.LyricsResult
-	if track.Source() != common.Youtube {
+	if track.Source() != common.Youtube && s.mxmClient != nil {
 		mxmlyrics, err = s.mxmClient.GetLyrics(track.Title(), track.Artist(), track.Album(), track.Artists(), track.ISRC(), track.SpotifyURI(), track.Duration())
 		if err == nil {
 			trackDict.Lyrics = mxmlyrics
 		}
-	} else {
+	} else if track.Source() == common.Youtube {
 		ytsub, err := s.ytClient.GetLyrics(track.ID())
 		if err == nil {
 			trackDict.Lyrics = ytsub
@@ -99,7 +99,7 @@ func (s *Server) processTrack() {
 	}
 	stream, err := track.Download()
 	if err != nil {
-		log.Panic(err)
+		log.Panic("track.Download:", err)
 	}
 	quit := make(chan int, 10)
 	go s.preloadTrack(stream, quit)
@@ -110,7 +110,6 @@ func (s *Server) processTrack() {
 	s.startTime = time.Now()
 	s.setTrack(trackDict)
 	s.lastStreamEnded = s.streamToClients(s.skipChannel, quit)
-	log.Println("Stream ended!")
 	s.currentTrackID = ""
 	s.watchDog = 0
 }

@@ -12,7 +12,7 @@ import (
 func main() {
 	var config server.Config
 	if deezerARL, ok := os.LookupEnv("DEEZER_ARL"); !ok {
-		log.Panic("Deezer token not found")
+		log.Println("Warning: Deezer token not found")
 	} else {
 		config.DeezerARL = deezerARL
 		if spotifyClientID, ok := os.LookupEnv("SPOTIFY_CLIENT_ID"); !ok {
@@ -27,7 +27,7 @@ func main() {
 		}
 	}
 	if mxmUserToken, ok := os.LookupEnv("MUSIXMATCH_USER_TOKEN"); !ok {
-		log.Panic("Musixmatch token not found")
+		log.Println("Warning: Musixmatch token not found")
 	} else {
 		config.MusixMatchUserToken = mxmUserToken
 		if mxmOBUserToken, ok := os.LookupEnv("MUSIXMATCH_OB_USER_TOKEN"); ok {
@@ -36,12 +36,9 @@ func main() {
 	}
 
 	if ytDevKey, ok := os.LookupEnv("YOUTUBE_DEVELOPER_KEY"); !ok {
-		log.Panic("Youtube Data API v3 key not found")
+		log.Println("Warning: Youtube Data API v3 key not found")
 	} else {
 		config.YoutubeDeveloperKey = ytDevKey
-	}
-	if csnProxyURL, ok := os.LookupEnv("CSN_PROXY_URL"); ok {
-		config.CSNProxyURL = csnProxyURL
 	}
 	if radioEnabled, ok := os.LookupEnv("RADIO_ENABLED"); ok && radioEnabled == "1" {
 		config.RadioEnabled = true

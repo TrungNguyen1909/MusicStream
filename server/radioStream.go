@@ -100,7 +100,6 @@ func (s *Server) processRadio(quit chan int) {
 	s.radioTrack.InitWS()
 	s.currentTrack = s.radioTrack
 	go s.preloadRadio(quitPreload)
-	defer log.Println("Radio stream ended")
 	defer s.radioTrack.CloseWS()
 	defer func() { log.Println("Resuming track streaming...") }()
 	s.lastStreamEnded = s.streamToClients(quit, quitPreload)

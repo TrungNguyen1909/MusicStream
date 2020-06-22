@@ -162,7 +162,7 @@ func NewServer(config Config) *Server {
 	s.dzClient = deezer.NewClient(config.DeezerARL, config.SpotifyClientID, config.SpotifyClientSecret)
 	s.ytClient = youtube.NewClient(config.YoutubeDeveloperKey)
 	s.mxmClient = mxmlyrics.NewClient(config.MusixMatchUserToken, config.MusixMatchOBUserToken)
-	s.csnClient = csn.NewClient(config.CSNProxyURL)
+	s.csnClient, _ = csn.NewClient()
 	s.cacheQueue = queue.NewQueue()
 	s.playQueue = queue.NewQueue()
 	s.playQueue.EnqueueCallback = s.enqueueCallback

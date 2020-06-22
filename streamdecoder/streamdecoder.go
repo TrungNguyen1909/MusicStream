@@ -58,7 +58,7 @@ func (decoder *MP3Decoder) Read(p []byte) (n int, err error) {
 		case decoder.f.Precision == 2 || decoder.f.Precision == 3:
 			decoder.f.EncodeSigned(p[i*decoder.f.Width():], sample)
 		default:
-			panic(fmt.Errorf("encode: invalid precision: %d", decoder.f.Precision))
+			return 0, fmt.Errorf("encode: invalid precision: %d", decoder.f.Precision)
 		}
 	}
 	n = len(samples) * decoder.f.Width()
@@ -112,7 +112,7 @@ func (decoder *VorbisDecoder) Read(p []byte) (n int, err error) {
 		case decoder.f.Precision == 2 || decoder.f.Precision == 3:
 			decoder.f.EncodeSigned(p[i*decoder.f.Width():], sample)
 		default:
-			panic(fmt.Errorf("encode: invalid precision: %d", decoder.f.Precision))
+			return 0, fmt.Errorf("encode: invalid precision: %d", decoder.f.Precision)
 		}
 	}
 	n = len(samples) * decoder.f.Width()

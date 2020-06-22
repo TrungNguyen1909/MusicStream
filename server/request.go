@@ -20,6 +20,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"sync/atomic"
 	"time"
@@ -59,14 +60,27 @@ func (s *Server) enqueue(msg wsMessage) []byte {
 	log.Printf("Client Queried: %s", msg.Query)
 	switch msg.Selector {
 	case common.CSN:
-		tracks, err = s.csnClient.Search(msg.Query)
+		if s.csnClient != nil {
+			tracks, err = s.csnClient.Search(msg.Query)
+		} else {
+			err = errors.New("[CSN] Source not configured")
+		}
 	case common.Youtube:
-		tracks, err = s.ytClient.Search(msg.Query)
+		if s.ytClient != nil {
+			tracks, err = s.ytClient.Search(msg.Query)
+		} else {
+			err = errors.New("[YT] Source not configured")
+		}
 	default:
-		tracks, err = s.dzClient.SearchTrack(msg.Query, "")
+		if s.dzClient != nil {
+			tracks, err = s.dzClient.SearchTrack(msg.Query, "")
+		} else {
+			err = errors.New("[DZ] Source not configured")
+		}
 	}
 	switch {
 	case err != nil:
+		log.Println("SearchTrack Failed:", err)
 		data, _ := json.Marshal(map[string]interface{}{
 			"op":      opClientRequestTrack,
 			"success": false,

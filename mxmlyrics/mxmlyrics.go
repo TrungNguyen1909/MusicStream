@@ -112,7 +112,7 @@ type Client struct {
 func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI string, duration int) (result common.LyricsResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("GetLyrics: %v\n", r)
+			log.Printf("musixmatch.Client.GetLyrics: %v\n", r)
 		}
 	}()
 	rawURL := "http://apic.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&user_language=en&tags=playing&namespace=lyrics_synched&f_subtitle_length_max_deviation=1&subtitle_format=mxm&app_id=mac-ios-v2.0&part=subtitle_translated%2Clyrics_translated&selected_language=en"
@@ -149,7 +149,7 @@ func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI 
 	req.Header.Set("Accept-Encoding", "gzip, deflate")
 	resp, err := client.httpClient.Do(req)
 	if err != nil {
-		log.Println(err)
+		log.Println("musixmatch.Client.GetLyrics:", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -164,7 +164,7 @@ func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI 
 	var d mxmResponse
 	err = json.NewDecoder(reader).Decode(&d)
 	if err != nil {
-		log.Println(err)
+		log.Println("musixmatch.Client.GetLyrics:", err)
 		return
 	}
 	result = common.LyricsResult{}
@@ -177,7 +177,7 @@ func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI 
 		var subtitleTranslated []common.LyricsLine
 		err = json.Unmarshal(([]byte)(st), &subtitleTranslated)
 		if err != nil {
-			log.Println(err)
+			log.Println("musixmatch.Client.GetLyrics:", err)
 			return
 		}
 		syncedLyrics := make([]common.LyricsLine, len(subtitleTranslated))
@@ -190,10 +190,7 @@ func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI 
 	}
 	var originalSyncedLyrics []common.LyricsLine
 	err = json.Unmarshal(([]byte)(sd), &originalSyncedLyrics)
-	if err != nil {
-		log.Println(err)
-		err = nil
-	}
+	err = nil
 	if len(result.SyncedLyrics) == 0 {
 		result.SyncedLyrics = originalSyncedLyrics
 	} else if len(result.SyncedLyrics) == len(originalSyncedLyrics) {

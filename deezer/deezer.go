@@ -270,7 +270,7 @@ func (decrypter *trackDecrypter) createCipher() cipher.BlockMode {
 
 	blowfishEngine, err := blowfish.NewCipher(decrypter.BlowfishKey)
 	if err != nil {
-		log.Panic(err)
+		log.Panic("trackDecrypter.createCipher:", err)
 	}
 	blowfishCBC := cipher.NewCBCDecrypter(blowfishEngine, []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07})
 	return blowfishCBC
@@ -411,7 +411,7 @@ func getBlowfishKey(trackInfo deezerTrack) (bfKey []byte, err error) {
 		if r := recover(); r != nil {
 			bfKey = nil
 			err = errors.New("getBlowfishKey: Panicked")
-			log.Println(r)
+			log.Println(err, r)
 		}
 	}()
 	SECRET := "g4el58wc0zvf9na1"
@@ -429,7 +429,7 @@ func getTrackDownloadURL(trackInfo deezerTrack) (url string, err error) {
 		if r := recover(); r != nil {
 			url = ""
 			err = errors.New("getTrackDownloadURL Panicked")
-			log.Println(r)
+			log.Println(err, r)
 		}
 	}()
 	cdn := trackInfo.MD5Origin[0]

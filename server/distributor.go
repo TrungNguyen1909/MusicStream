@@ -175,14 +175,12 @@ func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time 
 			vorbisStream <- Chunk
 			mp3Stream <- Chunk
 			if Chunk.buffer == nil {
-				log.Println("Found last chunk, breaking...")
 				break
 			}
 		} else {
 			for {
 				Chunk := <-s.bufferingChannel
 				if Chunk.buffer == nil {
-					log.Println("Found last chunk, breaking...")
 					break
 				}
 			}

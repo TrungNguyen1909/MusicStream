@@ -81,7 +81,6 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 	for {
 		select {
 		case <-notify:
-			log.Printf("%s %s %s: client disconnected\n", r.RemoteAddr, r.Method, r.URL)
 			return
 		case Chunk := <-channel:
 			chanidx = Chunk.channel
