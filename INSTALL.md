@@ -40,6 +40,10 @@ Installation
 
 - By default, the server listens at port `:8080`, but you can set that in `$PORT`
 
+## Prebuilt binaries
+
+- Prebuilt binaries of tags are available from the Releases tab.
+
 # API Tokens
 
 Enviroment variables are also loaded from `.env` file, if exists
@@ -56,3 +60,9 @@ Enviroment variables are also loaded from `.env` file, if exists
 - Find the usertoken, which is the cookies named `musixmatchUsertoken` and `OB-USER-TOKEN`
 - Put their values into enviroment variables named `MUSIXMATCH_USER_TOKEN` and `MUSIXMATCH_OB_USER_TOKEN`, respectively
 - The `MUSIXMATCH_OB_USER_TOKEN` is optional and can be omited if you get the usertoken from the Musixmatch's client app.
+
+## Youtube
+- Get Youtube Data API v3 key from Google Cloud Console and put in the environment variable named `YOUTUBE_DEVELOPER_KEY`
+
+## Spotify
+- Create your app and put your client id and client secret in the environment variables named `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`, respectively
