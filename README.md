@@ -10,7 +10,16 @@
 
 - Synchorized music streaming from multiple sources across clients
 
-- Time-synced lyrics with English translation
+- Time-synced lyrics with English translation on Chromium-based browsers
+
+#### Supported music sources
+  - Deezer
+  - chiasenhac.vn
+  - Youtube
+
+#### Supported lyrics sources
+  - MusixMatch
+  - Youtube subtitles
 
 ### Installation
 
