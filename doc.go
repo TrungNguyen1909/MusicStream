@@ -3,5 +3,5 @@ package MusicStream
 
 // The version and codename of the system.
 const (
-	Version = "0.5.0"
+	Version = "0.5.1"
 )
