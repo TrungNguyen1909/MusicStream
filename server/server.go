@@ -220,7 +220,7 @@ func NewServer(config Config) *Server {
 			return next(c)
 		}
 	})
-
+	s.server.HTTPErrorHandler = s.HandleError
 	s.server.HideBanner = true
 	s.server.POST("/enqueue", s.enqueueHandler)
 	s.server.GET("/listeners", s.listenersHandler)

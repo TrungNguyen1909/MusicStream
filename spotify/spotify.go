@@ -21,10 +21,11 @@ package spotify
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 //Client represents a Spotify Client
@@ -170,10 +171,6 @@ type searchResponse struct {
 }
 
 func (client *Client) fetchToken() (err error) {
-	if client == nil {
-		err = errors.New("Nil Spotify client")
-		return
-	}
 	if time.Now().Before(client.AccessTokenExpirationTimestamp) {
 		return
 	}
@@ -198,10 +195,6 @@ func (client *Client) fetchToken() (err error) {
 
 //SearchTrackQuery returns a Spotify track with provided query
 func (client *Client) SearchTrackQuery(query string) (sTrack, sArtist, sAlbum, sISRC, sURI string, err error) {
-	if client == nil {
-		err = errors.New("Nil Spotify client")
-		return
-	}
 	client.fetchToken()
 	reqURL, _ := url.Parse("https://api.spotify.com/v1/search?type=track&decorate_restrictions=false&best_match=false&limit=3&userless=true&market=VN")
 	queries := reqURL.Query()
@@ -252,7 +245,7 @@ func (client *Client) SearchTrack(track, artist, album, isrc string) (sTrack, sA
 //NewClient returns new Spotify Client
 func NewClient(clientID, clientSecret string) (client *Client, err error) {
 	if len(clientID) <= 0 || len(clientSecret) <= 0 {
-		err = errors.New("Invalid Spotify Authorization")
+		err = errors.WithStack(errors.New("Invalid Spotify Authorization"))
 		return
 	}
 	client = &Client{clientID: clientID, clientSecret: clientSecret}

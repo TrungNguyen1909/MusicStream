@@ -22,8 +22,6 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
-	"errors"
-	"fmt"
 	"html"
 	"io"
 	"log"
@@ -33,6 +31,7 @@ import (
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rylio/ytdl"
 )
@@ -143,7 +142,7 @@ func (track *Track) CoverURL() string {
 //Download returns a pcm stream of the track
 func (track *Track) Download() (stream io.ReadCloser, err error) {
 	if track.StreamURL == "" {
-		err = errors.New("Metadata not populated")
+		err = errors.WithStack(errors.New("Metadata not populated"))
 		return
 	}
 	response, err := http.Get(track.StreamURL)
@@ -215,7 +214,7 @@ type Client struct {
 
 func (client *Client) getLyricsWithLang(id, lang, name string) (result []line, err error) {
 	if len(id) == 0 || len(lang) == 0 {
-		return nil, errors.New("Invalid Arguments")
+		return nil, errors.WithStack(errors.New("Invalid Arguments"))
 	}
 	reqURL, _ := url.Parse("https://www.youtube.com/api/timedtext?fmt=srv1")
 	queries := reqURL.Query()
@@ -286,7 +285,6 @@ func (client *Client) GetLyrics(id string) (result common.LyricsResult, err erro
 	def, _ := client.getLyricsWithLang(id, defaultLang, defaultLangName)
 	trans, _ := client.getLyricsWithLang(id, translatedLang, translatedLangName)
 	if len(def) == 0 {
-		err = errors.New("No subtitles found")
 		return
 	}
 	result = common.LyricsResult{Language: defaultLang}
@@ -371,18 +369,16 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 	reqURL.RawQuery = queries.Encode()
 	response, err := http.DefaultClient.Get(reqURL.String())
 	if err != nil {
-		fmt.Println(err)
 		return
 	}
 	defer response.Body.Close()
 	var resp youtubeResponse
 	err = json.NewDecoder(response.Body).Decode(&resp)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	if len(resp.Items) <= 0 {
-		err = errors.New("No track found")
 		return
 	}
 	itracks := make([]common.Track, len(resp.Items))
@@ -406,7 +402,7 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 //NewClient returns a new Client with the provided Youtube Developer API key
 func NewClient(DeveloperAPIKey string) (client *Client, err error) {
 	if len(DeveloperAPIKey) <= 0 {
-		return nil, errors.New("Please provide Youtube Data API v3 key")
+		return nil, errors.WithStack(errors.New("Please provide Youtube Data API v3 key"))
 	}
 	client = &Client{apiKey: DeveloperAPIKey}
 	return

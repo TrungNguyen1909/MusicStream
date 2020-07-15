@@ -11,6 +11,7 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/labstack/echo/v4 v4.1.16
 	github.com/petar/GoLLRB v0.0.0-20190514000832-33fb24c13b99 // indirect
+	github.com/pkg/errors v0.8.1
 	github.com/rs/zerolog v1.19.0
 	github.com/rylio/ytdl v0.6.3
 	github.com/tdewolff/minify v2.3.6+incompatible

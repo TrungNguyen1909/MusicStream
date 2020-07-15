@@ -20,7 +20,6 @@ package streamdecoder
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 
@@ -28,6 +27,7 @@ import (
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/vorbis"
+	"github.com/pkg/errors"
 	"gopkg.in/hraban/opus.v2"
 )
 
@@ -256,13 +256,13 @@ func NewWebMDecoder(stream io.ReadCloser) (decoder *WebMDecoder, err error) {
 	}
 	atrack := meta.FindFirstAudioTrack()
 	if atrack == nil || atrack.CodecID != "A_OPUS" {
-		err = errors.New("Failed to get audio from webm/audio codec unsupported")
+		err = errors.WithStack(errors.New("Failed to get audio from webm/audio codec unsupported"))
 		return
 	}
 	br, bw := io.Pipe()
 	o, err := NewOpusDecoder(br, int(atrack.SamplingFrequency), int(atrack.Channels))
 	if err != nil {
-		err = errors.New("webDecoder:Read() -> NewOpusDecoder() failed: " + err.Error())
+		err = errors.WithStack(err)
 		return
 	}
 	return &WebMDecoder{
@@ -295,7 +295,7 @@ func (s *BufferedReadSeeker) Seek(offset int64, whence int) (npos int64, err err
 	var np int64
 	switch whence {
 	case io.SeekEnd:
-		err = errors.New("SeekEnd not supported on BufferedReadSeeker")
+		err = errors.WithStack(errors.New("SeekEnd not supported on BufferedReadSeeker"))
 		return
 	case io.SeekCurrent:
 		np = s.cur + offset
@@ -303,7 +303,7 @@ func (s *BufferedReadSeeker) Seek(offset int64, whence int) (npos int64, err err
 		np = offset
 	}
 	if np < 0 {
-		err = errors.New("Invalid seek")
+		err = errors.WithStack(errors.New("Invalid seek"))
 		return
 	} else if np > int64(s.len) {
 		_, err = s.Read(make([]byte, np-int64(s.len)))

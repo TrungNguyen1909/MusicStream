@@ -19,6 +19,7 @@
 package server
 
 import (
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -67,4 +68,18 @@ func (socket *webSocket) ReadJSON(v interface{}) error {
 }
 func (socket *webSocket) ReadMessage() (messageType int, p []byte, err error) {
 	return socket.conn.ReadMessage()
+}
+
+//Response will be encode in JSON and send to user
+type Response struct {
+	Operation int                    `json:"op"`
+	Success   bool                   `json:"success"`
+	Reason    string                 `json:"reason"`
+	Data      map[string]interface{} `json:"data"`
+}
+
+//EncodeJSON encodes Response to JSON
+func (r Response) EncodeJSON() []byte {
+	encoded, _ := json.Marshal(r)
+	return encoded
 }

@@ -21,7 +21,6 @@ package csn
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -35,6 +34,7 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
 	"github.com/anaskhan96/soup"
+	"github.com/pkg/errors"
 )
 
 type csnTrack struct {
@@ -104,7 +104,7 @@ func (track *Track) CoverURL() string {
 //Download returns a mp3 stream of the track
 func (track *Track) Download() (stream io.ReadCloser, err error) {
 	if track.StreamURL == "" {
-		err = errors.New("Metadata not populated")
+		err = errors.WithStack(errors.New("Metadata not populated"))
 		return
 	}
 	response, err := http.Get(track.StreamURL)
@@ -172,6 +172,9 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 	if err != nil {
 		return
 	}
+	if len(results) <= 0 {
+		return
+	}
 	result := results[0]
 	tracks = make([]common.Track, len(result.Music.Data))
 	for i := range result.Music.Data {
@@ -211,7 +214,7 @@ func (track *Track) Populate() (err error) {
 		}
 	}
 	if streamURL == "" {
-		err = errors.New("no stream URL found")
+		err = errors.WithStack(errors.New("no stream URL found"))
 		return
 	}
 	track.StreamURL = streamURL

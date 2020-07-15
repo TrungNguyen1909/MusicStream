@@ -20,7 +20,6 @@ package server
 
 import (
 	"bytes"
-	"encoding/json"
 	"log"
 	"sync/atomic"
 	"time"
@@ -217,20 +216,24 @@ func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time 
 
 func (s *Server) setTrack(trackMeta common.TrackMetadata) {
 	s.currentTrackMeta = trackMeta
-	data, _ := json.Marshal(map[string]interface{}{
-		"op":        opSetClientsTrack,
-		"track":     trackMeta,
-		"pos":       <-s.deltaChannel,
-		"listeners": atomic.LoadInt32(&s.listenersCount),
-	})
-	s.webSocketAnnounce(data)
+	data := Response{
+		Operation: opSetClientsTrack,
+		Data: map[string]interface{}{
+			"track":     trackMeta,
+			"pos":       <-s.deltaChannel,
+			"listeners": atomic.LoadInt32(&s.listenersCount),
+		},
+	}
+	s.webSocketAnnounce(data.EncodeJSON())
 }
 func (s *Server) setListenerCount() {
-	data, _ := json.Marshal(map[string]interface{}{
-		"op":        opSetClientsListeners,
-		"listeners": atomic.LoadInt32(&s.listenersCount),
-	})
-	s.webSocketAnnounce(data)
+	data := Response{
+		Operation: opSetClientsListeners,
+		Data: map[string]interface{}{
+			"listeners": atomic.LoadInt32(&s.listenersCount),
+		},
+	}
+	s.webSocketAnnounce(data.EncodeJSON())
 }
 func (s *Server) webSocketAnnounce(msg []byte) {
 	s.connections.Range(func(key, value interface{}) bool {

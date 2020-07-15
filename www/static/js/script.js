@@ -260,17 +260,17 @@ function initWebSocket() {
     var msg = JSON.parse(event.data);
     switch (msg.op) {
       case opSetClientsTrack:
-        delta = msg.pos / 48000.0 + 1.584;
+        delta = msg.data.pos / 48000.0 + 1.584;
         diff = delta - player.currentTime;
         try {
           if (
             isSkipped ||
             !ctrack ||
-            (ctrack.source == 0 && msg.track.source != 0)
+            (ctrack.source == 0 && msg.data.track.source != 0)
           ) {
             if (chooseSrc() != "/fallback") player.src = chooseSrc();
           } else if (Math.abs(diff) > 8 && chooseSrc() != "/fallback") {
-            if (msg.track.source == 0) {
+            if (msg.data.track.source == 0) {
               setTimeout(() => {
                 player.src = chooseSrc();
               }, (diff - 3.168) * 1000);
@@ -283,8 +283,8 @@ function initWebSocket() {
           console.error(e);
         }
         isSkipped = false;
-        setTrack(msg.track);
-        setListeners(msg.listeners);
+        setTrack(msg.data.track);
+        setListeners(msg.data.listeners);
         break;
       case opAllClientsSkip:
         isSkipped = true;
@@ -298,8 +298,8 @@ function initWebSocket() {
         if (!msg.success) {
           titleBox.innerText = msg.reason;
         } else {
-          titleBox.innerText = msg.track.title;
-          artistBox.innerText = msg.track.artists;
+          titleBox.innerText = msg.data.track.title;
+          artistBox.innerText = msg.data.track.artists;
         }
         clearTimeout(subBoxTimeout);
         showSubBox();
@@ -322,29 +322,29 @@ function initWebSocket() {
         subBoxTimeout = setTimeout(hideSubBox, 2000);
         break;
       case opSetClientsListeners:
-        setListeners(msg.listeners);
+        setListeners(msg.data.listeners);
         break;
       case opTrackEnqueued:
         {
-          let idx = removedTracks.indexOf(msg.track.playId);
+          let idx = removedTracks.indexOf(msg.data.track.playId);
           if (idx != -1) {
             removedTracks.splice(idx, 1);
           } else {
             let ele = document.createElement("div");
             ele.className = "element";
-            ele.playId = msg.track.playId;
+            ele.playId = msg.data.track.playId;
             //ele.addEventListener("contextmenu", this.removeTrack);
             let container = document.createElement("div");
             container.className = "metadata-container";
             let titleBox = document.createElement("div");
             titleBox.className = "title";
-            titleBox.innerText = msg.track.title;
-            titleBox.playId = msg.track.playId;
+            titleBox.innerText = msg.data.track.title;
+            titleBox.playId = msg.data.track.playId;
             container.appendChild(titleBox);
             let artistBox = document.createElement("div");
             artistBox.className = "artist";
-            artistBox.innerText = msg.track.artists;
-            artistBox.playId = msg.track.playId;
+            artistBox.innerText = msg.data.track.artists;
+            artistBox.playId = msg.data.track.playId;
             container.appendChild(artistBox);
             ele.append(container);
             let removeButton = document.createElement("div");
@@ -365,7 +365,7 @@ function initWebSocket() {
             .removeChild(document.getElementById("queue").firstChild);
         }
         removedTracks = [];
-        msg.queue.forEach((track) => {
+        msg.data.queue.forEach((track) => {
           let ele = document.createElement("div");
           ele.className = "element";
           ele.playId = track.playId;
@@ -396,29 +396,29 @@ function initWebSocket() {
       case opClientRemoveTrack:
         if (!msg.success) {
           for (let child of document.getElementById("queue").children) {
-            if (child.playId == msg.track.playId) {
+            if (child.playId == msg.data.track.playId) {
               child.disabled = false;
               break;
             }
           }
           break;
         }
-        removedTracks.push(msg.track.playId);
+        removedTracks.push(msg.data.track.playId);
         for (let child of document.getElementById("queue").children) {
-          if (child.playId == msg.track.playId) {
+          if (child.playId == msg.data.track.playId) {
             child.remove();
             removedTracks.pop();
             break;
           }
         }
-        if (!msg.silent) {
+        if (!msg.data.silent) {
           var subBox = document.getElementById("sub");
           var artistBox = subBox.getElementsByClassName("artist")[0];
           var titleBox = subBox.getElementsByClassName("name")[0];
           artistBox.innerText = "";
           titleBox.innerText = "";
-          titleBox.innerText = `Removing`;
-          artistBox.innerText = `${msg.track.title} - ${msg.track.artist}`;
+          titleBox.innerText = `Removed`;
+          artistBox.innerText = `${msg.data.track.title} - ${msg.track.artist}`;
           clearTimeout(subBoxTimeout);
           showSubBox();
           subBoxTimeout = setTimeout(hideSubBox, 3000);
@@ -462,7 +462,7 @@ window.onload = function () {
   this.player.onload = () => {
     this.fetch("/listeners")
       .then((response) => response.json())
-      .then((msg) => this.setListeners(msg.listeners));
+      .then((msg) => this.setListeners(msg.data.listeners));
   };
   this.player.onerror = () => {
     this.player.src = chooseSrc();

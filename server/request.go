@@ -19,7 +19,6 @@
 package server
 
 import (
-	"encoding/json"
 	"errors"
 	"log"
 	"sync/atomic"
@@ -28,33 +27,36 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/common"
 )
 
-func (s *Server) getPlaying() []byte {
-	data, _ := json.Marshal(map[string]interface{}{
-		"op":        opSetClientsTrack,
-		"track":     s.currentTrackMeta,
-		"pos":       atomic.LoadInt64(&s.startPos),
-		"listeners": atomic.LoadInt32(&s.listenersCount),
-	})
-	return data
+func (s *Server) getPlaying() Response {
+	return Response{
+		Operation: opSetClientsTrack,
+		Success:   true,
+		Data: map[string]interface{}{
+			"track":     s.currentTrackMeta,
+			"pos":       atomic.LoadInt64(&s.startPos),
+			"listeners": atomic.LoadInt32(&s.listenersCount),
+		},
+	}
 }
 
-func (s *Server) getListenersCount() []byte {
-	data, _ := json.Marshal(map[string]interface{}{
-		"op":        opSetClientsListeners,
-		"listeners": atomic.LoadInt32(&s.listenersCount),
-	})
-	return data
+func (s *Server) getListenersCount() Response {
+	return Response{
+		Operation: opSetClientsListeners,
+		Success:   true,
+		Data: map[string]interface{}{
+			"listeners": atomic.LoadInt32(&s.listenersCount),
+		},
+	}
 }
 
-func (s *Server) enqueue(msg wsMessage) []byte {
+func (s *Server) enqueue(msg wsMessage) Response {
 	var err error
 	if len(msg.Query) == 0 {
-		data, _ := json.Marshal(map[string]interface{}{
-			"op":      opClientRequestTrack,
-			"success": false,
-			"reason":  "Invalid Query!",
-		})
-		return data
+		return Response{
+			Operation: opClientRequestTrack,
+			Success:   false,
+			Reason:    "Invalid Query!",
+		}
 	}
 	var tracks []common.Track
 	log.Printf("Client Queried: %s", msg.Query)
@@ -81,58 +83,58 @@ func (s *Server) enqueue(msg wsMessage) []byte {
 	switch {
 	case err != nil:
 		log.Println("SearchTrack Failed:", err)
-		data, _ := json.Marshal(map[string]interface{}{
-			"op":      opClientRequestTrack,
-			"success": false,
-			"reason":  "Search Failed!",
-		})
-		return data
-	case len(tracks) == 0:
-		data, _ := json.Marshal(map[string]interface{}{
-			"op":      opClientRequestTrack,
-			"success": false,
-			"reason":  "No Result!",
-		})
-		return data
+		return Response{
+			Operation: opClientRequestTrack,
+			Success:   false,
+			Reason:    "Search Failed!",
+		}
+	case len(tracks) <= 0:
+		return Response{
+			Operation: opClientRequestTrack,
+			Success:   false,
+			Reason:    "No Result!",
+		}
 	default:
 		track := tracks[0]
 		err = track.Populate()
 		if err != nil {
 			log.Println("track.Populate() failed:", err)
-			data, _ := json.Marshal(map[string]interface{}{
-				"op":      opClientRequestTrack,
-				"success": false,
-				"reason":  "Search Failed!",
-			})
-			return data
+			return Response{
+				Operation: opClientRequestTrack,
+				Success:   false,
+				Reason:    "Search Failed!",
+			}
 		}
 		s.playQueue.Enqueue(track)
 		log.Printf("Track enqueued: %v - %v\n", track.Title(), track.Artist())
-		data, _ := json.Marshal(map[string]interface{}{
-			"op":      opClientRequestTrack,
-			"success": true,
-			"reason":  "",
-			"track":   common.GetMetadata(track),
-		})
-		return data
+		return Response{
+			Operation: opClientRequestTrack,
+			Success:   true,
+			Reason:    "",
+			Data: map[string]interface{}{
+				"track": common.GetMetadata(track),
+			},
+		}
 	}
 }
 
-func (s *Server) getQueue() []byte {
+func (s *Server) getQueue() Response {
 	elements := s.cacheQueue.GetElements()
 	tracks := make([]common.TrackMetadata, len(elements))
 	for i, val := range elements {
 		tracks[i] = val.(common.TrackMetadata)
 	}
-	data, _ := json.Marshal(map[string]interface{}{
-		"op":    opClientRequestQueue,
-		"queue": tracks,
-	})
-
-	return data
+	return Response{
+		Operation: opClientRequestQueue,
+		Success:   true,
+		Reason:    "",
+		Data: map[string]interface{}{
+			"queue": tracks,
+		},
+	}
 }
 
-func (s *Server) removeTrack(msg wsMessage) []byte {
+func (s *Server) removeTrack(msg wsMessage) Response {
 	removed := s.playQueue.Remove(func(value interface{}) bool {
 		ele := value.(common.Track)
 		if ele.PlayID() == msg.Query {
@@ -150,47 +152,43 @@ func (s *Server) removeTrack(msg wsMessage) []byte {
 			return false
 		}).(common.TrackMetadata)
 	}
-	data, _ := json.Marshal(map[string]interface{}{
-		"op":      opClientRemoveTrack,
-		"success": removed != nil,
-		"track":   removedTrack,
-	})
-	if removed != nil {
-		s.webSocketAnnounce(data)
+	resp := Response{
+		Operation: opClientRemoveTrack,
+		Success:   removed != nil,
+		Data: map[string]interface{}{
+			"track": removedTrack,
+		},
 	}
-	return data
+	if removed != nil {
+		s.webSocketAnnounce(resp.EncodeJSON())
+	}
+	return resp
 }
 
-func (s *Server) skip() []byte {
+func (s *Server) skip() Response {
 	if atomic.LoadInt32(&s.isRadioStreaming) == 1 {
-		data, _ := json.Marshal(map[string]interface{}{
-			"op":      opClientRequestSkip,
-			"success": false,
-			"reason":  "You can't skip a radio stream.",
-		})
-
-		return data
+		return Response{
+			Operation: opClientRequestSkip,
+			Success:   false,
+			Reason:    "You can't skip a radio stream.",
+		}
 	}
 	if time.Since(s.startTime) < 5*time.Second {
-		data, _ := json.Marshal(map[string]interface{}{
-			"op":      opClientRequestSkip,
-			"success": false,
-			"reason":  "Please wait until first 5 seconds has passed.",
-		})
-		return data
+		return Response{
+			Operation: opClientRequestSkip,
+			Success:   false,
+			Reason:    "Please wait until first 5 seconds has passed.",
+		}
 	}
 	s.skipChannel <- 0
 	log.Println("Current song skipped!")
-	data, err := json.Marshal(map[string]interface{}{
-		"op": opAllClientsSkip,
-	})
-	if err == nil {
-		s.webSocketAnnounce(data)
+	s.webSocketAnnounce((&Response{
+		Operation: opAllClientsSkip,
+		Success:   true,
+		Reason:    "Requested by client",
+	}).EncodeJSON())
+	return Response{
+		Operation: opClientRequestSkip,
+		Success:   true,
 	}
-	data, _ = json.Marshal(map[string]interface{}{
-		"op":      opClientRequestSkip,
-		"success": true,
-		"reason":  "",
-	})
-	return data
 }

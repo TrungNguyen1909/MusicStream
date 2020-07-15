@@ -20,11 +20,15 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
@@ -111,8 +115,8 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 	s.connections.Store(ws, ws)
 	defer ws.Close()
 	defer s.connections.Delete(ws)
-	ws.WriteMessage(websocket.TextMessage, s.getPlaying())
-	ws.WriteMessage(websocket.TextMessage, s.getQueue())
+	ws.WriteMessage(websocket.TextMessage, s.getPlaying().EncodeJSON())
+	ws.WriteMessage(websocket.TextMessage, s.getQueue().EncodeJSON())
 	for {
 		var msg wsMessage
 		_, msgbuf, err := ws.ReadMessage()
@@ -125,22 +129,22 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 		}
 		switch msg.Operation {
 		case opSetClientsTrack:
-			ws.WriteMessage(websocket.TextMessage, s.getPlaying())
+			ws.WriteMessage(websocket.TextMessage, s.getPlaying().EncodeJSON())
 		case opClientRequestTrack:
-			ws.WriteMessage(websocket.TextMessage, s.enqueue(msg))
+			ws.WriteMessage(websocket.TextMessage, s.enqueue(msg).EncodeJSON())
 		case opClientRequestSkip:
-			ws.WriteMessage(websocket.TextMessage, s.skip())
+			ws.WriteMessage(websocket.TextMessage, s.skip().EncodeJSON())
 		case opSetClientsListeners:
-			ws.WriteMessage(websocket.TextMessage, s.getListenersCount())
+			ws.WriteMessage(websocket.TextMessage, s.getListenersCount().EncodeJSON())
 		case opClientRemoveTrack:
-			ws.WriteMessage(websocket.TextMessage, s.removeTrack(msg))
+			ws.WriteMessage(websocket.TextMessage, s.removeTrack(msg).EncodeJSON())
 		case opClientRequestQueue:
-			ws.WriteMessage(websocket.TextMessage, s.getQueue())
+			ws.WriteMessage(websocket.TextMessage, s.getQueue().EncodeJSON())
 		case opWebSocketKeepAlive:
-			data, _ := json.Marshal(map[string]interface{}{
-				"op": opWebSocketKeepAlive,
-			})
-			ws.WriteMessage(websocket.TextMessage, data)
+			ws.WriteMessage(websocket.TextMessage, Response{
+				Operation: opWebSocketKeepAlive,
+				Success:   true,
+			}.EncodeJSON())
 		}
 	}
 	return
@@ -151,7 +155,7 @@ func (s *Server) playingHandler(c echo.Context) (err error) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	w.Write(s.getPlaying())
+	w.Write(s.getPlaying().EncodeJSON())
 	return
 }
 
@@ -160,7 +164,7 @@ func (s *Server) listenersHandler(c echo.Context) (err error) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	w.Write(s.getListenersCount())
+	w.Write(s.getListenersCount().EncodeJSON())
 	return
 }
 
@@ -173,16 +177,13 @@ func (s *Server) enqueueHandler(c echo.Context) (err error) {
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		data, _ := json.Marshal(map[string]interface{}{
-			"op":      opClientRequestTrack,
-			"success": false,
-			"reason":  "Invalid Query!",
+		return echo.NewHTTPError(http.StatusBadRequest, Response{
+			Operation: opClientRequestTrack,
+			Success:   false,
+			Reason:    "Invalid Query!",
 		})
-		w.Write(data)
-		return
 	}
-	w.Write(s.enqueue(msg))
+	w.Write(s.enqueue(msg).EncodeJSON())
 	return
 }
 func (s *Server) skipHandler(c echo.Context) (err error) {
@@ -190,7 +191,7 @@ func (s *Server) skipHandler(c echo.Context) (err error) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	w.Write(s.skip())
+	w.Write(s.skip().EncodeJSON())
 	return
 }
 func (s *Server) queueHandler(c echo.Context) (err error) {
@@ -198,7 +199,7 @@ func (s *Server) queueHandler(c echo.Context) (err error) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	w.Write(s.getQueue())
+	w.Write(s.getQueue().EncodeJSON())
 	return
 }
 func (s *Server) removeTrackHandler(c echo.Context) (err error) {
@@ -210,33 +211,45 @@ func (s *Server) removeTrackHandler(c echo.Context) (err error) {
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		data, _ := json.Marshal(map[string]interface{}{
-			"op":      opClientRemoveTrack,
-			"success": false,
-			"reason":  "Bad Request",
+		return echo.NewHTTPError(http.StatusBadRequest, Response{
+			Operation: opClientRemoveTrack,
+			Success:   false,
+			Reason:    "Bad Request",
 		})
-		w.Write(data)
-		return
 	}
-	w.Write(s.removeTrack(msg))
+	w.Write(s.removeTrack(msg).EncodeJSON())
 	return
 }
-func redirectToRoot(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/", http.StatusSeeOther)
-}
-func toHTTPError(err error) (msg string, httpStatus int) {
-	if os.IsNotExist(err) {
-		return "404 page not found", http.StatusNotFound
-	}
-	if os.IsPermission(err) {
-		return "403 Forbidden", http.StatusForbidden
-	}
-	// Default:
-	return "500 Internal Server Error", http.StatusInternalServerError
-}
 
-// NotFoundHandler handles the "not found" situation. It should be a catch-all for all urls.
-func NotFoundHandler(c echo.Context) error {
-	return echo.NewHTTPError(http.StatusNotFound, "The page you are looking for does not exist")
+// HandleError defines an error handler that complies with echo's standards.
+func (s *Server) HandleError(err error, c echo.Context) {
+	type errCtx struct {
+		Code       int
+		Message    string
+		StatusText string
+	}
+	// the convention is:
+	// - if err is *echo.HTTPError, it is a "normal error" with its own message and everything.
+	// - otherwise, it is an unexpected error.
+
+	if e, ok := err.(*echo.HTTPError); ok {
+		// Just handle it gracefully
+		c.JSON(e.Code, e.Message)
+	} else {
+		// internal error: dump it.
+		c.JSON(http.StatusInternalServerError, errCtx{Code: http.StatusInternalServerError})
+
+		errStr := fmt.Sprintf("An unexpected error has occured: %v\n", err)
+		path := filepath.Join(os.TempDir(), fmt.Sprintf("MusicStream-%v.txt", time.Now().Format(time.RFC3339)))
+		if err := ioutil.WriteFile(path, []byte(fmt.Sprintf("%+v", err)), 0644); err != nil {
+			errStr += fmt.Sprintf("Cannot log the error down to file: %v", err)
+		} else {
+			errStr += fmt.Sprintf(`The error has been logged down to file '%s'.
+Please check out the open issues and help opening a new one if possible on https://github.com/TrungNguyen1909/MusicStream/issues/new`, path)
+		}
+		log.Println(errStr)
+		if s.server.Debug {
+			log.Printf("Error dump:\n%+v\n", err)
+		}
+	}
 }

@@ -24,7 +24,6 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -39,6 +38,7 @@ import (
 
 	"github.com/TrungNguyen1909/MusicStream/spotify"
 	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
+	"github.com/pkg/errors"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 
@@ -134,7 +134,7 @@ func (track *Track) CoverURL() string {
 //Download returns a mp3 stream of the track
 func (track *Track) Download() (stream io.ReadCloser, err error) {
 	if track.StreamURL == "" || len(track.BlowfishKey) == 0 {
-		err = errors.New("Metadata not yet populated")
+		err = errors.WithStack(errors.New("Metadata not yet populated"))
 		return
 	}
 	response, err := http.DefaultClient.Get(track.StreamURL)
@@ -142,7 +142,7 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 		return
 	}
 	if response.StatusCode != http.StatusOK {
-		err = errors.New(fmt.Sprint("deezerTrack Download failed: ", track.StreamURL, " ", response.Status))
+		err = errors.WithStack(errors.New(fmt.Sprint("Download failed: ", track.StreamURL, " ", response.Status)))
 		return
 	}
 	stream, err = streamdecoder.NewMP3Decoder(&trackDecrypter{r: response.Body, BlowfishKey: track.BlowfishKey})
@@ -327,7 +327,7 @@ type Client struct {
 //NewClient returns a new Deezer Client
 func NewClient(deezerARL, spotifyClientID, spotifyClientSecret string) (client *Client, err error) {
 	if len(deezerARL) <= 0 {
-		return nil, errors.New("Please provide Deezer ARL token")
+		return nil, errors.WithStack(errors.New("Please provide Deezer ARL token"))
 	}
 	client = &Client{}
 	cookiesJar, _ := cookiejar.New(nil)
@@ -392,7 +392,7 @@ func (client *Client) initDeezerAPI() (err error) {
 	err = json.NewDecoder(response.Body).Decode(&resp)
 	if err != nil || len(resp.Results.CheckForm) <= 0 {
 		if err == nil {
-			return errors.New("Can't initailized Deezer API")
+			return errors.WithStack(errors.New("Can't initailized Deezer API"))
 		}
 		return
 	}
@@ -419,7 +419,7 @@ func getBlowfishKey(trackInfo deezerTrack) (bfKey []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			bfKey = nil
-			err = errors.New("getBlowfishKey: Panicked")
+			err = errors.WithStack(r.(error))
 			log.Println(err, r)
 		}
 	}()
@@ -437,7 +437,7 @@ func getTrackDownloadURL(trackInfo deezerTrack) (url string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			url = ""
-			err = errors.New("getTrackDownloadURL Panicked")
+			err = errors.WithStack(r.(error))
 			log.Println(err, r)
 		}
 	}()
@@ -450,7 +450,7 @@ func getTrackDownloadURL(trackInfo deezerTrack) (url string, err error) {
 func (client *Client) PopulateMetadata(dTrack *Track) (err error) {
 	if len(dTrack.deezerTrack.MD5Origin) <= 0 {
 		if client == nil {
-			err = errors.New("PopulateMetadata: nil Deezer Client")
+			err = errors.WithStack(errors.New("nil Deezer Client"))
 		}
 		err = client.populateTracks([]deezerTrack{dTrack.deezerTrack})
 		if err != nil {
@@ -547,7 +547,9 @@ func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) 
 	withISRC := withSpotify
 start:
 	if len(artist) == 0 && withSpotify {
-		sTrack, sArtist, sAlbum, sISRC, sURI, err = client.spotifyClient.SearchTrackQuery(track)
+		if len(sURI) <= 0 {
+			sTrack, sArtist, sAlbum, sISRC, sURI, err = client.spotifyClient.SearchTrackQuery(track)
+		}
 		if err != nil {
 			log.Printf("spotifyClient.SearchTrack() failed: %v\n", err)
 			withSpotify = false
@@ -586,7 +588,7 @@ start:
 		resp = searchTrackResponse{Data: make([]deezerTrack, 1)}
 		err = json.NewDecoder(response.Body).Decode(&resp.Data[0])
 		if resp.Data[0].ID == 0 {
-			err = errors.New("ISRC not found on deezer")
+			err = errors.WithStack(errors.New("ISRC not found on deezer"))
 		}
 	} else {
 		err = json.NewDecoder(response.Body).Decode(&resp)
@@ -616,7 +618,7 @@ start:
 			withSpotify = false
 			goto start
 		}
-		return nil, errors.New("No track found")
+		return nil, nil
 	}
 	tracks := make([]common.Track, len(itracks))
 	err = client.populateTracks(itracks)

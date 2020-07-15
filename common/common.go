@@ -20,8 +20,9 @@ package common
 
 import (
 	"crypto/rand"
-	"errors"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -166,9 +167,9 @@ func (track *DefaultTrack) PlayID() string {
 }
 
 func (track *DefaultTrack) Populate() error {
-	return errors.New("not implemented")
+	return errors.WithStack(errors.New("not implemented"))
 }
 
 func (track *DefaultTrack) Download() (io.ReadCloser, error) {
-	return nil, errors.New("not implemented")
+	return nil, errors.WithStack(errors.New("not implemented"))
 }

@@ -19,7 +19,6 @@
 package server
 
 import (
-	"encoding/json"
 	"log"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
@@ -30,19 +29,23 @@ func (s *Server) enqueueCallback(value interface{}) {
 	metadata := common.GetMetadata(track)
 	s.cacheQueue.Enqueue(metadata)
 	log.Printf("Enqueuing track on all clients %v - %v\n", metadata.Title, metadata.Artist)
-	data, _ := json.Marshal(map[string]interface{}{
-		"op":    opTrackEnqueued,
-		"track": metadata,
-	})
-	s.webSocketAnnounce(data)
+	data := Response{
+		Operation: opTrackEnqueued,
+		Data: map[string]interface{}{
+			"track": metadata,
+		},
+	}
+	s.webSocketAnnounce(data.EncodeJSON())
 }
 func (s *Server) dequeueCallback() {
 	removed := s.cacheQueue.Pop().(common.TrackMetadata)
-	data, _ := json.Marshal(map[string]interface{}{
-		"op":      opClientRemoveTrack,
-		"success": true,
-		"track":   removed,
-		"silent":  true,
-	})
-	s.webSocketAnnounce(data)
+	data := Response{
+		Operation: opClientRemoveTrack,
+		Success:   true,
+		Data: map[string]interface{}{
+			"track":  removed,
+			"silent": true,
+		},
+	}
+	s.webSocketAnnounce(data.EncodeJSON())
 }
