@@ -126,6 +126,18 @@ func (track *Track) ISRC() string {
 	return track.deezerTrack.ISRC
 }
 
+//Href returns the track's link
+func (track *Track) Href() string {
+	if len(track.SpotifyURI()) > 0 {
+		if strings.HasPrefix(track.SpotifyURI(), "spotify:") {
+			sID := track.SpotifyURI()[14:]
+			sType := track.SpotifyURI()[8:13]
+			return fmt.Sprintf("https://open.spotify.com/%s/%s", sType, sID)
+		}
+	}
+	return fmt.Sprintf("https://www.deezer.com/track/%s", track.ID())
+}
+
 //CoverURL returns the URL to track's cover art
 func (track *Track) CoverURL() string {
 	return track.deezerTrack.Album.CoverXL

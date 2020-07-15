@@ -22,6 +22,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"html"
 	"io"
 	"log"
@@ -132,6 +133,11 @@ func (track *Track) Duration() int {
 //ISRC returns the track's ISRC ID
 func (track *Track) ISRC() string {
 	return ""
+}
+
+//Href returns the track's link
+func (track *Track) Href() string {
+	return fmt.Sprintf("https://youtu.be/%s", track.ID())
 }
 
 //CoverURL returns the URL to track's cover art

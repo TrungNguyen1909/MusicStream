@@ -45,6 +45,7 @@ type Track interface {
 	Artists() string
 	Album() string
 	ISRC() string
+	Href() string
 	CoverURL() string
 	Duration() int
 	SpotifyURI() string
@@ -67,6 +68,7 @@ type TrackMetadata struct {
 	PlayID     string       `json:"playId"`
 	SpotifyURI string       `json:"spotifyURI"`
 	ID         string       `json:"id"`
+	Href       string       `json:"href"`
 }
 
 //GetMetadata returns a new TrackMetadata created from a provided Track
@@ -82,6 +84,7 @@ func GetMetadata(track Track) (d TrackMetadata) {
 	d.PlayID = track.PlayID()
 	d.ID = track.ID()
 	d.SpotifyURI = track.SpotifyURI()
+	d.Href = track.Href()
 	return
 }
 
@@ -150,7 +153,9 @@ func (track *DefaultTrack) Album() string {
 func (track *DefaultTrack) ISRC() string {
 	return ""
 }
-
+func (track *DefaultTrack) Href() string {
+	return ""
+}
 func (track *DefaultTrack) CoverURL() string {
 	return ""
 }

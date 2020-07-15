@@ -177,7 +177,9 @@ function setTrack(track) {
   }
   let aTag = document.getElementById("name-ref");
   aTag.href = "#";
-  if (!!track.spotifyURI) {
+  if (!!track.href) {
+    aTag.href = track.href;
+  } else if (!!track.spotifyURI) {
     suri = track.spotifyURI;
     if (track.spotifyURI.startsWith("spotify:")) {
       sID = suri.slice(14);

@@ -96,6 +96,11 @@ func (track *Track) ISRC() string {
 	return ""
 }
 
+//Href returns the track's link
+func (track *Track) Href() string {
+	return track.csnTrack.Link
+}
+
 //CoverURL returns the URL to track's cover art
 func (track *Track) CoverURL() string {
 	return track.csnTrack.Cover
