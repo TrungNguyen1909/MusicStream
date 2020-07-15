@@ -19,8 +19,6 @@
 package server
 
 import (
-	"log"
-
 	"github.com/TrungNguyen1909/MusicStream/common"
 )
 
@@ -28,7 +26,6 @@ func (s *Server) enqueueCallback(value interface{}) {
 	track := value.(common.Track)
 	metadata := common.GetMetadata(track)
 	s.cacheQueue.Enqueue(metadata)
-	log.Printf("Enqueuing track on all clients %v - %v\n", metadata.Title, metadata.Artist)
 	data := Response{
 		Operation: opTrackEnqueued,
 		Data: map[string]interface{}{

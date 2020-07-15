@@ -393,7 +393,7 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 	var resp youtubeResponse
 	err = json.NewDecoder(response.Body).Decode(&resp)
 	if err != nil {
-		log.Println(err)
+		log.Println("Youtube.Search", err)
 		return
 	}
 	if len(resp.Items) <= 0 {

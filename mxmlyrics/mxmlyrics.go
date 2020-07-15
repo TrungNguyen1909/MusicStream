@@ -139,7 +139,6 @@ func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI 
 	if len(SpotifyURI) > 0 {
 		queries.Add("track_spotify_id", SpotifyURI)
 	}
-	log.Printf("Spotify URI: %s\n", SpotifyURI)
 	reqURL.RawQuery = queries.Encode()
 	req, _ := http.NewRequest("GET", reqURL.String(), nil)
 	req.Header.Set("Host", "apic.musixmatch.com")
