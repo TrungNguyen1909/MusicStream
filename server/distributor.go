@@ -154,11 +154,12 @@ func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time 
 	quitMP3 := make(chan time.Duration)
 	vorbisStream := s.streamVorbis(quitVorbis)
 	mp3Stream := s.streamMP3(quitMP3)
+	var vorbisTime, mp3Time time.Duration
 	for {
 		select {
 		case <-quit:
-			quitVorbis <- time.Duration(0)
-			quitMP3 <- time.Duration(0)
+			quitVorbis <- time.Duration(-1)
+			quitMP3 <- time.Duration(-1)
 			quitPreload <- 0
 			interrupted = true
 			for len(quit) > 0 {
@@ -186,25 +187,29 @@ func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time 
 			break
 		}
 	}
-	var vorbisTime, mp3Time time.Duration
-	for !interrupted {
-		select {
-		case <-quit:
-			quitVorbis <- time.Duration(0)
-			quitMP3 <- time.Duration(0)
-			for len(quit) > 0 {
+	if !interrupted {
+		for !interrupted {
+			select {
+			case <-quit:
+				quitVorbis <- time.Duration(-1)
+				quitMP3 <- time.Duration(-1)
+				for len(quit) > 0 {
+					select {
+					case <-quit:
+					default:
+					}
+				}
+				quit = nil
+			case vorbisTime = <-quitVorbis:
 				select {
-				case <-quit:
-				default:
+				case mp3Time = <-quitMP3:
+					interrupted = true
 				}
 			}
-			quit = nil
-		case vorbisTime = <-quitVorbis:
-			select {
-			case mp3Time = <-quitMP3:
-				interrupted = true
-			}
 		}
+	} else {
+		vorbisTime = <-quitVorbis
+		mp3Time = <-quitMP3
 	}
 	streamTime := vorbisTime
 	if vorbisTime < mp3Time {
