@@ -97,9 +97,9 @@ func (s *Server) processTrack() {
 			trackDict.Lyrics = ytsub
 		}
 	}
-	stream, err := track.Download()
+	stream, err := track.Stream()
 	if err != nil {
-		log.Panic("track.Download:", err)
+		log.Panic("track.Stream:", err)
 	}
 	quit := make(chan int, 10)
 	go s.preloadTrack(stream, quit)

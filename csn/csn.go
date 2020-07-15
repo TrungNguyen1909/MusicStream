@@ -111,7 +111,15 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 	if err != nil {
 		return
 	}
-	stream = response.Body
+	return response.Body, nil
+}
+
+//Stream returns a 16/48 pcm stream of the track
+func (track *Track) Stream() (io.ReadCloser, error) {
+	stream, err := track.Download()
+	if err != nil {
+		return nil, err
+	}
 	stream, err = streamdecoder.NewMP3Decoder(stream)
 	if err != nil {
 		return nil, err

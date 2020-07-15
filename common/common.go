@@ -51,6 +51,7 @@ type Track interface {
 	PlayID() string
 	Populate() error
 	Download() (io.ReadCloser, error)
+	Stream() (io.ReadCloser, error)
 }
 
 //TrackMetadata contains essential informations about a track for client
@@ -171,5 +172,10 @@ func (track *DefaultTrack) Populate() error {
 }
 
 func (track *DefaultTrack) Download() (io.ReadCloser, error) {
+	return nil, errors.WithStack(errors.New("not implemented"))
+}
+
+//Stream returns a 16/48 pcm stream of the track
+func (track *DefaultTrack) Stream() (io.ReadCloser, error) {
 	return nil, errors.WithStack(errors.New("not implemented"))
 }

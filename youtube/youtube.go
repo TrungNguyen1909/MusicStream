@@ -139,7 +139,7 @@ func (track *Track) CoverURL() string {
 	return track.ytTrack.CoverURL
 }
 
-//Download returns a pcm stream of the track
+//Download returns a webm stream of the track
 func (track *Track) Download() (stream io.ReadCloser, err error) {
 	if track.StreamURL == "" {
 		err = errors.WithStack(errors.New("Metadata not populated"))
@@ -149,8 +149,20 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 	if err != nil {
 		return
 	}
-	stream, err = streamdecoder.NewWebMDecoder(response.Body)
-	return
+	return response.Body, nil
+}
+
+//Stream returns a 16/48 pcm stream of the track
+func (track *Track) Stream() (io.ReadCloser, error) {
+	stream, err := track.Download()
+	if err != nil {
+		return nil, err
+	}
+	stream, err = streamdecoder.NewWebMDecoder(stream)
+	if err != nil {
+		return nil, err
+	}
+	return stream, nil
 }
 
 //Populate populates metadata for Download

@@ -145,11 +145,20 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 		err = errors.WithStack(errors.New(fmt.Sprint("Download failed: ", track.StreamURL, " ", response.Status)))
 		return
 	}
-	stream, err = streamdecoder.NewMP3Decoder(&trackDecrypter{r: response.Body, BlowfishKey: track.BlowfishKey})
+	return &trackDecrypter{r: response.Body, BlowfishKey: track.BlowfishKey}, nil
+}
+
+//Stream returns a 16/48 pcm stream of the track
+func (track *Track) Stream() (io.ReadCloser, error) {
+	stream, err := track.Download()
 	if err != nil {
-		return
+		return nil, err
 	}
-	return
+	stream, err = streamdecoder.NewMP3Decoder(stream)
+	if err != nil {
+		return nil, err
+	}
+	return stream, nil
 }
 
 //Populate populates track metadata for Download

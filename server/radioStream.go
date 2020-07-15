@@ -82,7 +82,7 @@ func (s *Server) preloadRadio(quit chan int) {
 		}
 	}()
 	for {
-		stream, err := s.radioTrack.Download()
+		stream, err := s.radioTrack.Stream()
 		if err != nil {
 			continue
 		}
