@@ -473,7 +473,10 @@ func (client *Client) PopulateMetadata(dTrack *Track) (err error) {
 		if client == nil {
 			err = errors.WithStack(errors.New("nil Deezer Client"))
 		}
-		err = client.populateTracks([]deezerTrack{dTrack.deezerTrack})
+		tracks := make([]deezerTrack, 1)
+		tracks[0] = dTrack.deezerTrack
+		err = client.populateTracks(tracks)
+		dTrack.deezerTrack = tracks[0]
 		if err != nil {
 			return
 		}
@@ -559,6 +562,29 @@ func (client *Client) populateTracks(tracks []deezerTrack) (err error) {
 	return
 }
 
+//GetTrackFromURL returns a deezer track from the provided URL
+func (client *Client) GetTrackFromURL(q string) (track common.Track, err error) {
+	u, err := url.Parse(q)
+	if err != nil {
+		return nil, err
+	}
+	switch u.Host {
+	case "deezer.com", "www.deezer.com":
+	default:
+		return nil, errors.WithStack(errors.New("Invalid Deezer URL"))
+	}
+	l := strings.Split(u.Path, "/")
+	if len(l) < 3 {
+		return nil, errors.WithStack(errors.New("Invalid Deezer URL"))
+	}
+	for i, v := range l {
+		if v == "track" && i+1 < len(l) {
+			return client.GetTrackByID(l[i+1])
+		}
+	}
+	return nil, errors.WithStack(errors.New("Invalid Deezer URL"))
+}
+
 //SearchTrack takes the track title and optional track's artist query and returns the best match track on Deezer
 func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) {
 	var url string
@@ -566,6 +592,10 @@ func (client *Client) SearchTrack(track, artist string) ([]common.Track, error) 
 	var err error
 	withSpotify := client.spotifyClient != nil
 	withISRC := withSpotify
+	dTrack, err := client.GetTrackFromURL(track)
+	if dTrack != nil && err == nil {
+		return []common.Track{dTrack}, nil
+	}
 start:
 	if len(artist) == 0 && withSpotify {
 		if len(sURI) <= 0 {
