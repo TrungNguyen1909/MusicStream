@@ -165,8 +165,38 @@ type Client struct {
 	HTTPClient *http.Client
 }
 
+//GetTrackFromURL returns a csn track (if exists) from the provided url
+func (client *Client) GetTrackFromURL(q string) (track common.Track, err error) {
+	u, err := url.Parse(q)
+	if err != nil {
+		return nil, errors.WithStack(errors.New("Invalid CSN URL"))
+	}
+	switch u.Host {
+	case "www.chiasenhac.vn", "chiasenhac.vn":
+	default:
+		return nil, errors.WithStack(errors.New("Invalid CSN URL"))
+	}
+
+	track = &Track{
+		csnTrack: csnTrack{
+			Link: q,
+		},
+		client: client,
+	}
+	err = track.Populate()
+	if err != nil {
+		track = nil
+		return
+	}
+	return track, nil
+}
+
 //Search takes a query string and returns a slice of matching tracks
 func (client *Client) Search(query string) (tracks []common.Track, err error) {
+	track, err := client.GetTrackFromURL(query)
+	if err == nil {
+		return []common.Track{track}, nil
+	}
 	queryURL, _ := url.Parse("https://chiasenhac.vn/search/real")
 	queries := queryURL.Query()
 	queries.Add("type", "json")
@@ -233,8 +263,11 @@ func (track *Track) Populate() (err error) {
 	track.StreamURL = streamURL
 
 	doc := soup.HTMLParse(string(buf))
-	list := doc.Find("div", "id", "companion_cover").FindNextElementSibling().Find("h2", "class", "card-title").FindNextElementSibling()
+	cardTitle := doc.Find("div", "id", "companion_cover").FindNextElementSibling().Find("h2", "class", "card-title")
+	track.csnTrack.Title = cardTitle.Text()
+	list := cardTitle.FindNextElementSibling()
 	var album string
+	var artists string
 	for _, child := range list.Children() {
 		span := child.Find("span")
 		if span.Pointer == nil {
@@ -242,9 +275,17 @@ func (track *Track) Populate() (err error) {
 		}
 		if span.Text() == "Album: " {
 			album = child.Find("a").Text()
-			break
+		}
+		if span.Text() == "Ca sĩ: " {
+			var a []string
+			for _, c := range child.FindAll("a") {
+				a = append(a, c.Text())
+			}
+			artists = strings.Join(a, "; ")
 		}
 	}
+	track.csnTrack.Artists = strings.Split(artists, "; ")
+	track.csnTrack.Artist = track.csnTrack.Artists[0]
 	track.csnTrack.Album = album
 	return
 }
