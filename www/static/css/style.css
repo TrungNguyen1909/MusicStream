@@ -32,7 +32,7 @@ html {
   background: no-repeat scroll 50% 50%;
   background-size: cover;
   pointer-events: none;
-  background-image: url("/static/media/cfa71cb20e36187a28ba59df1613fe02e8433a41.jpg");
+  background-image: url("/static/media/068b431e73c2efe24dd2c62708ddbb16f2785a64.jpg");
   filter: blur(0px);
   -webkit-filter: blur(0px);
 }
@@ -66,7 +66,7 @@ body {
   opacity: 0;
   left: 10px;
   right: 10px;
-  background-color: #1b2b40c0;
+  background-color: #0A0226c0;
   padding: 5px 15px 5px 10px;
   border-bottom-left-radius: 15px;
   border-bottom-right-radius: 15px;
@@ -83,14 +83,14 @@ body {
 }
 
 .player .sub .name {
-  color: #d92b3ac0;
+  color: #F2F2F2c0;
   font-size: 20px;
   margin-top: 10px;
   margin-left: 5px;
 }
 
 .player .sub .artist {
-  color: #c2c6cf;
+  color: #F2F2F2c0;
   font-size: 16px;
   margin-top: 0px;
   margin-left: 5px;
@@ -104,7 +104,7 @@ body {
 
 .player .control-panel {
   position: relative;
-  background-color: #1b2b40;
+  background-color: #0A0226;
   border-radius: 15px;
   width: 100%;
   height: 90px;
@@ -132,7 +132,7 @@ body {
   width: 55px;
   height: 80px;
   margin: 5px 0;
-  background-color: #1b2b40;
+  background-color: #0A0226;
   cursor: pointer;
 }
 
@@ -150,23 +150,23 @@ body {
 }
 @media (hover: hover) {
   .player .control-panel.playing .controls .play .svg:hover .pauseIcon {
-    stroke: #d92b3a;
+    stroke: #F2F2F2;
   }
   .player .control-panel .controls .play .svg:hover .playIcon {
-    stroke: #d92b3a;
+    stroke: #F2F2F2;
   }
   .player .control-panel .controls .prev .svg :hover,
   .player .control-panel .controls .next .svg :hover {
-    stroke: #d92b3a;
+    stroke: #F2F2F2;
   }
 }
 .player .control-panel .controls .prev .svg,
 .player .control-panel .controls .next .svg {
-  stroke: #c2c6cf;
+  stroke: #343d79;
 }
 
 .player .control-panel .controls .play .svg .playIcon {
-  stroke: #c2c6cf;
+  stroke: #343d79;
 }
 
 .player .control-panel .controls .play .svg .pauseIcon {
@@ -177,7 +177,7 @@ body {
   stroke: transparent;
 }
 .player .control-panel.playing .controls .play .svg .pauseIcon {
-  stroke: #c2c6cf;
+  stroke: #343d79;
 }
 
 .player .control-panel .controls .info .artist,
@@ -189,7 +189,7 @@ body {
 }
 
 .player .control-panel .controls .info .name {
-  color: #d92b3a;
+  color: #F2F2F2;
   font-size: 20px;
   margin-top: 10px;
   margin-left: 5px;
@@ -197,7 +197,7 @@ body {
 }
 
 .player .control-panel .controls .info .artist {
-  color: #c2c6cf;
+  color: #F2F2F2c0;
   font-size: 16px;
   margin-top: 0px;
   margin-left: 5px;
@@ -205,7 +205,7 @@ body {
 }
 
 .player .control-panel .controls .info .listeners {
-  color: #c2c6cf;
+  color: #F2F2F2c0;
   font-size: 14px;
   margin-top: 5px;
   margin-left: 5px;
@@ -219,7 +219,7 @@ body {
   opacity: 0;
   left: 10px;
   right: 10px;
-  background-color: #1b2b40c0;
+  background-color: #0A0226c0;
   padding: 5px 15px 5px 10px;
   border-top-left-radius: 15px;
   border-top-right-radius: 15px;
@@ -237,14 +237,14 @@ body {
 }
 
 .player .lyrics .original {
-  color: #d92b3ac0;
+  color: #F2F2F2c0;
   font-size: 20px;
   margin-bottom: 0px;
   margin-left: 5px;
 }
 
 .player .lyrics .translated {
-  color: #c2c6cf;
+  color: #f2f2f2a0;
   font-size: 16px;
   margin-bottom: 10px;
   margin-left: 5px;
@@ -266,11 +266,11 @@ body {
 }
 
 ::-moz-selection {
-  background: #c2c6cf;
+  background: #253B59;
 }
 
 ::selection {
-  background: #c2c6cf;
+  background: #253B59;
 }
 
 .search__container {
@@ -293,9 +293,9 @@ body {
   font-size: 15px;
   line-height: 18px;
   outline: 0;
-  color: #c2c6cf;
+  color: #F2F2F2;
   background-color: transparent;
-  border: 1px solid #c2c6cf;
+  border: 1px solid #F2F2F2;
   border-top-right-radius: 15px;
   border-bottom-right-radius: 15px;
   border-left: none;
@@ -304,15 +304,14 @@ body {
 }
 
 .search__input::placeholder {
-  color: #c2c6cf;
-  text-transform: uppercase;
+  color: #F2F2F2c0;
   letter-spacing: 1.5px;
 }
 @media (hover: hover) {
   .search__input:hover {
     padding: 12px 10px;
     border: 1px solid transparent;
-    border-bottom: 1px solid #c2c6cf;
+    border-bottom: 1px solid #F2F2F2;
     border-radius: 0;
     background-position: 100% center;
   }
@@ -320,9 +319,10 @@ body {
 .search__input:not(:placeholder-shown) {
   padding: 12px 10px;
   border: 1px solid transparent;
-  border-bottom: 1px solid #c2c6cf;
+  border-bottom: 1px solid #F2F2F2;
   border-radius: 0;
   background-position: 100% center;
+  color: #F2F2F2;
 }
 .btn-group {
   position: relative;
@@ -334,8 +334,8 @@ body {
   height: 42px;
   width: 50px;
   background-color: transparent;
-  border: 1px solid #c2c6cf;
-  color: #c2c6cf; /* White text */
+  border: 1px solid #F2F2F2;
+  color: #F2F2F2; /* White text */
   float: left; /* Float the buttons side by side */
   text-align: center;
   vertical-align: center;
@@ -351,13 +351,13 @@ body {
 @media (hover: hover) {
   .btn-group div:hover,
   .btn-group div:focus {
-    background-color: #c2c6cf;
-    color: #1b2b40;
+    background-color: #F2F2F2;
+    color: #0A0226;
   }
 }
 .btn-group .active {
-  background-color: #c2c6cf;
-  color: #1b2b40;
+  background-color: #F2F2F2;
+  color: #0A0226;
 }
 
 .queue {
@@ -366,7 +366,7 @@ body {
   display: block;
   width: 100%;
   height: 200px;
-  background-color: #1b2b40d0;
+  background-color: #0A0226d0;
   border-radius: 15px;
   border-bottom-left-radius: 0px;
   border-bottom-right-radius: 0px;
@@ -384,7 +384,7 @@ body {
   padding: 10px 10px;
   padding-bottom: 5px;
   line-height: 20px;
-  border-bottom: 1px solid #c2c6cf;
+  border-bottom: 1px solid #253B59;
   transition: all 0.5s ease;
 }
 .queue .element .metadata-container {
@@ -398,10 +398,10 @@ body {
 
 .queue .element .remove {
   float: right;
-  color: #d92b3a;
+  color: #F2F2F2;
   margin-top: 0px;
   width: 40px;
-  stroke: #c2c6cf;
+  stroke: #343d79;
 }
 
 @media (hover: hover) {
@@ -409,7 +409,8 @@ body {
     stroke: #d92b3a;
   }
   .queue .element:hover {
-    background-color: #c2c6cf;
+    background-color: #f2f2f2;
+    color: #0A0226;
   }
 }
 .queue .element:first-child {
@@ -420,7 +421,7 @@ body {
   height: 100%;
 }
 .queue .element .title {
-  color: #d92b3a;
+  color: #F2F2F2;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -433,15 +434,15 @@ body {
   text-overflow: ellipsis;
   font-size: 14px;
   margin-right: 0px;
-  color: #c2c6cfb9;
+  color: #F2F2F2c0;
   height: 20px;
 }
 @media (hover: hover) {
   .queue .element:hover .title {
-    color: #d92b3a;
+    color: #0A0226;
   }
   .queue .element:hover .artist {
-    color: #1b2b40;
+    color: #0A0226d0;
   }
 }
 
@@ -485,6 +486,6 @@ a[href="#"] {
   a:hover:not([href="#"]) {
     text-decoration: underline;
     cursor: url;
-    color: #d92b3a;
+    color: #F2F2F2;
   }
 }

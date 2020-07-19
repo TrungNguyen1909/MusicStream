@@ -3,7 +3,7 @@ package MusicStream
 
 // The version and codename of the system.
 var (
-	Version      = "0.6.0"
+	Version      = "0.7.0"
 	BuildVersion string
 	BuildTime    string
 )
