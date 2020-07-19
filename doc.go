@@ -2,6 +2,8 @@
 package MusicStream
 
 // The version and codename of the system.
-const (
-	Version = "0.6.0"
+var (
+	Version      = "0.6.0"
+	BuildVersion string
+	BuildTime    string
 )

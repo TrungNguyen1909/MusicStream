@@ -35,7 +35,7 @@ jobs:
         go get -v -t -d ./...
     - name: Build
       run: |
-        go build -v -o MusicStream cmd/MusicStream/main.go
+        go build -v -ldflags "-w -s -X github.com/TrungNguyen1909/MusicStream.BuildVersion=`git describe --tags` -X github.com/TrungNguyen1909/MusicStream.BuildTime=`date +%FT%T%z`" -o MusicStream cmd/MusicStream/main.go
     - name: Get the version
       id: get_version
       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}

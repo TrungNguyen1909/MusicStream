@@ -115,7 +115,12 @@ func (s *Server) Start(addr string) (err error) {
 			s.processTrack()
 		}
 	}()
-	log.Printf("Starting MusicStream v%s at %s", MusicStream.Version, addr)
+	if len(MusicStream.BuildVersion) > 0 {
+		log.Printf("MusicStream %s: %s", MusicStream.BuildVersion, MusicStream.BuildTime)
+	} else {
+		log.Printf("MusicStream v%s", MusicStream.Version)
+	}
+	log.Printf("Starting up at %s", addr)
 	return s.server.Start(addr)
 }
 
@@ -128,7 +133,12 @@ func (s *Server) StartWithTLS(addr string) (err error) {
 			s.processTrack()
 		}
 	}()
-	log.Printf("Starting MusicStream v%s at %s with TLS", MusicStream.Version, addr)
+	if len(MusicStream.BuildVersion) > 0 {
+		log.Printf("MusicStream %s: %s", MusicStream.BuildVersion, MusicStream.BuildTime)
+	} else {
+		log.Printf("MusicStream v%s", MusicStream.Version)
+	}
+	log.Printf("Starting up at %s with auto TLS", addr)
 	return s.server.StartAutoTLS(addr)
 }
 
