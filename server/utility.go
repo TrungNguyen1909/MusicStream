@@ -42,7 +42,6 @@ func (s *Server) selfPinger() {
 			if err != nil {
 				resp.Body.Close()
 			}
-			log.Println("Ping!")
 		}
 		time.Sleep(1 * time.Minute)
 	}

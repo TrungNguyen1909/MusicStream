@@ -149,7 +149,6 @@ func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI 
 	req.Header.Set("Accept-Encoding", "gzip, deflate")
 	resp, err := client.httpClient.Do(req)
 	if err != nil {
-		log.Println("musixmatch.Client.GetLyrics:", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -164,7 +163,6 @@ func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI 
 	var d mxmResponse
 	err = json.NewDecoder(reader).Decode(&d)
 	if err != nil {
-		log.Println("musixmatch.Client.GetLyrics:", err)
 		return
 	}
 	result = common.LyricsResult{}
@@ -177,7 +175,6 @@ func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI 
 		var subtitleTranslated []common.LyricsLine
 		err = json.Unmarshal(([]byte)(st), &subtitleTranslated)
 		if err != nil {
-			log.Println("musixmatch.Client.GetLyrics:", err)
 			return
 		}
 		syncedLyrics := make([]common.LyricsLine, len(subtitleTranslated))
