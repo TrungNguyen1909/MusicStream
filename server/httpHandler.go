@@ -32,6 +32,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
+	"github.com/pkg/errors"
 )
 
 func (s *Server) audioHandler(c echo.Context) (err error) {
@@ -82,7 +83,7 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 	bufferChannel[0] <- channel
 	bufferChannel[1] <- channel
 	w.Flush()
-	for err != nil {
+	for err == nil {
 		select {
 		case <-notify:
 			return
@@ -115,7 +116,7 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 	defer s.connections.Delete(ws)
 	_ = ws.WriteMessage(websocket.TextMessage, s.getPlaying().EncodeJSON())
 	_ = ws.WriteMessage(websocket.TextMessage, s.getQueue().EncodeJSON())
-	for err != nil {
+	for err == nil {
 		var msg wsMessage
 		var msgbuf []byte
 		_, msgbuf, err = ws.ReadMessage()
@@ -145,6 +146,11 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 				Success:   true,
 			}.EncodeJSON())
 		}
+	}
+	if !websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+		err = nil
+	} else {
+		err = errors.WithStack(err)
 	}
 	return
 }
