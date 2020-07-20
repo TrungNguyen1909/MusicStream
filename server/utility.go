@@ -73,6 +73,7 @@ func (s *Server) inactivityMonitor() {
 			timer.Reset(15 * time.Minute)
 			if isStandby {
 				log.Println("Waking up...")
+				s.streamMux.Unlock()
 				if s.radioTrack != nil {
 					go s.processRadio(s.quitRadio)
 				}
@@ -85,11 +86,10 @@ func (s *Server) inactivityMonitor() {
 			s.activityWg.Add(1)
 			if atomic.LoadInt32(&s.isRadioStreaming) > 0 {
 				s.quitRadio <- 0
-				s.streamMux.Lock()
-				s.streamMux.Unlock()
 			} else {
 				s.skipChannel <- 1
 			}
+			s.streamMux.Lock()
 			pos := int64(s.vorbisEncoder.GranulePos())
 			atomic.StoreInt64(&s.startPos, pos)
 			s.deltaChannel <- pos

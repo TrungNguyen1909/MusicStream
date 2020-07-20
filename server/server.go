@@ -49,7 +49,6 @@ import (
 )
 
 const (
-	chunkDelayMS          = 50
 	opSetClientsTrack     = 1
 	opAllClientsSkip      = 2
 	opClientRequestTrack  = 3
@@ -99,7 +98,6 @@ type Server struct {
 	startTime            time.Time
 	cacheQueue           *queue.Queue
 	streamMux            sync.Mutex
-	encoderWg            sync.WaitGroup
 	minifier             *minify.M
 	activityWg           sync.WaitGroup
 	newListenerC         chan int

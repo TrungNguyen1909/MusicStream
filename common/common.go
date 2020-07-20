@@ -116,7 +116,7 @@ const alphabet string = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789
 //GenerateID generates an unique alphanumberic string
 func GenerateID() (id string) {
 	b := make([]byte, 8)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	for _, v := range b {
 		id += string(alphabet[int(v)%len(alphabet)])
 	}

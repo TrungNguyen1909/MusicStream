@@ -114,12 +114,12 @@ func (s *Server) streamMP3(encodedDuration chan time.Duration) chan *chunk {
 			var pcm []byte
 			if Chunk.buffer != nil {
 				pcm = make([]byte, (1152*4)*(buffer.Len()/(1152*4)))
-				buffer.Read(pcm)
+				_, _ = buffer.Read(pcm)
 			} else {
 				sz := buffer.Len()
 				sz += (1152*4 - sz%(1152*4))
 				pcm = make([]byte, sz)
-				buffer.Read(pcm)
+				_, _ = buffer.Read(pcm)
 			}
 			output := make([]byte, 20000)
 			n := s.mp3Encoder.Encode(output, pcm)
@@ -201,10 +201,8 @@ func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time 
 				}
 				quit = nil
 			case vorbisTime = <-quitVorbis:
-				select {
-				case mp3Time = <-quitMP3:
-					interrupted = true
-				}
+				mp3Time = <-quitMP3
+				interrupted = true
 			}
 		}
 	} else {
@@ -243,7 +241,7 @@ func (s *Server) setListenerCount() {
 func (s *Server) webSocketAnnounce(msg []byte) {
 	s.connections.Range(func(key, value interface{}) bool {
 		ws := value.(*webSocket)
-		ws.WriteMessage(websocket.TextMessage, msg)
+		_ = ws.WriteMessage(websocket.TextMessage, msg)
 		return true
 	})
 }

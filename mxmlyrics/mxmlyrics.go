@@ -189,8 +189,7 @@ func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI 
 		result.SyncedLyrics = syncedLyrics
 	}
 	var originalSyncedLyrics []common.LyricsLine
-	err = json.Unmarshal(([]byte)(sd), &originalSyncedLyrics)
-	err = nil
+	_ = json.Unmarshal(([]byte)(sd), &originalSyncedLyrics)
 	if len(result.SyncedLyrics) == 0 {
 		result.SyncedLyrics = originalSyncedLyrics
 	} else if len(result.SyncedLyrics) == len(originalSyncedLyrics) {

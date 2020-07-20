@@ -195,7 +195,10 @@ func (client *Client) fetchToken() (err error) {
 
 //SearchTrackQuery returns a Spotify track with provided query
 func (client *Client) SearchTrackQuery(query string) (sTrack, sArtist, sAlbum, sISRC, sURI string, err error) {
-	client.fetchToken()
+	err = client.fetchToken()
+	if err != nil {
+		return
+	}
 	reqURL, _ := url.Parse("https://api.spotify.com/v1/search?type=track&decorate_restrictions=false&best_match=false&limit=3&userless=true")
 	queries := reqURL.Query()
 	queries.Add("q", query)

@@ -41,7 +41,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-
+	//lint:ignore SA1019 Deezer uses blowfish, who cares?
 	"golang.org/x/crypto/blowfish"
 	"golang.org/x/text/encoding/charmap"
 )
@@ -282,7 +282,6 @@ type trackDecrypter struct {
 	r           io.ReadCloser
 	BlowfishKey []byte
 	counter     int
-	byteCounter int
 	buffer      bytes.Buffer
 	ended       bool
 }
@@ -472,6 +471,7 @@ func (client *Client) PopulateMetadata(dTrack *Track) (err error) {
 	if len(dTrack.deezerTrack.MD5Origin) <= 0 {
 		if client == nil {
 			err = errors.WithStack(errors.New("nil Deezer Client"))
+			return
 		}
 		tracks := make([]deezerTrack, 1)
 		tracks[0] = dTrack.deezerTrack

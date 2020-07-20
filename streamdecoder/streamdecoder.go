@@ -141,11 +141,10 @@ func NewVorbisDecoder(stream io.ReadCloser) (decoder *VorbisDecoder, err error) 
 
 //OpusDecoder represents a opus decoding stream
 type OpusDecoder struct {
-	s         io.Reader
-	o         *opus.Decoder
-	frameSize int
-	buffer    bytes.Buffer
-	err       error
+	s      io.Reader
+	o      *opus.Decoder
+	buffer bytes.Buffer
+	err    error
 }
 
 func (decoder *OpusDecoder) Read(p []byte) (n int, err error) {
@@ -226,7 +225,7 @@ func (decoder *WebMDecoder) preload() {
 	decoder.initialized = true
 	for pkt := range decoder.reader.Chan {
 		if pkt.TrackNumber == decoder.atrack.TrackNumber {
-			decoder.bw.Write(pkt.Data)
+			_, _ = decoder.bw.Write(pkt.Data)
 		}
 		if pkt.Timecode == webm.BadTC || pkt.Timecode == webm.BadTC*2 {
 			break

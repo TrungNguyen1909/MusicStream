@@ -137,19 +137,13 @@ func (s *Server) getQueue() Response {
 func (s *Server) removeTrack(msg wsMessage) Response {
 	removed := s.playQueue.Remove(func(value interface{}) bool {
 		ele := value.(common.Track)
-		if ele.PlayID() == msg.Query {
-			return true
-		}
-		return false
+		return ele.PlayID() == msg.Query
 	})
 	var removedTrack common.TrackMetadata
 	if removed != nil {
 		removedTrack = s.cacheQueue.Remove(func(value interface{}) bool {
 			ele := value.(common.TrackMetadata)
-			if ele.PlayID == msg.Query {
-				return true
-			}
-			return false
+			return ele.PlayID == msg.Query
 		}).(common.TrackMetadata)
 	}
 	resp := Response{

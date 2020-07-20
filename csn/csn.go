@@ -294,6 +294,6 @@ func (track *Track) Populate() (err error) {
 func NewClient() (*Client, error) {
 	cookiesJar, _ := cookiejar.New(nil)
 	client := &http.Client{Jar: cookiesJar, Timeout: 9 * time.Second}
-	pattern, _ := regexp.Compile("sources: \\[([^\\]]*)\\]")
+	pattern, _ := regexp.Compile(`sources: \[([^\]]*)\]`)
 	return &Client{HTTPClient: client, pattern: pattern}, nil
 }
