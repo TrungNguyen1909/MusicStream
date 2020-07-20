@@ -232,8 +232,12 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 
 //Populate populates the required metadata for downloading the track
 func (track *Track) Populate() (err error) {
-	url := track.Link
-	resp, err := track.client.HTTPClient.Get(url)
+	url, _ := url.Parse("https://chiasenhac.vn")
+	url, err = url.Parse(track.Link)
+	if err != nil {
+		return
+	}
+	resp, err := track.client.HTTPClient.Get(url.String())
 	if err != nil {
 		return
 	}
