@@ -147,7 +147,7 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 			}.EncodeJSON())
 		}
 	}
-	if !websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+	if !websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 		err = nil
 	} else {
 		err = errors.WithStack(err)
