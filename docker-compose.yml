@@ -13,6 +13,5 @@ services:
             - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
             - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
             - RADIO_ENABLED=${RADIO_ENABLED}
-            - CSN_PROXY_URL=${CSN_PROXY_URL}
         ports:
             - 8080:8080
