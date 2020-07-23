@@ -420,7 +420,7 @@ function initWebSocket() {
           artistBox.innerText = "";
           titleBox.innerText = "";
           titleBox.innerText = `Removed`;
-          artistBox.innerText = `${msg.data.track.title} - ${msg.track.artist}`;
+          artistBox.innerText = `${msg.data.track.title} - ${msg.data.track.artist}`;
           clearTimeout(subBoxTimeout);
           showSubBox();
           subBoxTimeout = setTimeout(hideSubBox, 3000);

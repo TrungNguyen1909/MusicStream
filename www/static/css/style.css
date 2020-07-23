@@ -56,7 +56,7 @@ body {
   position: relative;
   height: 90px;
   width: 100%;
-  margin-bottom: 30px;
+  padding-bottom: 70px;
 }
 
 .player .sub {
@@ -389,7 +389,7 @@ body {
 .queue:empty {
   bottom: -100%;
 }
-@media not screen and (min-height: 540px) {
+@media not screen and (min-height: 560px) {
   .queue {
     bottom: -100%;
     visibility: hidden;
