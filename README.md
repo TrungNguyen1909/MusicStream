@@ -23,7 +23,7 @@
 
 ### Installation
 
-- Check [INSTALL.md](./INSTALL.md)
+- Check [INSTALL.md](./docs/INSTALL.md)
 
 ### License 
 
