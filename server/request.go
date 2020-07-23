@@ -22,7 +22,6 @@ import (
 	"errors"
 	"log"
 	"sync/atomic"
-	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 )
@@ -165,13 +164,6 @@ func skip(s *Server, msg wsMessage) Response {
 			Operation: opClientRequestSkip,
 			Success:   false,
 			Reason:    "You can't skip a radio stream.",
-		}
-	}
-	if time.Since(s.startTime) < 5*time.Second {
-		return Response{
-			Operation: opClientRequestSkip,
-			Success:   false,
-			Reason:    "Please wait until first 5 seconds has passed.",
 		}
 	}
 	s.skipChannel <- 0
