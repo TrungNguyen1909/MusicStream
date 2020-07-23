@@ -27,7 +27,7 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/common"
 )
 
-func (s *Server) getPlaying() Response {
+func getPlaying(s *Server, msg wsMessage) Response {
 	return Response{
 		Operation: opSetClientsTrack,
 		Success:   true,
@@ -39,7 +39,7 @@ func (s *Server) getPlaying() Response {
 	}
 }
 
-func (s *Server) getListenersCount() Response {
+func getListenersCount(s *Server, msg wsMessage) Response {
 	return Response{
 		Operation: opSetClientsListeners,
 		Success:   true,
@@ -49,7 +49,7 @@ func (s *Server) getListenersCount() Response {
 	}
 }
 
-func (s *Server) enqueue(msg wsMessage) Response {
+func enqueue(s *Server, msg wsMessage) Response {
 	var err error
 	if len(msg.Query) == 0 {
 		return Response{
@@ -118,7 +118,7 @@ func (s *Server) enqueue(msg wsMessage) Response {
 	}
 }
 
-func (s *Server) getQueue() Response {
+func getQueue(s *Server, msg wsMessage) Response {
 	elements := s.cacheQueue.GetElements()
 	tracks := make([]common.TrackMetadata, len(elements))
 	for i, val := range elements {
@@ -134,7 +134,7 @@ func (s *Server) getQueue() Response {
 	}
 }
 
-func (s *Server) removeTrack(msg wsMessage) Response {
+func removeTrack(s *Server, msg wsMessage) Response {
 	removed := s.playQueue.Remove(func(value interface{}) bool {
 		ele := value.(common.Track)
 		return ele.PlayID() == msg.Query
@@ -159,7 +159,7 @@ func (s *Server) removeTrack(msg wsMessage) Response {
 	return resp
 }
 
-func (s *Server) skip() Response {
+func skip(s *Server, msg wsMessage) Response {
 	if atomic.LoadInt32(&s.isRadioStreaming) == 1 {
 		return Response{
 			Operation: opClientRequestSkip,
@@ -183,6 +183,12 @@ func (s *Server) skip() Response {
 	}).EncodeJSON())
 	return Response{
 		Operation: opClientRequestSkip,
+		Success:   true,
+	}
+}
+func clientKeepAlivePing(s *Server, msg wsMessage) Response {
+	return Response{
+		Operation: opWebSocketKeepAlive,
 		Success:   true,
 	}
 }

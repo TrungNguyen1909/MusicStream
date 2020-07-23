@@ -103,7 +103,32 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 	}
 	return
 }
-
+func (s *Server) processNonce(nonce int) {
+	s.processedNonce[nonce] = struct{}{}
+}
+func (s *Server) checkNonce(nonce int) bool {
+	_, ok := s.processedNonce[nonce]
+	return ok
+}
+func (s *Server) handleMessage(msg *wsMessage) (r []byte) {
+	if msg.Nonce != 0 && s.checkNonce(msg.Nonce) {
+		return nil
+	} else if msg.Nonce != 0 {
+		s.processNonce(msg.Nonce)
+	}
+	if handler, ok := s.messageHandlers[msg.Operation]; ok {
+		resp := handler(s, *msg)
+		resp.Nonce = msg.Nonce
+		return resp.EncodeJSON()
+	} else {
+		return Response{
+			Operation: msg.Operation,
+			Nonce:     msg.Nonce,
+			Success:   false,
+			Reason:    "Invalid opcode",
+		}.EncodeJSON()
+	}
+}
 func (s *Server) wsHandler(c echo.Context) (err error) {
 	_c, err := s.upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
@@ -114,8 +139,8 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 	s.connections.Store(ws, ws)
 	defer ws.Close()
 	defer s.connections.Delete(ws)
-	_ = ws.WriteMessage(websocket.TextMessage, s.getPlaying().EncodeJSON())
-	_ = ws.WriteMessage(websocket.TextMessage, s.getQueue().EncodeJSON())
+	_ = ws.WriteMessage(websocket.TextMessage, getPlaying(s, wsMessage{}).EncodeJSON())
+	_ = ws.WriteMessage(websocket.TextMessage, getQueue(s, wsMessage{}).EncodeJSON())
 	for err == nil {
 		var msg wsMessage
 		var msgbuf []byte
@@ -127,25 +152,7 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 		if err != nil {
 			break
 		}
-		switch msg.Operation {
-		case opSetClientsTrack:
-			err = ws.WriteMessage(websocket.TextMessage, s.getPlaying().EncodeJSON())
-		case opClientRequestTrack:
-			err = ws.WriteMessage(websocket.TextMessage, s.enqueue(msg).EncodeJSON())
-		case opClientRequestSkip:
-			err = ws.WriteMessage(websocket.TextMessage, s.skip().EncodeJSON())
-		case opSetClientsListeners:
-			err = ws.WriteMessage(websocket.TextMessage, s.getListenersCount().EncodeJSON())
-		case opClientRemoveTrack:
-			err = ws.WriteMessage(websocket.TextMessage, s.removeTrack(msg).EncodeJSON())
-		case opClientRequestQueue:
-			err = ws.WriteMessage(websocket.TextMessage, s.getQueue().EncodeJSON())
-		case opWebSocketKeepAlive:
-			err = ws.WriteMessage(websocket.TextMessage, Response{
-				Operation: opWebSocketKeepAlive,
-				Success:   true,
-			}.EncodeJSON())
-		}
+		err = ws.WriteMessage(websocket.TextMessage, s.handleMessage(&msg))
 	}
 	if !websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNormalClosure) {
 		err = nil
@@ -160,7 +167,7 @@ func (s *Server) playingHandler(c echo.Context) (err error) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	_, _ = w.Write(s.getPlaying().EncodeJSON())
+	_, _ = w.Write(s.handleMessage(&wsMessage{Operation: opSetClientsTrack}))
 	return
 }
 
@@ -169,7 +176,7 @@ func (s *Server) listenersHandler(c echo.Context) (err error) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	_, _ = w.Write(s.getListenersCount().EncodeJSON())
+	_, _ = w.Write(s.handleMessage(&wsMessage{Operation: opSetClientsListeners}))
 	return
 }
 
@@ -188,7 +195,7 @@ func (s *Server) enqueueHandler(c echo.Context) (err error) {
 			Reason:    "Invalid Query!",
 		})
 	}
-	_, _ = w.Write(s.enqueue(msg).EncodeJSON())
+	_, _ = w.Write(s.handleMessage(&msg))
 	return
 }
 func (s *Server) skipHandler(c echo.Context) (err error) {
@@ -196,7 +203,7 @@ func (s *Server) skipHandler(c echo.Context) (err error) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	_, _ = w.Write(s.skip().EncodeJSON())
+	_, _ = w.Write(s.handleMessage(&wsMessage{Operation: opClientRequestSkip}))
 	return
 }
 func (s *Server) queueHandler(c echo.Context) (err error) {
@@ -204,7 +211,7 @@ func (s *Server) queueHandler(c echo.Context) (err error) {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
-	_, _ = w.Write(s.getQueue().EncodeJSON())
+	_, _ = w.Write(s.handleMessage(&wsMessage{Operation: opClientRequestQueue}))
 	return
 }
 func (s *Server) removeTrackHandler(c echo.Context) (err error) {
@@ -222,7 +229,7 @@ func (s *Server) removeTrackHandler(c echo.Context) (err error) {
 			Reason:    "Bad Request",
 		})
 	}
-	_, _ = w.Write(s.removeTrack(msg).EncodeJSON())
+	_, _ = w.Write(s.handleMessage(&msg))
 	return
 }
 

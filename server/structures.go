@@ -46,6 +46,7 @@ type wsMessage struct {
 	Operation int    `json:"op"`
 	Query     string `json:"query"`
 	Selector  int    `json:"selector"`
+	Nonce     int    `json:"nonce"`
 }
 
 type webSocket struct {
@@ -76,6 +77,7 @@ type Response struct {
 	Success   bool                   `json:"success"`
 	Reason    string                 `json:"reason"`
 	Data      map[string]interface{} `json:"data"`
+	Nonce     int                    `json:"nonce"`
 }
 
 //EncodeJSON encodes Response to JSON
@@ -83,3 +85,6 @@ func (r Response) EncodeJSON() []byte {
 	encoded, _ := json.Marshal(r)
 	return encoded
 }
+
+//RequestHandler is a function that handles a request from user.
+type RequestHandler func(s *Server, msg wsMessage) Response

@@ -102,6 +102,18 @@ type Server struct {
 	activityWg           sync.WaitGroup
 	newListenerC         chan int
 	server               *echo.Echo
+	messageHandlers      map[int]RequestHandler
+	processedNonce       map[int]struct{}
+}
+
+//AddMessageHandler registers a new message handler for the specified opcode
+func (s *Server) AddMessageHandler(opcode int, handler RequestHandler) {
+	s.messageHandlers[opcode] = handler
+}
+
+//RemoveMessageHandler unregisters the specified opcode
+func (s *Server) RemoveMessageHandler(opcode int) {
+	delete(s.messageHandlers, opcode)
 }
 
 //Start starts the server, listening at addr
@@ -230,6 +242,16 @@ func NewServer(config Config) *Server {
 	})
 	s.server.HTTPErrorHandler = s.HandleError
 	s.server.HideBanner = true
+	s.processedNonce = make(map[int]struct{})
+	s.messageHandlers = make(map[int]RequestHandler)
+	s.AddMessageHandler(opSetClientsTrack, getPlaying)
+	s.AddMessageHandler(opClientRequestTrack, enqueue)
+	s.AddMessageHandler(opClientRequestSkip, skip)
+	s.AddMessageHandler(opSetClientsListeners, getListenersCount)
+	s.AddMessageHandler(opClientRemoveTrack, removeTrack)
+	s.AddMessageHandler(opClientRequestQueue, getQueue)
+	s.AddMessageHandler(opWebSocketKeepAlive, clientKeepAlivePing)
+	s.AddMessageHandler(opClientRemoveTrack, removeTrack)
 	s.server.POST("/enqueue", s.enqueueHandler)
 	s.server.GET("/listeners", s.listenersHandler)
 	s.server.GET("/audio", s.audioHandler)
