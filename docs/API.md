@@ -40,29 +40,29 @@ const (
 
 ```go
 type TrackMetadata struct {
-    //Title is the title/name of the track
-    Title      string       `json:"title"`
-    //Source is an integer from TrackSource, the source of the track
-    Source     int          `json:"source"`
-    //Duration is he duration of the track, zero if unknown
-    Duration   int          `json:"duration"`
-    //Artist is the main artist/channel(Youtube) of the track
-    Artist     string       `json:"artist"`
-    //Artists is a list of artists/contributors/channel(Youtube) of the track, comma-separated
-    Artists    string       `json:"artists"`
-    //Album is the album of the track, if known
-    Album      string       `json:"album"`
-    //CoverURL contains an URL to the cover art/thumbnail of the track, if known
-    CoverURL   string       `json:"cover"`
-    //Lyrics contains information about the track lyrics, if known
-    Lyrics     LyricsResult `json:"lyrics"`
-    //PlayID is an unique ID for every track
-    PlayID     string       `json:"playId"`
-    //SpotifyURI is the Spotify URI that track in Spotify, if known
-    SpotifyURI string       `json:"spotifyURI"`
-    //ID is the ID of the track from the source
-    ID         string       `json:"id"`
-    //Href is the link to the track
+	//Title is the title/name of the track
+	Title      string       `json:"title"`
+	//Source is an integer from TrackSource, the source of the track
+	Source     int          `json:"source"`
+	//Duration is he duration of the track, zero if unknown
+	Duration   int          `json:"duration"`
+	//Artist is the main artist/channel(Youtube) of the track
+	Artist     string       `json:"artist"`
+	//Artists is a list of artists/contributors/channel(Youtube) of the track, comma-separated
+	Artists    string       `json:"artists"`
+	//Album is the album of the track, if known
+	Album      string       `json:"album"`
+	//CoverURL contains an URL to the cover art/thumbnail of the track, if known
+	CoverURL   string       `json:"cover"`
+	//Lyrics contains information about the track lyrics, if known
+	Lyrics     LyricsResult `json:"lyrics"`
+	//PlayID is an unique ID for every track
+	PlayID     string       `json:"playId"`
+	//SpotifyURI is the Spotify URI that track in Spotify, if known
+	SpotifyURI string       `json:"spotifyURI"`
+	//ID is the ID of the track from the source
+	ID         string       `json:"id"`
+	//Href is the link to the track
 	Href       string       `json:"href"`
 }
 ```
@@ -120,13 +120,13 @@ The server will send a message, structured as below as an JSON-encoded dictionar
 
 ```go
 type Response struct {
-    //Operation is the message's opcode. Dictionary key is "op"
-    Operation int                    `json:"op"`
-    //Success specifies whether the request succeeded or not, it will always be true in case of a notification
-    Success   bool                   `json:"success"`
-    //Reason specifies the reason for the value of Success
-    Reason    string                 `json:"reason"`
-    //Data is a dictionary, containing any data associated with the message
+	//Operation is the message's opcode. Dictionary key is "op"
+	Operation int                    `json:"op"`
+	//Success specifies whether the request succeeded or not, it will always be true in case of a notification
+	Success   bool                   `json:"success"`
+	//Reason specifies the reason for the value of Success
+	Reason    string                 `json:"reason"`
+	//Data is a dictionary, containing any data associated with the message
 	Data      map[string]interface{} `json:"data"`
 }
 ```
