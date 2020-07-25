@@ -470,6 +470,10 @@ body {
   --indent-percent: 0%;
   animation: 5s ease-in-out 1s infinite alternate bounce;
 }
+.marquee3 {
+  --indent-percent: 0%;
+  animation: 5s ease-in-out 1s infinite alternate bounce;
+}
 @-webkit-keyframes bounce {
   0% {
     text-indent: 0%;

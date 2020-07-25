@@ -153,27 +153,42 @@ function setTrack(track) {
   ctrack = track;
   artistBox = document.getElementById("artist");
   titleBox = document.getElementById("name");
-  titleBox.classList.remove("marquee2");
-  artistBox.classList.remove("marquee2");
+  titleBox.classList.remove("marquee3");
+  artistBox.classList.remove("marquee3");
   titleBox.style.setProperty("--indent-percent", "0%");
   artistBox.style.setProperty("--indent-percent", "0%");
+  titleBox.style.setProperty("animation-duration", "0s");
+  artistBox.style.setProperty("animation-duration", "0s");
   titleBox.style.textIndent = "0%";
   artistBox.style.textIndent = "0%";
   artistBox.innerText = ctrack.artists;
   titleBox.innerText = ctrack.title;
+  let titleScrollDuration = (titleBox.scrollWidth - titleBox.offsetWidth) / 35;
+  let artistScrollDuration =
+    (artistBox.scrollWidth - artistBox.offsetWidth) / 28;
   if (isElementOverflowing(titleBox)) {
     titleBox.style.setProperty(
       "--indent-percent",
       -(titleBox.scrollWidth / titleBox.offsetWidth) * 100 + 100 + "%"
     );
-    titleBox.classList.add("marquee2");
+    titleBox.classList.add("marquee3");
+    titleBox.style.setProperty("animation-duration", titleScrollDuration + "s");
   }
   if (isElementOverflowing(artistBox)) {
     artistBox.style.setProperty(
       "--indent-percent",
       -(artistBox.scrollWidth / artistBox.offsetWidth) * 100 + 100 + "%"
     );
-    artistBox.classList.add("marquee2");
+    artistBox.classList.add("marquee3");
+    artistBox.style.setProperty(
+      "animation-duration",
+      artistScrollDuration + "s"
+    );
+  }
+  if (isElementOverflowing(titleBox) && isElementOverflowing(artistBox)) {
+    let duration = Math.max(titleScrollDuration, artistScrollDuration);
+    titleBox.style.setProperty("animation-duration", duration + "s");
+    artistBox.style.setProperty("animation-duration", duration + "s");
   }
   let aTag = document.getElementById("name-ref");
   aTag.href = "#";
