@@ -215,22 +215,27 @@ type pageTrackData struct {
 	DiskNumber         string `json:"DISK_NUMBER"`
 	Duration           string `json:"DURATION"`
 	ExplicitLyrics     string `json:"EXPLICIT_LYRICS"`
-	Filesize           string `json:"FILESIZE"`
-	FileSizeAAC64      string `json:"FILESIZE_AAC_64"`
-	FilesizeFlac       string `json:"FILESIZE_FLAC"`
-	FilesizeMP3_128    string `json:"FILESIZE_MP3_128"`
-	FilesizeMP3_256    string `json:"FILESIZE_MP3_256"`
-	FilesizeMP3_320    string `json:"FILESIZE_MP3_320"`
-	FilesizeMP3_64     string `json:"FILESIZE_MP3_64"`
-	FilesizeMP4RA1     string `json:"FILESIZE_MP4_RA1"`
-	FilesizeMP4RA2     string `json:"FILESIZE_MP4_RA2"`
-	FilesizeMP4RA3     string `json:"FILESIZE_MP4_RA3"`
-	Gain               string `json:"GAIN"`
-	GenreID            string `json:"GENRE_ID"`
-	Isrc               string `json:"ISRC"`
-	LyricsID           int64  `json:"LYRICS_ID"`
-	MD5Origin          string `json:"MD5_ORIGIN"`
-	Media              []struct {
+	Fallback           *struct {
+		MD5Origin    string `json:"MD5_ORIGIN"`
+		MediaVersion string `json:"MEDIA_VERSION"`
+		SngID        string `json:"SNG_ID"`
+	} `json:"FALLBACK"`
+	Filesize        string `json:"FILESIZE"`
+	FileSizeAAC64   string `json:"FILESIZE_AAC_64"`
+	FilesizeFlac    string `json:"FILESIZE_FLAC"`
+	FilesizeMP3_128 string `json:"FILESIZE_MP3_128"`
+	FilesizeMP3_256 string `json:"FILESIZE_MP3_256"`
+	FilesizeMP3_320 string `json:"FILESIZE_MP3_320"`
+	FilesizeMP3_64  string `json:"FILESIZE_MP3_64"`
+	FilesizeMP4RA1  string `json:"FILESIZE_MP4_RA1"`
+	FilesizeMP4RA2  string `json:"FILESIZE_MP4_RA2"`
+	FilesizeMP4RA3  string `json:"FILESIZE_MP4_RA3"`
+	Gain            string `json:"GAIN"`
+	GenreID         string `json:"GENRE_ID"`
+	Isrc            string `json:"ISRC"`
+	LyricsID        int64  `json:"LYRICS_ID"`
+	MD5Origin       string `json:"MD5_ORIGIN"`
+	Media           []struct {
 		Href string `json:"HREF"`
 		Type string `json:"TYPE"`
 	} `json:"MEDIA"`
@@ -558,6 +563,16 @@ func (client *Client) populateTracks(tracks []deezerTrack) (err error) {
 	for i := range tracks {
 		tracks[i].MD5Origin = resp.Results.Data[i].MD5Origin
 		tracks[i].MediaVersion = resp.Results.Data[i].MediaVersion
+		if resp.Results.Data[i].Fallback != nil {
+			var err error
+			ctrack, err := client.GetTrackByID(resp.Results.Data[i].Fallback.SngID)
+			if err != nil {
+				tracks[i].MD5Origin = resp.Results.Data[i].MD5Origin
+				tracks[i].MediaVersion = resp.Results.Data[i].MediaVersion
+				continue
+			}
+			tracks[i] = ctrack.(*Track).deezerTrack
+		}
 	}
 	return
 }
