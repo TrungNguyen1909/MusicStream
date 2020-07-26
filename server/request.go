@@ -166,6 +166,13 @@ func skip(s *Server, msg wsMessage) Response {
 			Reason:    "You can't skip a radio stream.",
 		}
 	}
+	if s.currentTrack == s.defaultTrack {
+		return Response{
+			Operation: opClientRequestSkip,
+			Success:   false,
+			Reason:    "Please enqueue some songs instead of asking us to skip idle.",
+		}
+	}
 	s.skipChannel <- 0
 	log.Println("Current song skipped!")
 	s.webSocketAnnounce((&Response{
