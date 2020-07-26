@@ -128,6 +128,8 @@ type Response struct {
 	Reason    string                 `json:"reason"`
 	//Data is a dictionary, containing any data associated with the message
 	Data      map[string]interface{} `json:"data"`
+	//Nonce is a integer, unique to every requests
+	Nonce     int                    `json:"nonce"`
 }
 ```
 
