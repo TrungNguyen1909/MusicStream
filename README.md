@@ -10,7 +10,9 @@
 
 - Synchorized music streaming from multiple sources across clients
 
-- Time-synced lyrics with English translation on Chromium-based browsers
+- Time-synced lyrics with English translation
+  - Chromium-based browsers
+  - Other browsers: experimental
 
 #### Supported music sources
   - Deezer

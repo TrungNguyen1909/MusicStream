@@ -106,6 +106,7 @@ opTrackEnqueued       = 6
 opClientRequestQueue  = 7
 opWebSocketKeepAlive  = 8
 opClientRemoveTrack   = 9
+opClientAudioStartPos = 10
 ```
 
 ### Requests
@@ -205,3 +206,13 @@ type trackRemoveRequestMessage struct {
 - The key `query` should contains the `playID` of the track that should be removed from the queue.
 - The server will respond in a message which contains the same `op` and `nonce` describes whether the removal is successful or not.
 - The server will send this message to all clients in case of a successful removal. The track being removed is in the key `track` in the `data` dictionary. The `playID` field should be used to distinguish between tracks. The key `silent` will be `true` if the removal was initiated by this client, in this case, the UI should displayed to its user that the track has been removed successfully. Otherwise, the UI may remove the track in discretion.
+
+### opClientAudioStartPos (Notification)
+- Opcode number: 10
+- Uses to show synced lyrics.
+- The key `startPos` should contains the number of the first frame sent to the audio stream that contains the same `sessionId` cookie string, divide by `48000.0` to get the time in second.
+- `startPos` should be added to your audio player's current time only if the player does NOT parse the position data of the Vorbis stream.
+	- Among browsers, only Chromium-based browsers seem to parse the position data
+
+- The `sessionId` cookie should be fetch by perform any request/endpoint to the server.
+- The notification will be sent when the websocket connection is established or when an audio stream with the same `sessionId` starts to send audio data.
