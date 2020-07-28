@@ -45,9 +45,6 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("pragma", "no-cache")
 	w.Header().Set("status", "200")
-	if cookie, err := c.Cookie(cookieSessionID); err != nil || len(cookie.Value) <= 0 {
-		log.Println("Session cookie not found!")
-	}
 	channel := make(chan *chunk, 500)
 	var bufferChannel []chan chan *chunk
 	var chanidx int
