@@ -21,7 +21,6 @@ package server
 import (
 	"encoding/json"
 	"sync"
-	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -37,10 +36,10 @@ type Config struct {
 	RadioEnabled          bool
 }
 type chunk struct {
-	buffer      []byte
-	encoderTime time.Duration
-	channel     int
-	chunkID     int64
+	buffer     []byte
+	encoderPos int64
+	channel    int
+	chunkID    int64
 }
 type wsMessage struct {
 	Operation int    `json:"op"`
@@ -52,6 +51,11 @@ type wsMessage struct {
 type webSocket struct {
 	conn *websocket.Conn
 	mux  *sync.Mutex
+}
+
+type authenticatedContext struct {
+	WS       *webSocket
+	StartPos int64
 }
 
 func (socket *webSocket) WriteMessage(messageType int, data []byte) error {

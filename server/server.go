@@ -58,6 +58,12 @@ const (
 	opClientRequestQueue  = 7
 	opWebSocketKeepAlive  = 8
 	opClientRemoveTrack   = 9
+	opClientAudioStartPos = 10
+)
+
+const (
+	cookieSessionID = "sessionId"
+	defaultStartPos = 0
 )
 
 //Server is a MusicStream server
@@ -104,6 +110,7 @@ type Server struct {
 	server               *echo.Echo
 	messageHandlers      map[int]RequestHandler
 	processedNonce       map[int]struct{}
+	authCtxs             map[string]*authenticatedContext
 }
 
 //AddMessageHandler registers a new message handler for the specified opcode
@@ -200,6 +207,7 @@ func NewServer(config Config) *Server {
 		log.Println("[MXM] Failed to initalized source:", err)
 		err = nil
 	}
+	s.authCtxs = make(map[string]*authenticatedContext)
 	s.cacheQueue = queue.NewQueue()
 	s.playQueue = queue.NewQueue()
 	s.playQueue.EnqueueCallback = s.enqueueCallback
@@ -223,6 +231,21 @@ func NewServer(config Config) *Server {
 		return func(c echo.Context) error {
 			c.Response().Header().Set("Access-Control-Allow-Origin", "*")
 			c.Response().Header().Set("Cache-Control", "no-cache")
+			if _, err := c.Cookie(cookieSessionID); err != nil {
+				var sid string
+				for {
+					sid = common.GenerateID()
+					_, exists := s.authCtxs[sid]
+					if !exists {
+						break
+					}
+				}
+				session := &http.Cookie{
+					Name:  cookieSessionID,
+					Value: common.GenerateID(),
+				}
+				c.SetCookie(session)
+			}
 			return next(c)
 		}
 	})

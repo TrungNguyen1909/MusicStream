@@ -45,6 +45,9 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("pragma", "no-cache")
 	w.Header().Set("status", "200")
+	if cookie, err := c.Cookie(cookieSessionID); err != nil || len(cookie.Value) <= 0 {
+		log.Println("Session cookie not found!")
+	}
 	channel := make(chan *chunk, 500)
 	var bufferChannel []chan chan *chunk
 	var chanidx int
@@ -93,6 +96,23 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 				bufferChannel[chanidx] <- channel
 			} else {
 				firstChunk = false
+				if cookie, err := c.Cookie(cookieSessionID); err == nil && len(cookie.Value) > 0 {
+					if ctx, ok := s.authCtxs[cookie.Value]; ok {
+						if ctx.WS != nil {
+							ctx.WS.WriteMessage(websocket.TextMessage, Response{
+								Operation: opClientAudioStartPos,
+								Success:   true,
+								Data: map[string]interface{}{
+									"startPos": Chunk.encoderPos,
+								},
+							}.EncodeJSON())
+						}
+					} else {
+						s.authCtxs[cookie.Value] = newAuthenticatedContext()
+					}
+					s.authCtxs[cookie.Value].StartPos = Chunk.encoderPos
+					defer func(ctx *authenticatedContext) { ctx.StartPos = defaultStartPos }(s.authCtxs[cookie.Value])
+				}
 			}
 			if chunkID != -1 && chunkID+1 != Chunk.chunkID {
 				log.Println("[", r.URL.Path, "]", "[WARN] chunks from ", chunkID+1, " to ", Chunk.chunkID-1, " have been lost.")
@@ -141,6 +161,21 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 	defer s.connections.Delete(ws)
 	_ = ws.WriteMessage(websocket.TextMessage, getPlaying(s, wsMessage{}).EncodeJSON())
 	_ = ws.WriteMessage(websocket.TextMessage, getQueue(s, wsMessage{}).EncodeJSON())
+	if cookie, err := c.Cookie(cookieSessionID); err == nil && len(cookie.Value) > 0 {
+		if ctx, ok := s.authCtxs[cookie.Value]; !ok {
+			s.authCtxs[cookie.Value] = newAuthenticatedContext()
+		} else {
+			ws.WriteMessage(websocket.TextMessage, Response{
+				Operation: opClientAudioStartPos,
+				Success:   true,
+				Data: map[string]interface{}{
+					"startPos": ctx.StartPos,
+				},
+			}.EncodeJSON())
+		}
+		s.authCtxs[cookie.Value].WS = ws
+		defer func() { s.authCtxs[cookie.Value].WS = nil }()
+	}
 	for err == nil {
 		var msg wsMessage
 		var msgbuf []byte

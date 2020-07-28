@@ -40,7 +40,7 @@ func (s *Server) pushSilentFrames() {
 	}
 }
 func (s *Server) endCurrentStream() {
-	s.bufferingChannel <- &chunk{buffer: nil, encoderTime: 0}
+	s.bufferingChannel <- &chunk{buffer: nil}
 }
 func (s *Server) streamVorbis(encodedDuration chan time.Duration) chan *chunk {
 	var encodedTime time.Duration
@@ -65,6 +65,7 @@ func (s *Server) streamVorbis(encodedDuration chan time.Duration) chan *chunk {
 				return
 			}
 			output := make([]byte, 20000)
+			pos := s.vorbisEncoder.GranulePos()
 			n := s.vorbisEncoder.Encode(output, Chunk.buffer)
 			output = output[:n]
 			encodedTime += (time.Duration)(len(Chunk.buffer)/4/48) * time.Millisecond
@@ -73,6 +74,7 @@ func (s *Server) streamVorbis(encodedDuration chan time.Duration) chan *chunk {
 				Chunk.buffer = output
 				Chunk.channel = ((s.currentVorbisChannel + 1) % 2)
 				Chunk.chunkID = atomic.AddInt64(s.vorbisChunkID, 1)
+				Chunk.encoderPos = pos
 				sent := int64(0)
 				for len(s.vorbisChannel[s.currentVorbisChannel]) > 0 || sent < atomic.LoadInt64(s.vorbisSubscribers) {
 					c := <-s.vorbisChannel[s.currentVorbisChannel]
@@ -122,6 +124,7 @@ func (s *Server) streamMP3(encodedDuration chan time.Duration) chan *chunk {
 				_, _ = buffer.Read(pcm)
 			}
 			output := make([]byte, 20000)
+			pos := s.mp3Encoder.GranulePos()
 			n := s.mp3Encoder.Encode(output, pcm)
 			output = output[:n]
 			encodedTime += (time.Duration)(len(pcm)/4/48) * time.Millisecond
@@ -130,6 +133,7 @@ func (s *Server) streamMP3(encodedDuration chan time.Duration) chan *chunk {
 				Chunk.buffer = output
 				Chunk.channel = ((s.currentMP3Channel + 1) % 2)
 				Chunk.chunkID = atomic.AddInt64(s.mp3ChunkID, 1)
+				Chunk.encoderPos = pos
 				sent := int64(0)
 				for len(s.mp3Channel[s.currentMP3Channel]) > 0 || sent < atomic.LoadInt64(s.mp3Subscribers) {
 					c := <-s.mp3Channel[s.currentMP3Channel]

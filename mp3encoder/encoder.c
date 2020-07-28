@@ -58,8 +58,8 @@ static Encoder *encoder_start(int sample_rate, long bitrate)
 	state->gfp = lame_init();
 	lame_set_in_samplerate(state->gfp, sample_rate);
 	lame_set_error_protection(state->gfp, 1);
-	lame_set_VBR(state->gfp, vbr_abr);		
- 	lame_set_VBR_mean_bitrate_kbps(state->gfp, bitrate / 1000);
+	lame_set_VBR(state->gfp, vbr_abr);
+	lame_set_VBR_mean_bitrate_kbps(state->gfp, bitrate / 1000);
 	lame_set_brate(state->gfp, bitrate);
 	if (lame_init_params(state->gfp) != 0)
 	{
@@ -81,6 +81,7 @@ static long encode(Encoder *state, char *outputSlice, char *inputSlice)
 	{
 		return 0;
 	}
+	state->granulepos += data_size / 4;
 	long ret = lame_encode_buffer_interleaved(state->gfp, (short *)pcm, data_size / 4, (unsigned char *)out, out_size);
 	return ret;
 }

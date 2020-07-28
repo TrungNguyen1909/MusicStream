@@ -22,6 +22,7 @@ var wsInterval = null;
 var lyricsInterval = null;
 var subBoxTimeout = null;
 var delta = 0;
+var audioStartPos = 0;
 var isSkipped = false;
 var removedTracks = [];
 const opSetClientsTrack = 1;
@@ -33,6 +34,7 @@ const opTrackEnqueued = 6;
 const opClientRequestQueue = 7;
 const opWebSocketKeepAlive = 8;
 const opClientRemoveTrack = 9;
+const opClientAudioStartPos = 10;
 class musicPlayer {
   constructor() {
     this.play = this.play.bind(this);
@@ -278,7 +280,7 @@ function initWebSocket() {
     switch (msg.op) {
       case opSetClientsTrack:
         delta = msg.data.pos / 48000.0 + 1.584;
-        diff = delta - player.currentTime;
+        diff = delta - (player.currentTime + window.audioStartPos);
         try {
           if (
             isSkipped ||
@@ -441,6 +443,11 @@ function initWebSocket() {
           subBoxTimeout = setTimeout(hideSubBox, 3000);
         }
         break;
+      case opClientAudioStartPos:
+        if (!window.chrome) {
+          audioStartPos = msg.data.startPos / 48000.0;
+        }
+        break;
       default:
         break;
     }
@@ -491,7 +498,6 @@ window.onload = function () {
 function lyricsControl() {
   clearInterval(lyricsInterval);
   hideLyricsBox();
-  if (chooseSrc() == "/fallback") return;
   var player = document.getElementById("audio-player");
   var lyricsBox = document.getElementById("lyrics");
   let originalBox = lyricsBox.getElementsByClassName("original")[0];
@@ -514,7 +520,7 @@ function lyricsControl() {
     {
       while (
         ctrack.lyrics.lrc[idx].time.total + window.delta <=
-        player.currentTime
+        player.currentTime + window.audioStartPos
       ) {
         idx++;
         lyricsChanged = true;

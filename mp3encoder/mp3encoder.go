@@ -48,8 +48,8 @@ func (encoder *Encoder) EndStream(out []byte) int {
 	return int(C.encoder_finish((*C.struct_tEncoderState)(encoder.encoder), (*C.char)(unsafe.Pointer(&out))))
 }
 
-func (encoder *Encoder) GranulePos() int {
+func (encoder *Encoder) GranulePos() int64 {
 	encoder.mux.Lock()
 	defer encoder.mux.Unlock()
-	return int((*C.struct_tEncoderState)(encoder.encoder).granulepos)
+	return int64((*C.struct_tEncoderState)(encoder.encoder).granulepos)
 }
