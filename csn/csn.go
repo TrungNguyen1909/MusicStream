@@ -220,9 +220,15 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 	}
 	result := results[0]
 	tracks = make([]common.Track, len(result.Music.Data))
+	baseurl, _ := url.Parse("https://chiasenhac.vn")
 	for i := range result.Music.Data {
 		result.Music.Data[i].Artists = strings.Split(result.Music.Data[i].Artist, "; ")
 		result.Music.Data[i].Artist = result.Music.Data[i].Artists[0]
+		url, err := baseurl.Parse(result.Music.Data[i].Link)
+		if err != nil {
+			continue
+		}
+		result.Music.Data[i].Link = url.String()
 	}
 	for i, v := range result.Music.Data {
 		tracks[i] = &Track{csnTrack: v, playID: common.GenerateID(), client: client}
@@ -237,6 +243,7 @@ func (track *Track) Populate() (err error) {
 	if err != nil {
 		return
 	}
+	track.Link = url.String()
 	resp, err := track.client.HTTPClient.Get(url.String())
 	if err != nil {
 		return
