@@ -155,7 +155,7 @@ func (track *Track) Stream() (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	stream, err = streamdecoder.NewMP3Decoder(stream)
+	stream, err = streamdecoder.NewVorbisDecoder(stream)
 	if err != nil {
 		return nil, err
 	}
