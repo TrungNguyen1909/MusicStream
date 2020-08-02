@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
+	"github.com/TrungNguyen1909/MusicStream/radio"
 )
 
 func (s *Server) selfPinger() {
@@ -82,7 +83,7 @@ func (s *Server) inactivityMonitor() {
 			log.Println("Inactivity. Standby...")
 			isStandby = true
 			s.activityWg.Add(1)
-			if atomic.LoadInt32(&s.isRadioStreaming) > 0 {
+			if _, ok := s.currentTrack.(*radio.Track); ok {
 				s.quitRadio <- 0
 			} else {
 				s.skipChannel <- 1

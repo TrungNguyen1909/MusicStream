@@ -55,6 +55,12 @@ spec:
                     name: musicstream
                     key: RADIO_ENABLED
                     optional: true
+            - name: WWW
+              valueFrom:
+                  secretKeyRef:
+                    name: musicstream
+                    key: WWW
+                    optional: true
           resources:
             requests:
               cpu: "1"

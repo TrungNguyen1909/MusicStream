@@ -24,6 +24,7 @@ import (
 	"sync/atomic"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
+	"github.com/TrungNguyen1909/MusicStream/radio"
 )
 
 func getPlaying(s *Server, msg wsMessage) Response {
@@ -31,7 +32,7 @@ func getPlaying(s *Server, msg wsMessage) Response {
 		Operation: opSetClientsTrack,
 		Success:   true,
 		Data: map[string]interface{}{
-			"track":     s.currentTrackMeta,
+			"track":     s.currentTrackMeta.Load().(common.TrackMetadata),
 			"pos":       atomic.LoadInt64(&s.startPos),
 			"listeners": atomic.LoadInt32(&s.listenersCount),
 		},
@@ -159,14 +160,14 @@ func removeTrack(s *Server, msg wsMessage) Response {
 }
 
 func skip(s *Server, msg wsMessage) Response {
-	if atomic.LoadInt32(&s.isRadioStreaming) == 1 {
+	if _, ok := s.currentTrack.(*radio.Track); ok {
 		return Response{
 			Operation: opClientRequestSkip,
 			Success:   false,
 			Reason:    "Please enqueue",
 		}
 	}
-	if s.currentTrack == s.defaultTrack {
+	if _, ok := s.currentTrack.(*common.DefaultTrack); ok {
 		return Response{
 			Operation: opClientRequestSkip,
 			Success:   false,

@@ -16,9 +16,16 @@ jobs:
       with:
         go-version: 1.14
       id: go
+    - name: Set up Node 13
+      uses: actions/setup-go@v1
+      with:
+        node-version: 13
+      id: node
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
+      with:
+        submodules: recursive
     - name: Set GOPATH
         # temporary fix
         # see https://github.com/actions/setup-go/issues/14
@@ -27,15 +34,19 @@ jobs:
           echo "##[add-path]$(dirname $GITHUB_WORKSPACE)/bin"
           mkdir -p "$(dirname $GITHUB_WORKSPACE)/bin"
       shell: bash
-    - name: Get dependencies
+    - name: Get backend dependencies
       run: |
         sudo rm -f /etc/apt/sources.list.d/dotnetdev.list /etc/apt/sources.list.d/microsoft-prod.list
         sudo apt-get update
         xargs sudo apt-get install < Aptfile
-        go get -v -t -d ./...
+        go mod download
     - name: Build
       run: |
         go build -v -ldflags "-w -s -X github.com/TrungNguyen1909/MusicStream.BuildVersion=`git describe --tags` -X github.com/TrungNguyen1909/MusicStream.BuildTime=`date +%FT%T%z`" -o MusicStream cmd/MusicStream/main.go
+    - name: Build frontend dependencies
+      run: |
+        cd frontend
+        yarn && yarn --prod --frozen-lockfile build 
     - name: Get the version
       id: get_version
       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
@@ -53,7 +64,7 @@ jobs:
         mkdir $FRONTEND_DIST
         cp MusicStream $BACKEND_DIST
         cp LICENSE $BACKEND_DIST
-        cp -R www $FRONTEND_DIST
+        cp -R frontend/dist $FRONTEND_DIST
         cp LICENSE $FRONTEND_DIST
     - name: Upload artifact (backend)
       uses: actions/upload-artifact@v1.0.0

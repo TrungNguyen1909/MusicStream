@@ -34,5 +34,7 @@
 
 ### License 
 
-  This work is licensed under a [GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.html).
+  This work(MusicStream) is licensed under a [GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.html).
+
+  The frontend submodule([ms-kiwi](https://github.com/natsukagami/ms-kiwi)) is licensed to [@natsukagami](https://github.com/natsukagami) under a [GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.html).
 

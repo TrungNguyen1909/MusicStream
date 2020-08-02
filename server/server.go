@@ -21,9 +21,8 @@ package server
 import (
 	"log"
 	"net/http"
-	"regexp"
-	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream"
@@ -39,13 +38,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/tdewolff/minify"
-	"github.com/tdewolff/minify/css"
-	"github.com/tdewolff/minify/html"
-	"github.com/tdewolff/minify/js"
-	mJSON "github.com/tdewolff/minify/json"
-	"github.com/tdewolff/minify/svg"
-	"github.com/tdewolff/minify/xml"
 )
 
 const (
@@ -71,7 +63,7 @@ type Server struct {
 	upgrader             websocket.Upgrader
 	connections          sync.Map
 	currentTrack         common.Track
-	currentTrackMeta     common.TrackMetadata
+	currentTrackMeta     atomic.Value
 	dzClient             *deezer.Client
 	ytClient             *youtube.Client
 	mxmClient            *mxmlyrics.Client
@@ -91,8 +83,6 @@ type Server struct {
 	bufferingChannel     chan *chunk
 	skipChannel          chan int
 	quitRadio            chan int
-	isRadioStreaming     int32
-	currentTrackID       string
 	watchDog             int
 	radioTrack           *radio.Track
 	defaultTrack         *common.DefaultTrack
@@ -104,13 +94,12 @@ type Server struct {
 	startTime            time.Time
 	cacheQueue           *queue.Queue
 	streamMux            sync.Mutex
-	minifier             *minify.M
 	activityWg           sync.WaitGroup
 	newListenerC         chan int
 	server               *echo.Echo
 	messageHandlers      map[int]RequestHandler
-	processedNonce       map[int]struct{}
-	authCtxs             map[string]*authenticatedContext
+	processedNonce       sync.Map
+	authCtxs             sync.Map
 }
 
 //AddMessageHandler registers a new message handler for the specified opcode
@@ -207,7 +196,6 @@ func NewServer(config Config) *Server {
 		log.Println("[MXM] Failed to initalized source:", err)
 		err = nil
 	}
-	s.authCtxs = make(map[string]*authenticatedContext)
 	s.cacheQueue = queue.NewQueue()
 	s.playQueue = queue.NewQueue()
 	s.playQueue.EnqueueCallback = s.enqueueCallback
@@ -216,14 +204,6 @@ func NewServer(config Config) *Server {
 		s.radioTrack = radio.NewTrack()
 	}
 	s.currentTrack = s.defaultTrack
-	s.currentTrackID = ""
-	s.minifier = minify.New()
-	s.minifier.AddFunc("text/css", css.Minify)
-	s.minifier.AddFunc("text/html", html.Minify)
-	s.minifier.AddFunc("image/svg+xml", svg.Minify)
-	s.minifier.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
-	s.minifier.AddFuncRegexp(regexp.MustCompile("[/+]json$"), mJSON.Minify)
-	s.minifier.AddFuncRegexp(regexp.MustCompile("[/+]xml$"), xml.Minify)
 	s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	s.server = echo.New()
 	s.server.Use(middleware.Recover())
@@ -235,7 +215,7 @@ func NewServer(config Config) *Server {
 				var sid string
 				for {
 					sid = common.GenerateID()
-					_, exists := s.authCtxs[sid]
+					_, exists := s.authCtxs.Load(sid)
 					if !exists {
 						break
 					}
@@ -250,22 +230,8 @@ func NewServer(config Config) *Server {
 		}
 	})
 	s.server.Use(middleware.Gzip())
-	s.server.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			res := c.Response()
-			r := c.Request()
-			if c.IsWebSocket() || strings.HasPrefix(r.URL.Path, "/audio") || strings.HasPrefix(r.URL.Path, "/fallback") {
-				return next(c)
-			}
-			mw := s.minifier.ResponseWriter(res.Writer, c.Request())
-			defer mw.Close()
-			res.Writer = mw
-			return next(c)
-		}
-	})
 	s.server.HTTPErrorHandler = s.HandleError
 	s.server.HideBanner = true
-	s.processedNonce = make(map[int]struct{})
 	s.messageHandlers = make(map[int]RequestHandler)
 	s.AddMessageHandler(opSetClientsTrack, getPlaying)
 	s.AddMessageHandler(opClientRequestTrack, enqueue)
@@ -284,6 +250,10 @@ func NewServer(config Config) *Server {
 	s.server.GET("/skip", s.skipHandler)
 	s.server.POST("/remove", s.removeTrackHandler)
 	s.server.GET("/queue", s.queueHandler)
-	s.server.Static("/", "www")
+	if len(config.StaticFilesPath) > 0 {
+		s.server.Static("/", config.StaticFilesPath)
+	} else {
+		s.server.Static("/", "www")
+	}
 	return s
 }

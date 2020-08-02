@@ -222,7 +222,7 @@ func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time 
 }
 
 func (s *Server) setTrack(trackMeta common.TrackMetadata) {
-	s.currentTrackMeta = trackMeta
+	s.currentTrackMeta.Store(trackMeta)
 	data := Response{
 		Operation: opSetClientsTrack,
 		Data: map[string]interface{}{

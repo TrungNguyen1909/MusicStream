@@ -34,6 +34,7 @@ type Config struct {
 	SpotifyClientID       string
 	SpotifyClientSecret   string
 	RadioEnabled          bool
+	StaticFilesPath       string
 }
 type chunk struct {
 	buffer     []byte

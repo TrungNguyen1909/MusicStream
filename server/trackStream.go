@@ -75,10 +75,8 @@ func (s *Server) processTrack() {
 	}
 	s.activityWg.Wait()
 	track = s.playQueue.Pop().(common.Track)
-	s.currentTrackID = ""
 	s.watchDog = 0
 	s.activityWg.Wait()
-	s.currentTrackID = track.ID()
 	s.currentTrack = track
 	if radioStarted {
 		s.quitRadio <- 0
@@ -110,6 +108,5 @@ func (s *Server) processTrack() {
 	s.startTime = time.Now()
 	s.setTrack(trackDict)
 	s.lastStreamEnded = s.streamToClients(s.skipChannel, quit)
-	s.currentTrackID = ""
 	s.watchDog = 0
 }

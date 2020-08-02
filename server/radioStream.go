@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
+	"github.com/TrungNguyen1909/MusicStream/radio"
 )
 
 func (s *Server) encodeRadio(stream io.ReadCloser, quit chan int) (ended bool) {
@@ -73,7 +74,7 @@ func (s *Server) preloadRadio(quit chan int) {
 				case metadata = <-c:
 				}
 			}
-			if atomic.LoadInt32(&s.isRadioStreaming) > 0 {
+			if _, ok := s.currentTrack.(*radio.Track); ok {
 				pos := int64(s.vorbisEncoder.GranulePos())
 				atomic.StoreInt64(&s.startPos, pos)
 				s.deltaChannel <- pos
@@ -94,8 +95,6 @@ func (s *Server) preloadRadio(quit chan int) {
 }
 func (s *Server) processRadio(quit chan int) {
 	time.Sleep(time.Until(s.lastStreamEnded))
-	atomic.StoreInt32(&s.isRadioStreaming, 1)
-	defer atomic.StoreInt32(&s.isRadioStreaming, 0)
 	quitPreload := make(chan int, 10)
 	s.radioTrack.InitWS()
 	s.currentTrack = s.radioTrack

@@ -94,21 +94,21 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 			} else {
 				firstChunk = false
 				if cookie, err := c.Cookie(cookieSessionID); err == nil && len(cookie.Value) > 0 {
-					if ctx, ok := s.authCtxs[cookie.Value]; ok {
-						if ctx.WS != nil {
-							ctx.WS.WriteMessage(websocket.TextMessage, Response{
-								Operation: opClientAudioStartPos,
-								Success:   true,
-								Data: map[string]interface{}{
-									"startPos": Chunk.encoderPos,
-								},
-							}.EncodeJSON())
-						}
-					} else {
-						s.authCtxs[cookie.Value] = newAuthenticatedContext()
+					var ctx *authenticatedContext
+					ctx_, _ := s.authCtxs.LoadOrStore(cookie.Value, newAuthenticatedContext())
+					ctx = ctx_.(*authenticatedContext)
+					if ctx.WS != nil {
+						ctx.WS.WriteMessage(websocket.TextMessage, Response{
+							Operation: opClientAudioStartPos,
+							Success:   true,
+							Data: map[string]interface{}{
+								"startPos": Chunk.encoderPos,
+							},
+						}.EncodeJSON())
 					}
-					s.authCtxs[cookie.Value].StartPos = Chunk.encoderPos
-					defer func(ctx *authenticatedContext) { ctx.StartPos = defaultStartPos }(s.authCtxs[cookie.Value])
+					ctx.StartPos = Chunk.encoderPos
+					s.authCtxs.Store(cookie.Value, ctx)
+					defer func() { ctx.StartPos = defaultStartPos }()
 				}
 			}
 			if chunkID != -1 && chunkID+1 != Chunk.chunkID {
@@ -121,10 +121,10 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 	return
 }
 func (s *Server) processNonce(nonce int) {
-	s.processedNonce[nonce] = struct{}{}
+	s.processedNonce.Store(nonce, nil)
 }
 func (s *Server) checkNonce(nonce int) bool {
-	_, ok := s.processedNonce[nonce]
+	_, ok := s.processedNonce.Load(nonce)
 	return ok
 }
 func (s *Server) handleMessage(msg *wsMessage) (r []byte) {
@@ -159,19 +159,17 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 	_ = ws.WriteMessage(websocket.TextMessage, getPlaying(s, wsMessage{}).EncodeJSON())
 	_ = ws.WriteMessage(websocket.TextMessage, getQueue(s, wsMessage{}).EncodeJSON())
 	if cookie, err := c.Cookie(cookieSessionID); err == nil && len(cookie.Value) > 0 {
-		if ctx, ok := s.authCtxs[cookie.Value]; !ok {
-			s.authCtxs[cookie.Value] = newAuthenticatedContext()
-		} else {
-			ws.WriteMessage(websocket.TextMessage, Response{
-				Operation: opClientAudioStartPos,
-				Success:   true,
-				Data: map[string]interface{}{
-					"startPos": ctx.StartPos,
-				},
-			}.EncodeJSON())
-		}
-		s.authCtxs[cookie.Value].WS = ws
-		defer func() { s.authCtxs[cookie.Value].WS = nil }()
+		ctx_, _ := s.authCtxs.LoadOrStore(cookie.Value, newAuthenticatedContext())
+		ctx := ctx_.(*authenticatedContext)
+		ws.WriteMessage(websocket.TextMessage, Response{
+			Operation: opClientAudioStartPos,
+			Success:   true,
+			Data: map[string]interface{}{
+				"startPos": ctx.StartPos,
+			},
+		}.EncodeJSON())
+		ctx.WS = ws
+		defer func() { ctx.WS = nil }()
 	}
 	for err == nil {
 		var msg wsMessage

@@ -43,6 +43,9 @@ func main() {
 	if radioEnabled, ok := os.LookupEnv("RADIO_ENABLED"); ok && radioEnabled == "1" {
 		config.RadioEnabled = true
 	}
+	if staticFilesPath, ok := os.LookupEnv("WWW"); ok && len(staticFilesPath) > 0 {
+		config.StaticFilesPath = staticFilesPath
+	}
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
 		port = "8080"

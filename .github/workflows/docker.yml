@@ -10,6 +10,8 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v1
+        with:
+          submodules: recursive
       - name: Docker build and publish
         uses: docker/build-push-action@v1
         with:
