@@ -27,6 +27,11 @@
 
 - Check [INSTALL.md](./docs/INSTALL.md)
 
+### Frontend Deprecation
+- Our old frontend will now be deprecated due considering how difficult it is to maintain
+- v0.7.5 will be the last version that uses the old frontend
+- We will now switch to [ms-kiwi](https://github.com/natsukagami/ms-kiwi)
+
 ### License 
 
   This work is licensed under a [GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.html).
