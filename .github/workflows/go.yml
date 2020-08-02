@@ -17,7 +17,7 @@ jobs:
         go-version: 1.14
       id: go
     - name: Set up Node 13
-      uses: actions/setup-go@v1
+      uses: actions/setup-node@v1
       with:
         node-version: 13
       id: node
@@ -65,7 +65,7 @@ jobs:
         cp MusicStream $BACKEND_DIST
         cp LICENSE $BACKEND_DIST
         cp -R frontend/dist $FRONTEND_DIST
-        cp LICENSE $FRONTEND_DIST
+        cp frontend/LICENSE $FRONTEND_DIST
     - name: Upload artifact (backend)
       uses: actions/upload-artifact@v1.0.0
       with:
