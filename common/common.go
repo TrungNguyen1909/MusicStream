@@ -135,15 +135,15 @@ func (track *DefaultTrack) Source() int {
 }
 
 func (track *DefaultTrack) Title() string {
-	return "Idling, nothing is in queue"
+	return "Idle..."
 }
 
 func (track *DefaultTrack) Artist() string {
-	return "Please enqueue some songs"
+	return "Please enqueue"
 }
 
 func (track *DefaultTrack) Artists() string {
-	return "Please enqueue some songs"
+	return "Please enqueue"
 }
 
 func (track *DefaultTrack) Album() string {

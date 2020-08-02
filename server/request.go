@@ -163,14 +163,14 @@ func skip(s *Server, msg wsMessage) Response {
 		return Response{
 			Operation: opClientRequestSkip,
 			Success:   false,
-			Reason:    "Please enqueue some songs.",
+			Reason:    "Please enqueue",
 		}
 	}
 	if s.currentTrack == s.defaultTrack {
 		return Response{
 			Operation: opClientRequestSkip,
 			Success:   false,
-			Reason:    "Please enqueue some songs.",
+			Reason:    "Please enqueue",
 		}
 	}
 	s.skipChannel <- 0
