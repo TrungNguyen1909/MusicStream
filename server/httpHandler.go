@@ -45,6 +45,7 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("pragma", "no-cache")
 	w.Header().Set("status", "200")
+	w.Header().Set("Accept-Ranges", "none")
 	channel := make(chan *chunk, 500)
 	var bufferChannel []chan chan *chunk
 	var chanidx int
