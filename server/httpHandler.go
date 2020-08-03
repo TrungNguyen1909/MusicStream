@@ -63,6 +63,17 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 		bufferChannel = s.mp3Channel
 	} else {
 		w.Header().Set("Content-Type", "audio/ogg")
+		isRanged := len(r.Header.Get("Range")) > 0
+		if isRanged {
+			Range := r.Header.Get("Range")
+			var start int
+			fmt.Sscanf(Range, "bytes=%d-", start)
+			if start != 0 {
+				w.WriteHeader(200)
+				_, _ = w.Write(s.oggHeader)
+				return
+			}
+		}
 		_, _ = w.Write(s.oggHeader)
 		bufferChannel = s.vorbisChannel
 	}
