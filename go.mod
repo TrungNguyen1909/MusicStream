@@ -10,14 +10,14 @@ require (
 	github.com/faiface/beep v1.0.2
 	github.com/gorilla/websocket v1.4.2
 	github.com/joho/godotenv v1.3.0
-	github.com/labstack/echo/v4 v4.1.16
+	github.com/labstack/echo/v4 v4.1.17
 	github.com/petar/GoLLRB v0.0.0-20190514000832-33fb24c13b99 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.19.0
+	github.com/rs/zerolog v1.20.0
 	github.com/rylio/ytdl v1.0.4
-	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
-	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
-	golang.org/x/sys v0.0.0-20200727154430-2d971f7391a4 // indirect
+	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
+	golang.org/x/net v0.0.0-20200904194848-62affa334b73 // indirect
+	golang.org/x/sys v0.0.0-20200918174421-af09f7315aff // indirect
 	golang.org/x/text v0.3.3
 	gopkg.in/hraban/opus.v2 v2.0.0-20200710132758-e28f8214483b
 	gopkg.in/yaml.v2 v2.3.0 // indirect
