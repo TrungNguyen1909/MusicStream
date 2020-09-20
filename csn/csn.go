@@ -254,6 +254,10 @@ func (track *Track) Populate() (err error) {
 		return
 	}
 	m := track.client.pattern.FindSubmatch(buf)
+	if len(m) <= 0 {
+		err = errors.WithStack(errors.New("Failed to get stream URL"))
+		return
+	}
 	res := bytes.Join([][]byte{[]byte("["), bytes.Trim(m[1], ", \n"), []byte("]")}, []byte(""))
 	var csnResults []csnResult
 	err = json.Unmarshal(res, &csnResults)
