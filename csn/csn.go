@@ -19,33 +19,36 @@
 package csn
 
 import (
-	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/http/cookiejar"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
-	"github.com/anaskhan96/soup"
 	"github.com/pkg/errors"
 )
 
 type csnTrack struct {
-	ID       int    `json:"music_id"`
-	Title    string `json:"music_title"`
-	Artist   string `json:"music_artist"`
-	Artists  []string
-	Album    string
-	Duration int
-	Cover    string `json:"music_cover"`
-	Link     string `json:"music_link"`
+	ID              json.Number `json:"music_id"`
+	Title           string      `json:"music_title"`
+	Artist          string      `json:"music_artist"`
+	Artists         []string
+	Album           string      `json:"music_album"`
+	Duration        json.Number `json:"music_length"`
+	Cover           string      `json:"music_img"`
+	Link            string      `json:"full_url"`
+	MusicTitleURL   string      `json:"music_title_url"`
+	File320URL      string      `json:"file_320_url"`
+	FileLosslessURL string      `json:"file_lossless_url"`
+}
+
+type csnMusicInfo struct {
+	MusicInfo csnTrack `json:"music_info"`
 }
 
 //Track represents a track on CSN site
@@ -58,7 +61,7 @@ type Track struct {
 
 //ID returns the track's ID number on CSN
 func (track *Track) ID() string {
-	return strconv.Itoa(track.csnTrack.ID)
+	return track.csnTrack.ID.String()
 }
 
 //Title returns the track's title
@@ -88,7 +91,8 @@ func (track *Track) Artists() string {
 
 //Duration returns the track's duration
 func (track *Track) Duration() int {
-	return track.csnTrack.Duration
+	duration, _ := track.csnTrack.Duration.Int64()
+	return int(duration)
 }
 
 //ISRC returns the track's ISRC ID
@@ -142,12 +146,6 @@ func (track *Track) PlayID() string {
 	return track.playID
 }
 
-type csnResult struct {
-	Default bool   `json:"default"`
-	File    string `json:"file"`
-	Label   string `json:"label"`
-	Type    string `json:"type"`
-}
 type csnSearchResult struct {
 	Query string `json:"q"`
 	Music struct {
@@ -161,8 +159,6 @@ type csnSearchResult struct {
 //Client represents a CSN client
 type Client struct {
 	pattern *regexp.Regexp
-	//HTTPClient is a configured http client
-	HTTPClient *http.Client
 }
 
 //GetTrackFromURL returns a csn track (if exists) from the provided url
@@ -172,13 +168,28 @@ func (client *Client) GetTrackFromURL(q string) (track common.Track, err error) 
 		return nil, errors.WithStack(errors.New("Invalid CSN URL"))
 	}
 	switch u.Host {
-	case "www.chiasenhac.vn", "chiasenhac.vn":
+	case "www.chiasenhac.vn", "chiasenhac.vn", "nhacgoc.vn", "vi.chiasenhac.vn":
 	default:
 		return nil, errors.WithStack(errors.New("Invalid CSN URL"))
 	}
-
+	resp, err := http.Get(q)
+	if err != nil {
+		return
+	}
+	buf, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+	var musicID string
+	m := client.pattern.FindSubmatch(buf)
+	if len(m) <= 1 {
+		err = errors.WithStack(errors.New("CSN: cannot find music_id from link"))
+		return
+	}
+	musicID = fmt.Sprintf("%s", m[1])
 	track = &Track{
 		csnTrack: csnTrack{
+			ID:   json.Number(musicID),
 			Link: q,
 		},
 		client: client,
@@ -205,7 +216,7 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 	queries.Add("q", query)
 	queryURL.RawQuery = queries.Encode()
 
-	resp, err := client.HTTPClient.Get(queryURL.String())
+	resp, err := http.Get(queryURL.String())
 	if err != nil {
 		return
 	}
@@ -220,15 +231,9 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 	}
 	result := results[0]
 	tracks = make([]common.Track, len(result.Music.Data))
-	baseurl, _ := url.Parse("https://chiasenhac.vn")
 	for i := range result.Music.Data {
 		result.Music.Data[i].Artists = strings.Split(result.Music.Data[i].Artist, "; ")
 		result.Music.Data[i].Artist = result.Music.Data[i].Artists[0]
-		url, err := baseurl.Parse(result.Music.Data[i].Link)
-		if err != nil {
-			continue
-		}
-		result.Music.Data[i].Link = url.String()
 	}
 	for i, v := range result.Music.Data {
 		tracks[i] = &Track{csnTrack: v, playID: common.GenerateID(), client: client}
@@ -238,77 +243,30 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 
 //Populate populates the required metadata for downloading the track
 func (track *Track) Populate() (err error) {
-	url, _ := url.Parse("https://chiasenhac.vn")
-	url, err = url.Parse(track.Link)
-	if err != nil {
-		return
-	}
-	track.Link = url.String()
-	resp, err := track.client.HTTPClient.Get(url.String())
+	queryURL, _ := url.Parse("http://old.chiasenhac.vn/api/listen.php?code=csn22052018&return=json")
+	queries := queryURL.Query()
+	queries.Add("m", track.csnTrack.ID.String())
+	// queries.Add("url", track.csnTrack.MusicTitleURL)
+	queryURL.RawQuery = queries.Encode()
+	resp, err := http.Get(queryURL.String())
 	if err != nil {
 		return
 	}
 	defer resp.Body.Close()
-	buf, err := ioutil.ReadAll(resp.Body)
+	var result csnMusicInfo
+	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
 		return
 	}
-	m := track.client.pattern.FindSubmatch(buf)
-	if len(m) <= 0 {
-		err = errors.WithStack(errors.New("Failed to get stream URL"))
-		return
-	}
-	res := bytes.Join([][]byte{[]byte("["), bytes.Trim(m[1], ", \n"), []byte("]")}, []byte(""))
-	var csnResults []csnResult
-	err = json.Unmarshal(res, &csnResults)
-	if err != nil {
-		return
-	}
-	var streamURL string
-	for i := len(csnResults) - 1; i >= 0; i-- {
-		if csnResults[i].Type == "mp3" && csnResults[i].File != "" && strings.HasSuffix(csnResults[i].File, ".mp3") {
-			streamURL = csnResults[i].File
-			break
-		}
-	}
-	if streamURL == "" {
-		err = errors.WithStack(errors.New("no stream URL found"))
-		return
-	}
-	track.StreamURL = streamURL
-
-	doc := soup.HTMLParse(string(buf))
-	cardTitle := doc.Find("div", "id", "companion_cover").FindNextElementSibling().Find("h2", "class", "card-title")
-	track.csnTrack.Title = cardTitle.Text()
-	list := cardTitle.FindNextElementSibling()
-	var album string
-	var artists string
-	for _, child := range list.Children() {
-		span := child.Find("span")
-		if span.Pointer == nil {
-			continue
-		}
-		if span.Text() == "Album: " {
-			album = child.Find("a").Text()
-		}
-		if span.Text() == "Ca sĩ: " {
-			var a []string
-			for _, c := range child.FindAll("a") {
-				a = append(a, c.Text())
-			}
-			artists = strings.Join(a, "; ")
-		}
-	}
-	track.csnTrack.Artists = strings.Split(artists, "; ")
+	track.csnTrack = result.MusicInfo
+	track.StreamURL = track.csnTrack.File320URL
+	track.csnTrack.Artists = strings.Split(track.csnTrack.Artist, "; ")
 	track.csnTrack.Artist = track.csnTrack.Artists[0]
-	track.csnTrack.Album = album
 	return
 }
 
 //NewClient returns a new CSN Client
 func NewClient() (*Client, error) {
-	cookiesJar, _ := cookiejar.New(nil)
-	client := &http.Client{Jar: cookiesJar, Timeout: 9 * time.Second}
-	pattern, _ := regexp.Compile(`sources: \[([^\]]*)\]`)
-	return &Client{HTTPClient: client, pattern: pattern}, nil
+	pattern, _ := regexp.Compile(`loadPlayList\((\d+)\)`)
+	return &Client{pattern: pattern}, nil
 }
