@@ -1,10 +1,11 @@
 # Music Stream
 
 ![Go](https://github.com/TrungNguyen1909/MusicStream/workflows/Go/badge.svg)
-![Docker](https://github.com/TrungNguyen1909/MusicStream/workflows/Docker/badge.svg)
-[![godoc](https://godoc.org/github.com/TrungNguyen1909/MusicStream?status.svg)](https://pkg.go.dev/github.com/TrungNguyen1909/MusicStream)
+[![Docker](https://github.com/TrungNguyen1909/MusicStream/workflows/Docker/badge.svg)](https://hub.docker.com/r/ntrung03/musicstream)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/TrungNguyen1909/MusicStream)](https://pkg.go.dev/github.com/TrungNguyen1909/MusicStream)
 [![GitHub license](https://img.shields.io/github/license/TrungNguyen1909/MusicStream)](https://github.com/TrungNguyen1909/MusicStream/blob/master/LICENSE)
-###### Listen to music together with your friends from everywhere, at the same time
+
+Listen to music together with your friends from everywhere, at the same time
 
 ### Features
 
@@ -12,7 +13,7 @@
 
 - Time-synced lyrics with English translation
   - Chromium-based browsers
-  - Other browsers: experimental
+  - Other browsers(tested on Safari and Firefox): experimental
 
 #### Supported music sources
   - Deezer
@@ -27,12 +28,12 @@
 
 - Check [INSTALL.md](./docs/INSTALL.md)
 
-### Frontend Deprecation
-- Our old frontend will now be deprecated due considering how difficult it is to maintain
-- v0.7.5 will be the last version that uses the old frontend
-- We will now switch to [ms-kiwi](https://github.com/natsukagami/ms-kiwi)
+### Frontend Deprecation notes
+- Our old frontend is deprecated considering how difficult it is to maintain
+- v0.7.5 will be the last version that uses the old frontend and compatibility with later server version is not guaranteed
+- The new frontend is [ms-kiwi](https://github.com/natsukagami/ms-kiwi)
 
-### License 
+### License
 
   This work(MusicStream) is licensed under a [GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.html).
 
