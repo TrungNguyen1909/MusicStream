@@ -43,6 +43,7 @@ type csnTrack struct {
 	Cover           string      `json:"music_img"`
 	Link            string      `json:"full_url"`
 	MusicTitleURL   string      `json:"music_title_url"`
+	FileURL         string      `json:"file_url"`
 	File320URL      string      `json:"file_320_url"`
 	FileLosslessURL string      `json:"file_lossless_url"`
 }
@@ -259,7 +260,11 @@ func (track *Track) Populate() (err error) {
 		return
 	}
 	track.csnTrack = result.MusicInfo
-	track.StreamURL = track.csnTrack.File320URL
+	if len(track.csnTrack.File320URL) > 0 {
+		track.StreamURL = track.csnTrack.File320URL
+	} else {
+		track.StreamURL = track.csnTrack.FileURL
+	}
 	track.csnTrack.Artists = strings.Split(track.csnTrack.Artist, "; ")
 	track.csnTrack.Artist = track.csnTrack.Artists[0]
 	return
