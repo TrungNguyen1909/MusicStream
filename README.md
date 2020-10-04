@@ -9,11 +9,21 @@ Listen to music together with your friends from everywhere, at the same time
 
 ### Features
 
-- Synchorized music streaming from multiple sources across clients
+- _Synchorized_ music streaming from multiple sources across clients
 
-- Time-synced lyrics with English translation
+- _Time-synced_ lyrics with English translation
   - Chromium-based browsers
-  - Other browsers(tested on Safari and Firefox): experimental
+  - Safari and Firefox
+
+#### Screenshots
+
+These screenshots are taken at different times.
+
+When multiple clients are connected to the same server, they will play the same track at _almost_ identical position.
+
+![Music Stream on Chrome](docs/img/Chrome.jpg)
+
+![Music Stream on Safari](docs/img/iPhone.jpg)
 
 #### Supported music sources
   - Deezer
