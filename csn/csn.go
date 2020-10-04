@@ -149,7 +149,7 @@ func (track *Track) PlayID() string {
 type csnSearchResult struct {
 	Query string `json:"q"`
 	Music struct {
-		Rows     string     `json:"rows"`
+		Rows     int        `json:"rows"`
 		RowTotal int        `json:"row_total"`
 		Page     int        `json:"page"`
 		Data     []csnTrack `json:"data"`
