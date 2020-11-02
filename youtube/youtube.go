@@ -19,7 +19,6 @@
 package youtube
 
 import (
-	"context"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -32,9 +31,8 @@ import (
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
+	"github.com/kkdai/youtube/v2"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog"
-	"github.com/rylio/ytdl"
 )
 
 type youtubeResponse struct {
@@ -93,6 +91,7 @@ type ytTrack struct {
 	ChannelTitle string
 	CoverURL     string
 	Duration     int
+	Video        *youtube.Video
 }
 
 //ID returns the track's ID number on CSN
@@ -147,11 +146,12 @@ func (track *Track) CoverURL() string {
 
 //Download returns a webm stream of the track
 func (track *Track) Download() (stream io.ReadCloser, err error) {
-	if track.StreamURL == "" {
+	if track.Video == nil {
 		err = errors.WithStack(errors.New("Metadata not populated"))
 		return
 	}
-	response, err := http.Get(track.StreamURL)
+	c := youtube.Client{}
+	response, err := c.GetStream(track.ytTrack.Video, track.ytTrack.Video.Formats.FindByItag(251))
 	if err != nil {
 		return
 	}
@@ -173,22 +173,11 @@ func (track *Track) Stream() (io.ReadCloser, error) {
 
 //Populate populates metadata for Download
 func (track *Track) Populate() (err error) {
-	if len(track.StreamURL) > 0 {
-		return
-	}
-	zerolog.SetGlobalLevel(zerolog.WarnLevel)
-	videoInfo, err := ytdl.DefaultClient.GetVideoInfoFromID(context.Background(), track.ytTrack.ID)
+	c := youtube.Client{}
+	track.Video, err = c.GetVideo(track.ytTrack.ID)
 	if err != nil {
 		return
 	}
-	track.ytTrack.CoverURL = videoInfo.GetThumbnailURL(ytdl.ThumbnailQualityHigh).String()
-	track.ytTrack.Duration = int(videoInfo.Duration.Seconds())
-	formats := videoInfo.Formats.Extremes(ytdl.FormatAudioBitrateKey, true)
-	streamURL, err := ytdl.DefaultClient.GetDownloadURL(context.Background(), videoInfo, formats[0])
-	if err != nil {
-		return
-	}
-	track.StreamURL = streamURL.String()
 	return
 }
 
@@ -342,7 +331,8 @@ func (client *Client) extractVideoID(q string) (videoID string, err error) {
 
 //GetTrackFromVideoID returns a track on Youtube with provided videoID
 func (client *Client) GetTrackFromVideoID(videoID string) (track common.Track, err error) {
-	videoInfo, err := ytdl.DefaultClient.GetVideoInfoFromID(context.Background(), videoID)
+	c := youtube.Client{}
+	videoInfo, err := c.GetVideo("youtu.be/" + videoID)
 	if err != nil {
 		return
 	}
@@ -350,20 +340,14 @@ func (client *Client) GetTrackFromVideoID(videoID string) (track common.Track, e
 		ytTrack: ytTrack{
 			ID:           videoInfo.ID,
 			Title:        html.UnescapeString(videoInfo.Title),
-			ChannelTitle: html.UnescapeString(videoInfo.Uploader),
-			CoverURL:     videoInfo.GetThumbnailURL(ytdl.ThumbnailQualityHigh).String(),
+			ChannelTitle: html.UnescapeString(videoInfo.Author),
 			Duration:     0,
 		},
 		playID: common.GenerateID(),
 	}
-	formats := videoInfo.Formats
-	formats.Sort(ytdl.FormatAudioBitrateKey, true)
-	formats = formats.Filter(ytdl.FormatExtensionKey, []interface{}{"webm"}).Filter(ytdl.FormatAudioEncodingKey, []interface{}{"opus"})
-	streamURL, err := ytdl.DefaultClient.GetDownloadURL(context.Background(), videoInfo, formats[0])
 	if err != nil {
 		return
 	}
-	itrack.StreamURL = streamURL.String()
 	track = itrack
 	return
 }
