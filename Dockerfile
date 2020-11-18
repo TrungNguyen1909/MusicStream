@@ -14,7 +14,7 @@ COPY . .
 RUN GOOS=linux GOARCH=amd64 go build -a --ldflags "-w -s -X github.com/TrungNguyen1909/MusicStream.BuildVersion=`git describe --tags` -X github.com/TrungNguyen1909/MusicStream.BuildTime=`date +%FT%T%z`" -v -o /bin/MusicStream cmd/MusicStream/main.go
 
 # Stage 2: Build frontend
-FROM node:13 AS frontend
+FROM node:14 AS frontend
 
 COPY --from=build-env /go/src/github.com/TrungNguyen1909/MusicStream/frontend /MusicStream/frontend
 
