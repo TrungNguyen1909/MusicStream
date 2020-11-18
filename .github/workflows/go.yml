@@ -11,42 +11,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Set up Go 1.14
-      uses: actions/setup-go@v1
+    - name: Set up Go 1.15
+      uses: actions/setup-go@v2
       with:
-        go-version: 1.14
+        go-version: 1.15
       id: go
-    - name: Set up Node 13
+    - name: Set up Node 14
       uses: actions/setup-node@v1
       with:
-        node-version: 13
+        node-version: 14
       id: node
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
       with:
         submodules: recursive
-    - name: Set GOPATH
-        # temporary fix
-        # see https://github.com/actions/setup-go/issues/14
-      run: |
-          echo "##[set-env name=GOPATH;]$(dirname $GITHUB_WORKSPACE)"
-          echo "##[add-path]$(dirname $GITHUB_WORKSPACE)/bin"
-          mkdir -p "$(dirname $GITHUB_WORKSPACE)/bin"
-      shell: bash
+
     - name: Get backend dependencies
       run: |
         sudo rm -f /etc/apt/sources.list.d/dotnetdev.list /etc/apt/sources.list.d/microsoft-prod.list
         sudo apt-get update
         xargs sudo apt-get install < Aptfile
         go mod download
+
     - name: Build
       run: |
         go build -v -ldflags "-w -s -X github.com/TrungNguyen1909/MusicStream.BuildVersion=`git describe --tags` -X github.com/TrungNguyen1909/MusicStream.BuildTime=`date +%FT%T%z`" -o MusicStream cmd/MusicStream/main.go
-    - name: Build frontend dependencies
+    - name: Build frontend
       run: |
         cd frontend
-        yarn && yarn --prod --frozen-lockfile build 
+        yarn && yarn --prod --frozen-lockfile build
+
     - name: Get the version
       id: get_version
       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
