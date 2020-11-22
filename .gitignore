@@ -57,3 +57,4 @@ __debug_bin
 /MusicStream
 .env
 .secrets.yml
+.docker-compose.yml
