@@ -16,7 +16,7 @@ RUN GOOS=linux GOARCH=amd64 go build -a --ldflags "-w -s -X github.com/TrungNguy
 # Stage 2: Build frontend
 FROM node:14 AS frontend
 
-COPY --from=build-env /go/src/github.com/TrungNguyen1909/MusicStream/frontend /MusicStream/frontend
+COPY frontend /MusicStream/frontend
 
 WORKDIR /MusicStream/frontend
 
