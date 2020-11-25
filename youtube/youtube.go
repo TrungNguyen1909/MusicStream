@@ -178,6 +178,7 @@ func (track *Track) Populate() (err error) {
 	if err != nil {
 		return
 	}
+	track.ytTrack.Duration = int(track.Video.Duration.Seconds())
 	return
 }
 
@@ -341,7 +342,7 @@ func (client *Client) GetTrackFromVideoID(videoID string) (track common.Track, e
 			ID:           videoInfo.ID,
 			Title:        html.UnescapeString(videoInfo.Title),
 			ChannelTitle: html.UnescapeString(videoInfo.Author),
-			Duration:     0,
+			Duration:     int(videoInfo.Duration.Seconds()),
 		},
 		playID: common.GenerateID(),
 	}
