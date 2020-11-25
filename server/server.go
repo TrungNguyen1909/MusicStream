@@ -123,6 +123,8 @@ func (s *Server) Start(addr string) (err error) {
 	}()
 	if len(MusicStream.BuildVersion) > 0 {
 		log.Printf("MusicStream %s: %s", MusicStream.BuildVersion, MusicStream.BuildTime)
+	} else if len(MusicStream.BuildTime) > 0 {
+		log.Printf("MusicStream v%s: %s", MusicStream.Version, MusicStream.BuildTime)
 	} else {
 		log.Printf("MusicStream v%s", MusicStream.Version)
 	}
