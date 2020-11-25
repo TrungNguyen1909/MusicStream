@@ -177,6 +177,7 @@ func (client *Client) GetTrackFromURL(q string) (track common.Track, err error) 
 	if err != nil {
 		return
 	}
+	defer resp.Body.Close()
 	buf, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return

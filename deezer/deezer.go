@@ -542,9 +542,13 @@ func (client *Client) populateTracks(tracks []deezerTrack) (err error) {
 		if err != nil {
 			return
 		}
+		defer response.Body.Close()
+	} else {
+		defer response.Body.Close()
 	}
 	var resp pageTrackResponse
 	err = json.NewDecoder(response.Body).Decode(&resp)
+	defer response.Body.Close()
 	if err != nil {
 		err = client.initDeezerAPI()
 		if err != nil {
@@ -555,6 +559,7 @@ func (client *Client) populateTracks(tracks []deezerTrack) (err error) {
 		if err != nil {
 			return
 		}
+		defer response.Body.Close()
 		err = json.NewDecoder(response.Body).Decode(&resp)
 		if err != nil {
 			return
