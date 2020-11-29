@@ -343,6 +343,7 @@ func (client *Client) GetTrackFromVideoID(videoID string) (track common.Track, e
 			Title:        html.UnescapeString(videoInfo.Title),
 			ChannelTitle: html.UnescapeString(videoInfo.Author),
 			Duration:     int(videoInfo.Duration.Seconds()),
+			CoverURL:     fmt.Sprintf("https://img.youtube.com/vi/%s/sddefault.jpg", videoInfo.ID),
 		},
 		playID: common.GenerateID(),
 	}
