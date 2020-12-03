@@ -113,7 +113,7 @@ opClientAudioStartPos = 10
 
 All the requests should be a JSON-encoded dictionary, contains at least the key `op`, whose value is the integer equivalent to the request's opcode.
 
-It's highly recommended that clients should set the `nonce` key to the message to a randomly generated non-zero number to find the response and prevent duplication of action.
+It's recommended that clients should set the `nonce` key to the message to a randomly generated non-zero number to find the response and prevent duplication of action.
 
 ### Response/Notifications
 
@@ -145,7 +145,7 @@ Description for each opcodes, the equivalent REST API path is surrounded in pare
 - When receive this opcode from the websocket, either the server responds to the inquiry or the server has just played a different track.
 - Data will contains the following keys:
     - track: a TrackMetadata object containing the metadata of the playing track
-    - pos: The frame number where the track starts. You can get the time in seconds using the following expression: `pos / 48000.0 + 1.584`. Only applicable in the Vorbis stream. If you use HTML5 audio, this value is only applicable in Chromium-based browsers.
+    - pos: The audio frame number where the track starts. You can get the time in seconds using the following expression: `pos / 48000.0 + 1.584`.
     - listeners: The number of clients connected to the stream.
 
 #### opClientRequestTrack (/enqueue)
@@ -210,7 +210,7 @@ type trackRemoveRequestMessage struct {
 ### opClientAudioStartPos (Notification)
 - Opcode number: 10
 - Uses to show synced lyrics.
-- The key `startPos` should contains the number of the first frame sent to the audio stream that contains the same `sessionId` cookie string, divide by `48000.0` to get the time in second.
+- The key `startPos` should contains the number of the first audio frame sent to the audio stream that contains the same `sessionId` cookie string, divide by `48000.0` to get the time in second.
 - `startPos` should be added to your audio player's current time only if the player does NOT parse the position data of the Vorbis stream.
 	- Among browsers, only Chromium-based browsers seem to parse the position data
 
