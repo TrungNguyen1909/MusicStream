@@ -1,5 +1,9 @@
 # API
 
+## Session ID
+
+- The `sessionId` cookie should be fetch by perform any request/endpoint to the server.
+- It is used to match a stream and its corresponding websocket connection
 ## Stream
 
 If you need access to raw audio stream, you can access them at
@@ -11,6 +15,8 @@ If you need access to raw audio stream, you can access them at
 It is encouraged to use the Vorbis stream because it has the best quality and contains timestamp data for synced lyrics.
 
 All tracks will be prepended and appended 1.584 seconds of silence. Thus, there's a 3.168 seconds of silence between two consecutive tracks.
+
+Each session can only have 1 audio stream. Whenever a new stream is established with the same `sessionId` cookie, the old stream will be disconnected.
 
 ## Websocket
 
@@ -214,5 +220,4 @@ type trackRemoveRequestMessage struct {
 - `startPos` should be added to your audio player's current time only if the player does NOT parse the position data of the Vorbis stream.
 	- Among browsers, only Chromium-based browsers seem to parse the position data
 
-- The `sessionId` cookie should be fetch by perform any request/endpoint to the server.
 - The notification will be sent when the websocket connection is established or when an audio stream with the same `sessionId` starts to send audio data.
