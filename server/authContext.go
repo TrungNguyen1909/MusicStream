@@ -18,9 +18,12 @@
 
 package server
 
+import "sync"
+
 func newAuthenticatedContext() (ctx *authenticatedContext) {
 	ctx = &authenticatedContext{
 		StartPos: defaultStartPos,
+		L:        &sync.Mutex{},
 	}
 	return
 }

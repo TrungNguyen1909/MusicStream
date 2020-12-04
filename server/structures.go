@@ -55,8 +55,10 @@ type webSocket struct {
 }
 
 type authenticatedContext struct {
-	WS       *webSocket
-	StartPos int64
+	WS              *webSocket
+	StartPos        int64
+	AudioDisconnect chan int
+	L               *sync.Mutex
 }
 
 func (socket *webSocket) WriteMessage(messageType int, data []byte) error {

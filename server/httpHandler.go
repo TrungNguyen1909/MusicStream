@@ -95,9 +95,24 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 	bufferChannel[0] <- channel
 	bufferChannel[1] <- channel
 	w.Flush()
+	audioDisconnect := make(chan int, 1)
+	if cookie, err := c.Cookie(cookieSessionID); err == nil && len(cookie.Value) > 0 {
+		var ctx *authenticatedContext
+		ctx_, _ := s.authCtxs.LoadOrStore(cookie.Value, newAuthenticatedContext())
+		ctx = ctx_.(*authenticatedContext)
+		ctx.L.Lock()
+		if ctx.AudioDisconnect != nil {
+			ctx.AudioDisconnect <- 1
+		}
+		ctx.AudioDisconnect = audioDisconnect
+		s.authCtxs.Store(cookie.Value, ctx)
+		ctx.L.Unlock()
+	}
 	for err == nil {
 		select {
 		case <-notify:
+			return
+		case <-audioDisconnect:
 			return
 		case Chunk := <-channel:
 			chanidx = Chunk.channel
@@ -109,6 +124,7 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 					var ctx *authenticatedContext
 					ctx_, _ := s.authCtxs.LoadOrStore(cookie.Value, newAuthenticatedContext())
 					ctx = ctx_.(*authenticatedContext)
+					ctx.L.Lock()
 					if ctx.WS != nil {
 						ctx.WS.WriteMessage(websocket.TextMessage, Response{
 							Operation: opClientAudioStartPos,
@@ -120,7 +136,12 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 					}
 					ctx.StartPos = Chunk.encoderPos
 					s.authCtxs.Store(cookie.Value, ctx)
-					defer func() { ctx.StartPos = defaultStartPos }()
+					ctx.L.Unlock()
+					defer func() {
+						ctx.L.Lock()
+						ctx.StartPos = defaultStartPos
+						ctx.L.Unlock()
+					}()
 				}
 			}
 			if chunkID != -1 && chunkID+1 != Chunk.chunkID {
@@ -173,6 +194,7 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 	if cookie, err := c.Cookie(cookieSessionID); err == nil && len(cookie.Value) > 0 {
 		ctx_, _ := s.authCtxs.LoadOrStore(cookie.Value, newAuthenticatedContext())
 		ctx := ctx_.(*authenticatedContext)
+		ctx.L.Lock()
 		ws.WriteMessage(websocket.TextMessage, Response{
 			Operation: opClientAudioStartPos,
 			Success:   true,
@@ -181,7 +203,12 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 			},
 		}.EncodeJSON())
 		ctx.WS = ws
-		defer func() { ctx.WS = nil }()
+		ctx.L.Unlock()
+		defer func() {
+			ctx.L.Lock()
+			ctx.WS = nil
+			ctx.L.Unlock()
+		}()
 	}
 	for err == nil {
 		var msg wsMessage
