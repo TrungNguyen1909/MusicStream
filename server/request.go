@@ -187,6 +187,7 @@ func skip(s *Server, msg wsMessage) Response {
 	}
 }
 func clientKeepAlivePing(s *Server, msg wsMessage) Response {
+	s.newListenerC <- 1
 	return Response{
 		Operation: opWebSocketKeepAlive,
 		Success:   true,

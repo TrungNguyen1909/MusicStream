@@ -51,12 +51,13 @@ func (s *Server) selfPinger() {
 func (s *Server) listenerMonitor(ch chan int32) {
 	timer := time.NewTicker(1 * time.Minute)
 	for {
-		if listeners := atomic.LoadInt32(&s.listenersCount); listeners > 0 {
-			ch <- listeners
-		}
 		select {
 		case <-s.newListenerC:
+			ch <- 1
 		case <-timer.C:
+			if listeners := atomic.LoadInt32(&s.listenersCount); listeners > 0 {
+				ch <- listeners
+			}
 		}
 	}
 }

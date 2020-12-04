@@ -189,6 +189,7 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 	s.connections.Store(ws, ws)
 	defer ws.Close()
 	defer s.connections.Delete(ws)
+	s.newListenerC <- 1
 	_ = ws.WriteMessage(websocket.TextMessage, getPlaying(s, wsMessage{}).EncodeJSON())
 	_ = ws.WriteMessage(websocket.TextMessage, getQueue(s, wsMessage{}).EncodeJSON())
 	if cookie, err := c.Cookie(cookieSessionID); err == nil && len(cookie.Value) > 0 {
