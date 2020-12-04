@@ -113,14 +113,19 @@ type LyricsResult struct {
 
 const alphabet string = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
 
-//GenerateID generates an unique alphanumberic string
-func GenerateID() (id string) {
-	b := make([]byte, 8)
+//GenerateID generates a random n-character alphanumberic string
+func GenerateID(n int) (id string) {
+	b := make([]byte, n)
 	_, _ = rand.Read(b)
 	for _, v := range b {
 		id += string(alphabet[int(v)%len(alphabet)])
 	}
 	return
+}
+
+//GeneratePlayID generates a random 8-character alphanumberic string to use as play ID
+func GeneratePlayID() (id string) {
+	return GenerateID(8)
 }
 
 //DefaultTrack represents the metadata will be shown when nothing is playing

@@ -238,7 +238,7 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 		result.Music.Data[i].Artist = result.Music.Data[i].Artists[0]
 	}
 	for i, v := range result.Music.Data {
-		tracks[i] = &Track{csnTrack: v, playID: common.GenerateID(), client: client}
+		tracks[i] = &Track{csnTrack: v, playID: common.GeneratePlayID(), client: client}
 	}
 	return
 }
