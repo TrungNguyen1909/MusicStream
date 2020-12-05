@@ -19,9 +19,9 @@
 package common
 
 import (
-	"crypto/rand"
 	"io"
 
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -111,21 +111,10 @@ type LyricsResult struct {
 	Language     string       `json:"lang"`
 }
 
-const alphabet string = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
-
-//GenerateID generates a random n-character alphanumberic string
-func GenerateID(n int) (id string) {
-	b := make([]byte, n)
-	_, _ = rand.Read(b)
-	for _, v := range b {
-		id += string(alphabet[int(v)%len(alphabet)])
-	}
-	return
-}
-
-//GeneratePlayID generates a random 8-character alphanumberic string to use as play ID
-func GeneratePlayID() (id string) {
-	return GenerateID(8)
+//GenerateID generates a random uuid
+func GenerateID() (id string) {
+	uuid := uuid.New()
+	return uuid.String()
 }
 
 //DefaultTrack represents the metadata will be shown when nothing is playing

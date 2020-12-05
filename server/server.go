@@ -216,7 +216,7 @@ func NewServer(config Config) *Server {
 			if _, err := c.Cookie(cookieSessionID); err != nil {
 				var sid string
 				for {
-					sid = common.GenerateID(16)
+					sid = common.GenerateID()
 					_, exists := s.authCtxs.Load(sid)
 					if !exists {
 						break
@@ -224,7 +224,7 @@ func NewServer(config Config) *Server {
 				}
 				session := &http.Cookie{
 					Name:  cookieSessionID,
-					Value: common.GenerateID(16),
+					Value: common.GenerateID(),
 				}
 				c.SetCookie(session)
 			}

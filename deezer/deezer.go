@@ -513,7 +513,7 @@ func (client *Client) GetTrackByID(trackID string) (track common.Track, err erro
 		dTrack.SpotifyURI = sURI
 	}
 	dTrack.client = client
-	itrack := &Track{deezerTrack: dTrack, playID: common.GeneratePlayID()}
+	itrack := &Track{deezerTrack: dTrack, playID: common.GenerateID()}
 	err = client.PopulateMetadata(itrack)
 	track = itrack
 	return
@@ -707,7 +707,7 @@ start:
 				}
 			}
 		}
-		tracks[i] = &Track{deezerTrack: v, playID: common.GeneratePlayID()}
+		tracks[i] = &Track{deezerTrack: v, playID: common.GenerateID()}
 	}
 	return tracks, nil
 }
