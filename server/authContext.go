@@ -20,10 +20,11 @@ package server
 
 import "sync"
 
-func newAuthenticatedContext() (ctx *authenticatedContext) {
+func newAuthenticatedContext(ID string) (ctx *authenticatedContext) {
 	ctx = &authenticatedContext{
-		StartPos: defaultStartPos,
-		L:        &sync.Mutex{},
+		ContextID: ID,
+		StartPos:  defaultStartPos,
+		L:         &sync.Mutex{},
 	}
 	return
 }

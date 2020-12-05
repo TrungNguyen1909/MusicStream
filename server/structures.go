@@ -55,6 +55,7 @@ type webSocket struct {
 }
 
 type authenticatedContext struct {
+	ContextID       string
 	WS              *webSocket
 	StartPos        int64
 	AudioDisconnect chan int

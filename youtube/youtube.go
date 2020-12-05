@@ -345,7 +345,7 @@ func (client *Client) GetTrackFromVideoID(videoID string) (track common.Track, e
 			Duration:     int(videoInfo.Duration.Seconds()),
 			CoverURL:     fmt.Sprintf("https://img.youtube.com/vi/%s/sddefault.jpg", videoInfo.ID),
 		},
-		playID: common.GeneratePlayID(),
+		playID: common.GenerateID(),
 	}
 	if err != nil {
 		return
@@ -395,7 +395,7 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 				CoverURL:     item.Snippet.Thumbnails.High.URL,
 				Duration:     0,
 			},
-			playID: common.GeneratePlayID(),
+			playID: common.GenerateID(),
 		}
 		itracks[i] = itrack
 	}

@@ -49,6 +49,7 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 	channel := make(chan *chunk, 500)
 	var bufferChannel []chan chan *chunk
 	var chanidx int
+	startPos := int64(defaultStartPos)
 	isMP3Stream := false
 	chunkID := int64(-1)
 	if r.URL.Path == "/fallback" {
@@ -98,7 +99,7 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 	audioDisconnect := make(chan int, 1)
 	if cookie, err := c.Cookie(cookieSessionID); err == nil && len(cookie.Value) > 0 {
 		var ctx *authenticatedContext
-		ctx_, _ := s.authCtxs.LoadOrStore(cookie.Value, newAuthenticatedContext())
+		ctx_, _ := s.authCtxs.LoadOrStore(cookie.Value, newAuthenticatedContext(cookie.Value))
 		ctx = ctx_.(*authenticatedContext)
 		ctx.L.Lock()
 		if ctx.AudioDisconnect != nil {
@@ -107,6 +108,13 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 		ctx.AudioDisconnect = audioDisconnect
 		s.authCtxs.Store(cookie.Value, ctx)
 		ctx.L.Unlock()
+		defer func() {
+			ctx.L.Lock()
+			if ctx.AudioDisconnect == audioDisconnect {
+				ctx.AudioDisconnect = nil
+			}
+			ctx.L.Unlock()
+		}()
 	}
 	for err == nil {
 		select {
@@ -122,7 +130,7 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 				firstChunk = false
 				if cookie, err := c.Cookie(cookieSessionID); err == nil && len(cookie.Value) > 0 {
 					var ctx *authenticatedContext
-					ctx_, _ := s.authCtxs.LoadOrStore(cookie.Value, newAuthenticatedContext())
+					ctx_, _ := s.authCtxs.LoadOrStore(cookie.Value, newAuthenticatedContext(cookie.Value))
 					ctx = ctx_.(*authenticatedContext)
 					ctx.L.Lock()
 					if ctx.WS != nil {
@@ -135,11 +143,17 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 						}.EncodeJSON())
 					}
 					ctx.StartPos = Chunk.encoderPos
+					startPos = Chunk.encoderPos
 					s.authCtxs.Store(cookie.Value, ctx)
 					ctx.L.Unlock()
 					defer func() {
 						ctx.L.Lock()
-						ctx.StartPos = defaultStartPos
+						if ctx.StartPos == startPos {
+							ctx.StartPos = defaultStartPos
+							if ctx.WS == nil {
+								s.authCtxs.Delete(ctx.ContextID)
+							}
+						}
 						ctx.L.Unlock()
 					}()
 				}
@@ -193,7 +207,7 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 	_ = ws.WriteMessage(websocket.TextMessage, getPlaying(s, wsMessage{}).EncodeJSON())
 	_ = ws.WriteMessage(websocket.TextMessage, getQueue(s, wsMessage{}).EncodeJSON())
 	if cookie, err := c.Cookie(cookieSessionID); err == nil && len(cookie.Value) > 0 {
-		ctx_, _ := s.authCtxs.LoadOrStore(cookie.Value, newAuthenticatedContext())
+		ctx_, _ := s.authCtxs.LoadOrStore(cookie.Value, newAuthenticatedContext(cookie.Value))
 		ctx := ctx_.(*authenticatedContext)
 		ctx.L.Lock()
 		ws.WriteMessage(websocket.TextMessage, Response{
@@ -207,7 +221,12 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 		ctx.L.Unlock()
 		defer func() {
 			ctx.L.Lock()
-			ctx.WS = nil
+			if ctx.WS == ws {
+				ctx.WS = nil
+				if ctx.StartPos == defaultStartPos {
+					s.authCtxs.Delete(ctx.ContextID)
+				}
+			}
 			ctx.L.Unlock()
 		}()
 	}
