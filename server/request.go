@@ -110,7 +110,6 @@ func enqueue(s *Server, msg wsMessage) Response {
 		return Response{
 			Operation: opClientRequestTrack,
 			Success:   true,
-			Reason:    "",
 			Data: map[string]interface{}{
 				"track": common.GetMetadata(track),
 			},
@@ -127,7 +126,6 @@ func getQueue(s *Server, msg wsMessage) Response {
 	return Response{
 		Operation: opClientRequestQueue,
 		Success:   true,
-		Reason:    "",
 		Data: map[string]interface{}{
 			"queue": tracks,
 		},
@@ -152,6 +150,9 @@ func removeTrack(s *Server, msg wsMessage) Response {
 		Data: map[string]interface{}{
 			"track": removedTrack,
 		},
+	}
+	if !resp.Success {
+		resp.Reason = "Failed to remove track"
 	}
 	if removed != nil {
 		s.webSocketAnnounce(resp.EncodeJSON())

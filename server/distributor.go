@@ -225,6 +225,7 @@ func (s *Server) setTrack(trackMeta common.TrackMetadata) {
 	s.currentTrackMeta.Store(trackMeta)
 	data := Response{
 		Operation: opSetClientsTrack,
+		Success:   true,
 		Data: map[string]interface{}{
 			"track":     trackMeta,
 			"pos":       <-s.deltaChannel,
@@ -236,6 +237,7 @@ func (s *Server) setTrack(trackMeta common.TrackMetadata) {
 func (s *Server) setListenerCount() {
 	data := Response{
 		Operation: opSetClientsListeners,
+		Success:   true,
 		Data: map[string]interface{}{
 			"listeners": atomic.LoadInt32(&s.listenersCount),
 		},

@@ -28,6 +28,7 @@ func (s *Server) enqueueCallback(value interface{}) {
 	s.cacheQueue.Enqueue(metadata)
 	data := Response{
 		Operation: opTrackEnqueued,
+		Success:   true,
 		Data: map[string]interface{}{
 			"track": metadata,
 		},
