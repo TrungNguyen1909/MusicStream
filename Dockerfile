@@ -23,7 +23,7 @@ WORKDIR /MusicStream/frontend
 RUN yarn && yarn --prod --frozen-lockfile build 
 
 # Stage 3: Build final image
-FROM alpine 
+FROM alpine AS final
 RUN apk --no-cache add ca-certificates tzdata libogg libvorbis opus opusfile lame
 COPY --from=build-env /bin/MusicStream /bin/MusicStream
 COPY --from=frontend /MusicStream/frontend/dist www
