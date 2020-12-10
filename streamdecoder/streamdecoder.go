@@ -22,7 +22,9 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 
+	"github.com/acomagu/bufpipe"
 	"github.com/ebml-go/webm"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
@@ -202,42 +204,25 @@ func NewOpusDecoder(stream io.Reader, sampleRate, channels int) (decoder *OpusDe
 //
 //BUG(TrungNguyen1909): The WebMDecoder will buffer the whole stream until close because webm requires a seekable stream.
 type WebMDecoder struct {
-	br          *io.PipeReader
-	bw          *io.PipeWriter
-	reader      *webm.Reader
-	meta        webm.WebM
-	o           *OpusDecoder
-	s           io.ReadSeeker
-	atrack      *webm.TrackEntry
-	initialized bool
+	br     *bufpipe.PipeReader
+	bw     *bufpipe.PipeWriter
+	reader *webm.Reader
+	meta   webm.WebM
+	o      *opus.Decoder
+	s      io.ReadSeeker
+	atrack *webm.TrackEntry
 }
 
 //Close closes the webm decoding stream and the underlying stream
 func (decoder *WebMDecoder) Close() (err error) {
 	decoder.reader.Shutdown()
-	decoder.o.Close()
 	if closer, ok := decoder.s.(io.Closer); ok {
 		err = closer.Close()
 	}
 	return
 }
-func (decoder *WebMDecoder) preload() {
-	decoder.initialized = true
-	for pkt := range decoder.reader.Chan {
-		if pkt.TrackNumber == decoder.atrack.TrackNumber {
-			_, _ = decoder.bw.Write(pkt.Data)
-		}
-		if pkt.Timecode == webm.BadTC || pkt.Timecode == webm.BadTC*2 {
-			break
-		}
-	}
-	decoder.bw.Close()
-}
 func (decoder *WebMDecoder) Read(p []byte) (n int, err error) {
-	if !decoder.initialized {
-		go decoder.preload()
-	}
-	return decoder.o.Read(p)
+	return decoder.br.Read(p)
 }
 
 //NewWebMDecoder returns a new 16bit/48khz PCM audio stream with the provided WebM stream
@@ -258,12 +243,34 @@ func NewWebMDecoder(stream io.ReadCloser) (decoder *WebMDecoder, err error) {
 		err = errors.WithStack(errors.New("Failed to get audio from webm/audio codec unsupported"))
 		return
 	}
-	br, bw := io.Pipe()
-	o, err := NewOpusDecoder(br, int(atrack.SamplingFrequency), int(atrack.Channels))
+	br, bw := bufpipe.New(nil)
+	o, err := opus.NewDecoder(int(atrack.SamplingFrequency), int(atrack.Channels))
 	if err != nil {
 		err = errors.WithStack(err)
 		return
 	}
+	go func() {
+		pcm := make([]int16, 5760)
+		buf := make([]byte, 5760)
+		for pkt := range decoder.reader.Chan {
+			if pkt.TrackNumber == decoder.atrack.TrackNumber {
+				n, err := o.Decode(pkt.Data, pcm)
+				if err != nil {
+					log.Println(err)
+					break
+				}
+				for i := 0; i < int(n*2); i++ {
+					buf[2*i] = byte(pcm[i])
+					buf[2*i+1] = byte(pcm[i] >> 8)
+				}
+				decoder.bw.Write(buf[:4*n])
+			}
+			if pkt.Timecode == webm.BadTC || pkt.Timecode == webm.BadTC*2 {
+				break
+			}
+		}
+		decoder.bw.Close()
+	}()
 	return &WebMDecoder{
 		s:      src,
 		reader: reader,
