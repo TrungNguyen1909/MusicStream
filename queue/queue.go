@@ -23,74 +23,69 @@ import (
 	"sync"
 )
 
-//Queue is a wrapper around container/list. Queue is atomic
+//Queue is a thread-safe FIFO queue data structure
 type Queue struct {
-	queue           *list.List
-	mux             sync.RWMutex
-	enqueued        *sync.Cond
-	EnqueueCallback func(interface{})
-	DequeueCallback func()
+	queue        *list.List
+	mux          sync.RWMutex
+	enqueued     *sync.Cond
+	PushCallback func(interface{})
+	PopCallback  func(interface{})
 }
 
-//Enqueue atomically inserts a new element e with value v to the back of queue c
-func (c *Queue) Enqueue(v interface{}) {
+//Push inserts a new element e with value v to the back of queue c
+func (c *Queue) Push(v interface{}) {
 	c.mux.Lock()
-	defer c.mux.Unlock()
 	c.queue.PushBack(v)
-	c.enqueued.Signal()
-	if c.EnqueueCallback != nil {
-		c.EnqueueCallback(v)
+	if c.PushCallback != nil {
+		c.PushCallback(v)
 	}
+	c.mux.Unlock()
+	c.enqueued.Signal()
 }
 
-//Dequeue atomically removes the back element of l. If the queue is empty, Dequeue waits for a new element to be enqueued and then removes it
-func (c *Queue) Dequeue() {
-	c.Pop()
-}
-
-//Front atomically fetch the front element of c
+//Front fetch the front element of c
 func (c *Queue) Front() interface{} {
-	if c.Size() <= 0 {
-		c.enqueued.L.Lock()
-		defer c.enqueued.L.Unlock()
+	c.enqueued.L.Lock()
+	defer c.enqueued.L.Unlock()
+	for c.Size() <= 0 {
 		c.enqueued.Wait()
 	}
 	c.mux.RLock()
 	defer c.mux.RUnlock()
-	val := c.queue.Front().Value
-	return val
+	ele := c.queue.Front()
+	return ele.Value
 }
 
-//Pop atomically removes the back element of l and returns it. If the queue is empty, Pop waits for a new element to be enqueued, removes it and returns the value
+//Pop removes the front element of l and returns it. If the queue is empty, Pop waits for a new element to be enqueued, removes it and returns the value
 func (c *Queue) Pop() interface{} {
-	if c.Size() <= 0 {
-		c.enqueued.L.Lock()
-		defer c.enqueued.L.Unlock()
+	c.enqueued.L.Lock()
+	defer c.enqueued.L.Unlock()
+	for c.Size() <= 0 {
 		c.enqueued.Wait()
 	}
 	c.mux.Lock()
 	defer c.mux.Unlock()
 	ele := c.queue.Front()
 	c.queue.Remove(ele)
-	if c.DequeueCallback != nil {
-		c.DequeueCallback()
+	if c.PopCallback != nil {
+		c.PopCallback(ele.Value)
 	}
 	return ele.Value
 }
 
-//Size atomically returns the number of elements in c
+//Size returns the number of elements in c
 func (c *Queue) Size() int {
 	c.mux.RLock()
 	defer c.mux.RUnlock()
 	return c.queue.Len()
 }
 
-//Empty atomically returns whether there's no elements in c
+//Empty returns whether there's no elements in c
 func (c *Queue) Empty() bool {
 	return c.Size() == 0
 }
 
-//Remove atomically removes and returns the first element that Predicate(element.Value) returns true
+//Remove removes and returns the first element that Predicate(element.Value) returns true
 func (c *Queue) Remove(Predicate func(v interface{}) bool) interface{} {
 	c.mux.Lock()
 	defer c.mux.Unlock()
@@ -105,8 +100,8 @@ func (c *Queue) Remove(Predicate func(v interface{}) bool) interface{} {
 	return nil
 }
 
-//GetElements atomically returns all the elements of c in a slice
-func (c *Queue) GetElements() (elements []interface{}) {
+//Values returns all the elements of c in a slice
+func (c *Queue) Values() (elements []interface{}) {
 	c.mux.RLock()
 	defer c.mux.RUnlock()
 	ele := c.queue.Front()
@@ -118,8 +113,8 @@ func (c *Queue) GetElements() (elements []interface{}) {
 	return
 }
 
-//NewQueue returns a new Queue
-func NewQueue() *Queue {
+//New returns a new empty Queue
+func New() *Queue {
 	return &Queue{
 		queue:    &list.List{},
 		enqueued: sync.NewCond(&sync.Mutex{}),

@@ -25,7 +25,7 @@ import (
 func (s *Server) enqueueCallback(value interface{}) {
 	track := value.(common.Track)
 	metadata := common.GetMetadata(track)
-	s.cacheQueue.Enqueue(metadata)
+	s.cacheQueue.Push(metadata)
 	data := Response{
 		Operation: opTrackEnqueued,
 		Success:   true,
@@ -35,7 +35,7 @@ func (s *Server) enqueueCallback(value interface{}) {
 	}
 	s.webSocketAnnounce(data.EncodeJSON())
 }
-func (s *Server) dequeueCallback() {
+func (s *Server) dequeueCallback(value interface{}) {
 	removed := s.cacheQueue.Pop().(common.TrackMetadata)
 	data := Response{
 		Operation: opClientRemoveTrack,

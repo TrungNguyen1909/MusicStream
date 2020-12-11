@@ -105,7 +105,7 @@ func enqueue(s *Server, msg wsMessage) Response {
 				Reason:    "Search Failed!",
 			}
 		}
-		s.playQueue.Enqueue(track)
+		s.playQueue.Push(track)
 		log.Printf("Track enqueued: %v - %v\n", track.Title(), track.Artist())
 		return Response{
 			Operation: opClientRequestTrack,
@@ -118,7 +118,7 @@ func enqueue(s *Server, msg wsMessage) Response {
 }
 
 func getQueue(s *Server, msg wsMessage) Response {
-	elements := s.cacheQueue.GetElements()
+	elements := s.cacheQueue.Values()
 	tracks := make([]common.TrackMetadata, len(elements))
 	for i, val := range elements {
 		tracks[i] = val.(common.TrackMetadata)

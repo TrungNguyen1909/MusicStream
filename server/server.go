@@ -198,10 +198,10 @@ func NewServer(config Config) *Server {
 		log.Println("[MXM] Failed to initalized source:", err)
 		err = nil
 	}
-	s.cacheQueue = queue.NewQueue()
-	s.playQueue = queue.NewQueue()
-	s.playQueue.EnqueueCallback = s.enqueueCallback
-	s.playQueue.DequeueCallback = s.dequeueCallback
+	s.cacheQueue = queue.New()
+	s.playQueue = queue.New()
+	s.playQueue.PushCallback = s.enqueueCallback
+	s.playQueue.PopCallback = s.dequeueCallback
 	if config.RadioEnabled {
 		s.radioTrack = radio.NewTrack()
 	}
