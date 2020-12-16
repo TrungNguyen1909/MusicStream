@@ -33,7 +33,7 @@ func (s *Server) enqueueCallback(value interface{}) {
 			"track": metadata,
 		},
 	}
-	s.webSocketAnnounce(data.EncodeJSON())
+	s.webSocketNotify(data)
 }
 func (s *Server) dequeueCallback(value interface{}) {
 	removed := s.cacheQueue.Pop().(common.TrackMetadata)
@@ -45,5 +45,5 @@ func (s *Server) dequeueCallback(value interface{}) {
 			"silent": true,
 		},
 	}
-	s.webSocketAnnounce(data.EncodeJSON())
+	s.webSocketNotify(data)
 }

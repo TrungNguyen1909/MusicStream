@@ -154,7 +154,7 @@ func removeTrack(s *Server, msg wsMessage) Response {
 		resp.Reason = "Failed to remove track"
 	}
 	if removed != nil {
-		s.webSocketAnnounce(resp.EncodeJSON())
+		s.webSocketNotify(resp)
 	}
 	return resp
 }
@@ -169,11 +169,11 @@ func skip(s *Server, msg wsMessage) Response {
 	}
 	s.skipFunc()
 	log.Println("Current song skipped!")
-	s.webSocketAnnounce((&Response{
+	s.webSocketNotify(Response{
 		Operation: opAllClientsSkip,
 		Success:   true,
 		Reason:    "Requested by client",
-	}).EncodeJSON())
+	})
 	return Response{
 		Operation: opClientRequestSkip,
 		Success:   true,

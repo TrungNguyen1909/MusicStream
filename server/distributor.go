@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"context"
 	"log"
+	"math/rand"
 	"sync/atomic"
 	"time"
 
@@ -215,7 +216,7 @@ func (s *Server) setTrack(trackMeta common.TrackMetadata) {
 			"listeners": atomic.LoadInt32(&s.listenersCount),
 		},
 	}
-	s.webSocketAnnounce(data.EncodeJSON())
+	s.webSocketNotify(data)
 }
 func (s *Server) setListenerCount() {
 	data := Response{
@@ -225,12 +226,15 @@ func (s *Server) setListenerCount() {
 			"listeners": atomic.LoadInt32(&s.listenersCount),
 		},
 	}
-	s.webSocketAnnounce(data.EncodeJSON())
+	s.webSocketNotify(data)
 }
-func (s *Server) webSocketAnnounce(msg []byte) {
+func (s *Server) webSocketNotify(response Response) {
+	if response.Nonce == 0 {
+		response.Nonce = int(rand.Int31())
+	}
 	s.connections.Range(func(key, value interface{}) bool {
 		ws := value.(*webSocket)
-		_ = ws.WriteMessage(websocket.TextMessage, msg)
+		_ = ws.WriteMessage(websocket.TextMessage, response.EncodeJSON())
 		return true
 	})
 }
