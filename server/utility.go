@@ -19,6 +19,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -27,7 +28,6 @@ import (
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-	"github.com/TrungNguyen1909/MusicStream/radio"
 )
 
 func (s *Server) selfPinger() {
@@ -75,7 +75,12 @@ func (s *Server) inactivityMonitor() {
 				log.Println("Waking up...")
 				s.streamMux.Unlock()
 				if s.radioTrack != nil {
-					go s.processRadio(s.quitRadio)
+					radioStreamContext, cancelRadio := context.WithCancel(context.TODO())
+					go s.processRadio(radioStreamContext)
+					if s.cancelRadio != nil {
+						s.cancelRadio()
+					}
+					s.cancelRadio = cancelRadio
 				}
 				s.activityWg.Done()
 				isStandby = false
@@ -84,10 +89,11 @@ func (s *Server) inactivityMonitor() {
 			log.Println("Inactivity. Standby...")
 			isStandby = true
 			s.activityWg.Add(1)
-			if _, ok := s.currentTrack.(*radio.Track); ok {
-				s.quitRadio <- 0
-			} else {
-				s.skipChannel <- 1
+			if s.skipFunc != nil {
+				s.skipFunc()
+			}
+			if s.cancelRadio != nil {
+				s.cancelRadio()
 			}
 			s.streamMux.Lock()
 			pos := int64(s.vorbisEncoder.GranulePos())

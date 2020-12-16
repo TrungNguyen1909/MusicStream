@@ -19,6 +19,7 @@
 package server
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"sync"
@@ -81,9 +82,9 @@ type Server struct {
 	mp3ChunkID           *int64
 	listenersCount       int32
 	bufferingChannel     chan *chunk
-	skipChannel          chan int
-	quitRadio            chan int
-	watchDog             int
+	streamContext        context.Context
+	skipFunc             context.CancelFunc
+	cancelRadio          context.CancelFunc
 	radioTrack           *radio.Track
 	defaultTrack         *common.DefaultTrack
 	startPos             int64
@@ -164,9 +165,7 @@ func NewServer(config Config) *Server {
 	s.mp3Subscribers = new(int64)
 	s.vorbisChunkID = new(int64)
 	s.mp3ChunkID = new(int64)
-	s.skipChannel = make(chan int, 500)
 	s.deltaChannel = make(chan int64, 1)
-	s.quitRadio = make(chan int, 10)
 	s.newListenerC = make(chan int, 1)
 	s.vorbisEncoder = vorbisencoder.NewEncoder(2, 48000, 320000)
 	s.oggHeader = make([]byte, 5000)

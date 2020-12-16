@@ -24,7 +24,6 @@ import (
 	"sync/atomic"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-	"github.com/TrungNguyen1909/MusicStream/radio"
 )
 
 func getPlaying(s *Server, msg wsMessage) Response {
@@ -161,21 +160,14 @@ func removeTrack(s *Server, msg wsMessage) Response {
 }
 
 func skip(s *Server, msg wsMessage) Response {
-	if _, ok := s.currentTrack.(*radio.Track); ok {
+	if s.skipFunc == nil || s.streamContext.Err() != nil {
 		return Response{
 			Operation: opClientRequestSkip,
 			Success:   false,
-			Reason:    "Please enqueue",
+			Reason:    "There's no track to be skipped",
 		}
 	}
-	if _, ok := s.currentTrack.(*common.DefaultTrack); ok {
-		return Response{
-			Operation: opClientRequestSkip,
-			Success:   false,
-			Reason:    "Please enqueue",
-		}
-	}
-	s.skipChannel <- 0
+	s.skipFunc()
 	log.Println("Current song skipped!")
 	s.webSocketAnnounce((&Response{
 		Operation: opAllClientsSkip,

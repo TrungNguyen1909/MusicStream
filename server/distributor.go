@@ -20,6 +20,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"log"
 	"sync/atomic"
 	"time"
@@ -42,7 +43,7 @@ func (s *Server) pushSilentFrames() {
 func (s *Server) endCurrentStream() {
 	s.bufferingChannel <- &chunk{buffer: nil}
 }
-func (s *Server) streamVorbis(encodedDuration chan time.Duration) chan *chunk {
+func (s *Server) streamVorbis(streamContext context.Context, encodedDuration chan time.Duration) chan *chunk {
 	var encodedTime time.Duration
 	var bufferedTime time.Duration
 	source := make(chan *chunk, 5000)
@@ -54,7 +55,7 @@ func (s *Server) streamVorbis(encodedDuration chan time.Duration) chan *chunk {
 		for {
 			var Chunk *chunk
 			select {
-			case <-encodedDuration:
+			case <-streamContext.Done():
 				for len(source) > 0 {
 					<-source
 				}
@@ -89,7 +90,7 @@ func (s *Server) streamVorbis(encodedDuration chan time.Duration) chan *chunk {
 	}()
 	return source
 }
-func (s *Server) streamMP3(encodedDuration chan time.Duration) chan *chunk {
+func (s *Server) streamMP3(streamContext context.Context, encodedDuration chan time.Duration) chan *chunk {
 	var encodedTime time.Duration
 	var bufferedTime time.Duration
 	source := make(chan *chunk, 5000)
@@ -102,7 +103,7 @@ func (s *Server) streamMP3(encodedDuration chan time.Duration) chan *chunk {
 		for {
 			var Chunk *chunk
 			select {
-			case <-encodedDuration:
+			case <-streamContext.Done():
 				for len(source) > 0 {
 					<-source
 				}
@@ -151,27 +152,18 @@ func (s *Server) streamMP3(encodedDuration chan time.Duration) chan *chunk {
 	}()
 	return source
 }
-func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time {
+func (s *Server) streamToClients(streamContext context.Context) time.Time {
 	start := time.Now()
 	interrupted := false
-	quitVorbis := make(chan time.Duration)
-	quitMP3 := make(chan time.Duration)
-	vorbisStream := s.streamVorbis(quitVorbis)
-	mp3Stream := s.streamMP3(quitMP3)
+	timeVorbis := make(chan time.Duration)
+	timeMP3 := make(chan time.Duration)
+	vorbisStream := s.streamVorbis(streamContext, timeVorbis)
+	mp3Stream := s.streamMP3(streamContext, timeMP3)
 	var vorbisTime, mp3Time time.Duration
 	for {
 		select {
-		case <-quit:
-			quitVorbis <- time.Duration(-1)
-			quitMP3 <- time.Duration(-1)
-			quitPreload <- 0
+		case <-streamContext.Done():
 			interrupted = true
-			for len(quit) > 0 {
-				select {
-				case <-quit:
-				default:
-				}
-			}
 		default:
 		}
 		if !interrupted {
@@ -194,24 +186,15 @@ func (s *Server) streamToClients(quit chan int, quitPreload chan int) time.Time 
 	if !interrupted {
 		for !interrupted {
 			select {
-			case <-quit:
-				quitVorbis <- time.Duration(-1)
-				quitMP3 <- time.Duration(-1)
-				for len(quit) > 0 {
-					select {
-					case <-quit:
-					default:
-					}
-				}
-				quit = nil
-			case vorbisTime = <-quitVorbis:
-				mp3Time = <-quitMP3
+			case <-streamContext.Done():
+			case vorbisTime = <-timeVorbis:
+				mp3Time = <-timeMP3
 				interrupted = true
 			}
 		}
 	} else {
-		vorbisTime = <-quitVorbis
-		mp3Time = <-quitMP3
+		vorbisTime = <-timeVorbis
+		mp3Time = <-timeMP3
 	}
 	streamTime := vorbisTime
 	if vorbisTime < mp3Time {

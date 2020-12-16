@@ -19,6 +19,7 @@
 package server
 
 import (
+	"context"
 	"io"
 	"log"
 	"sync/atomic"
@@ -28,13 +29,13 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/radio"
 )
 
-func (s *Server) encodeRadio(stream io.ReadCloser, quit chan int) (ended bool) {
+func (s *Server) encodeRadio(stream io.ReadCloser, streamContext context.Context) (ended bool) {
 	s.streamMux.Lock()
 	defer s.streamMux.Unlock()
 	defer stream.Close()
 	for {
 		select {
-		case <-quit:
+		case <-streamContext.Done():
 			return true
 		default:
 		}
@@ -46,19 +47,18 @@ func (s *Server) encodeRadio(stream io.ReadCloser, quit chan int) (ended bool) {
 		}
 	}
 }
-func (s *Server) preloadRadio(quit chan int) {
+func (s *Server) preloadRadio(streamContext context.Context) {
 	log.Println("Radio preloading started!")
 	defer s.endCurrentStream()
 	defer s.pushSilentFrames()
 	defer log.Println("Radio preloading stopped!")
-	quitRadioTrackUpdate := make(chan int, 1)
 	go func() {
 		firstTime := true
 		log.Println("Starting Radio track update")
 		defer log.Println("Stopped Radio track update")
 		for {
 			select {
-			case <-quitRadioTrackUpdate:
+			case <-streamContext.Done():
 				return
 			default:
 			}
@@ -69,7 +69,7 @@ func (s *Server) preloadRadio(quit chan int) {
 				metadata = common.GetMetadata(s.radioTrack)
 			} else {
 				select {
-				case <-quitRadioTrackUpdate:
+				case <-streamContext.Done():
 					return
 				case metadata = <-c:
 				}
@@ -87,19 +87,17 @@ func (s *Server) preloadRadio(quit chan int) {
 		if err != nil {
 			continue
 		}
-		if s.encodeRadio(stream, quit) {
+		if s.encodeRadio(stream, streamContext) {
 			break
 		}
 	}
-	quitRadioTrackUpdate <- 1
 }
-func (s *Server) processRadio(quit chan int) {
+func (s *Server) processRadio(streamContext context.Context) {
 	time.Sleep(time.Until(s.lastStreamEnded))
-	quitPreload := make(chan int, 10)
 	s.radioTrack.InitWS()
 	s.currentTrack = s.radioTrack
-	go s.preloadRadio(quitPreload)
+	go s.preloadRadio(streamContext)
 	defer s.radioTrack.CloseWS()
 	defer func() { log.Println("Resuming track streaming...") }()
-	s.lastStreamEnded = s.streamToClients(quit, quitPreload)
+	s.lastStreamEnded = s.streamToClients(streamContext)
 }

@@ -19,6 +19,7 @@
 package server
 
 import (
+	"context"
 	"io"
 	"log"
 	"sync/atomic"
@@ -27,7 +28,7 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/common"
 )
 
-func (s *Server) preloadTrack(stream io.ReadCloser, quit chan int) {
+func (s *Server) preloadTrack(stream io.ReadCloser, streamContext context.Context) {
 	s.streamMux.Lock()
 	defer s.streamMux.Unlock()
 	defer stream.Close()
@@ -41,7 +42,7 @@ func (s *Server) preloadTrack(stream io.ReadCloser, quit chan int) {
 	defer log.Println("Track preloading done")
 	for {
 		select {
-		case <-quit:
+		case <-streamContext.Done():
 			return
 		default:
 		}
@@ -56,16 +57,18 @@ func (s *Server) preloadTrack(stream io.ReadCloser, quit chan int) {
 func (s *Server) processTrack() {
 	defer func() {
 		if r := recover(); r != nil {
-			s.watchDog++
 			log.Println("processTrack Panicked:", r)
 		}
 	}()
 	var track common.Track
 	var err error
-	radioStarted := false
 	if s.playQueue.Empty() && s.radioTrack != nil {
-		radioStarted = true
-		go s.processRadio(s.quitRadio)
+		radioStreamContext, cancelRadio := context.WithCancel(context.TODO())
+		if s.cancelRadio != nil {
+			s.cancelRadio()
+		}
+		go s.processRadio(radioStreamContext)
+		s.cancelRadio = cancelRadio
 	} else if s.playQueue.Empty() {
 		s.currentTrack = s.defaultTrack
 		pos := int64(s.vorbisEncoder.GranulePos())
@@ -75,11 +78,10 @@ func (s *Server) processTrack() {
 	}
 	s.activityWg.Wait()
 	track = s.playQueue.Pop().(common.Track)
-	s.watchDog = 0
 	s.activityWg.Wait()
 	s.currentTrack = track
-	if radioStarted {
-		s.quitRadio <- 0
+	if s.cancelRadio != nil {
+		s.cancelRadio()
 	}
 	log.Printf("Playing %v - %v\n", track.Title(), track.Artist())
 	trackDict := common.GetMetadata(track)
@@ -99,14 +101,13 @@ func (s *Server) processTrack() {
 	if err != nil {
 		log.Panic("track.Stream:", err)
 	}
-	quit := make(chan int, 10)
-	go s.preloadTrack(stream, quit)
-	for len(s.skipChannel) > 0 {
-		<-s.skipChannel
-	}
+	streamContext, skipFunc := context.WithCancel(context.TODO())
+	go s.preloadTrack(stream, streamContext)
 	time.Sleep(time.Until(s.lastStreamEnded))
 	s.startTime = time.Now()
 	s.setTrack(trackDict)
-	s.lastStreamEnded = s.streamToClients(s.skipChannel, quit)
-	s.watchDog = 0
+	s.streamContext = streamContext
+	s.skipFunc = skipFunc
+	s.lastStreamEnded = s.streamToClients(streamContext)
+	s.skipFunc()
 }
