@@ -38,8 +38,9 @@ Installation
 
 - Run `./MusicStream` to start the server
 
-- By default, the server listens at port `:8080`, but you can set that in `$PORT`
+- By default, the server listens at port `:8080`, change that by setting `$PORT`
 
+- By default, the server servers static files from `www/`, change the serving directory by setting `$WWW`
 ## Prebuilt binaries
 
 - Prebuilt binaries of tags are available from the Releases tab.
@@ -59,7 +60,7 @@ Enviroment variables are also loaded from `.env` file, if exists
 - Login to Musixmatch on your browser
 - Find the usertoken, which is the cookies named `musixmatchUsertoken` and `OB-USER-TOKEN`
 - Put their values into enviroment variables named `MUSIXMATCH_USER_TOKEN` and `MUSIXMATCH_OB_USER_TOKEN`, respectively
-- The `MUSIXMATCH_OB_USER_TOKEN` is optional and can be omited if you get the usertoken from the Musixmatch's client app.
+- The `MUSIXMATCH_OB_USER_TOKEN` is optional and can be omited if you can get the usertoken from the Musixmatch's client app.
 
 ## Youtube
 - Get Youtube Data API v3 key from Google Cloud Console and put in the environment variable named `YOUTUBE_DEVELOPER_KEY`
@@ -73,4 +74,4 @@ Enviroment variables are also loaded from `.env` file, if exists
 - To stream from listen.moe when there's no tracks in queue to fill the silence, set environment variable `RADIO_ENABLED` to `1`
 
 ## Frontend static files serving path
-- The default path will be served is `www`, if you want to serve from another directory, set environment variable `WWW` to the path to that directory
+- The default path will be served is `www/`, if you want to serve from another directory, set environment variable `WWW` to the path to that directory
