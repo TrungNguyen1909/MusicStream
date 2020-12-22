@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"os"
+	"path/filepath"
+	"plugin"
 
 	"github.com/TrungNguyen1909/MusicStream"
 	"github.com/TrungNguyen1909/MusicStream/server"
@@ -11,20 +13,8 @@ import (
 
 func main() {
 	var config server.Config
-	if deezerARL, ok := os.LookupEnv("DEEZER_ARL"); !ok {
-		log.Println("Warning: Deezer token not found")
-	} else {
-		config.DeezerARL = deezerARL
-	}
-	if spotifyClientID, ok := os.LookupEnv("SPOTIFY_CLIENT_ID"); !ok {
-		log.Println("Warning: no spotify token found")
-	} else {
-		if spotifyClientSecret, ok := os.LookupEnv("SPOTIFY_CLIENT_SECRET"); !ok {
-			log.Println("Warning: no spotify token found")
-		} else {
-			config.SpotifyClientID = spotifyClientID
-			config.SpotifyClientSecret = spotifyClientSecret
-		}
+	if staticFilesPath, ok := os.LookupEnv("WWW"); ok && len(staticFilesPath) > 0 {
+		config.StaticFilesPath = staticFilesPath
 	}
 	if mxmUserToken, ok := os.LookupEnv("MUSIXMATCH_USER_TOKEN"); !ok {
 		log.Println("Warning: Musixmatch token not found")
@@ -34,17 +24,16 @@ func main() {
 			config.MusixMatchOBUserToken = mxmOBUserToken
 		}
 	}
-
-	if ytDevKey, ok := os.LookupEnv("YOUTUBE_DEVELOPER_KEY"); !ok {
-		log.Println("Warning: Youtube Data API v3 key not found")
-	} else {
-		config.YoutubeDeveloperKey = ytDevKey
+	pluginsPath, err := filepath.Glob("plugins/**/*.plugin")
+	if err != nil {
+		log.Panic("Cannot find any plugins")
 	}
-	if radioEnabled, ok := os.LookupEnv("RADIO_ENABLED"); ok && radioEnabled == "1" {
-		config.RadioEnabled = true
-	}
-	if staticFilesPath, ok := os.LookupEnv("WWW"); ok && len(staticFilesPath) > 0 {
-		config.StaticFilesPath = staticFilesPath
+	for _, path := range pluginsPath {
+		p, err := plugin.Open(path)
+		if err != nil {
+			log.Println("plugin.Open: ", err)
+		}
+		config.Plugins = append(config.Plugins, p)
 	}
 	port, ok := os.LookupEnv("PORT")
 	if !ok {

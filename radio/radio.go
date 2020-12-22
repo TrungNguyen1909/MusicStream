@@ -30,7 +30,6 @@ import (
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
 	"github.com/gorilla/websocket"
 )
 
@@ -74,10 +73,8 @@ func (track *Track) Album() string {
 	defer track.mux.RUnlock()
 	return track.album
 }
-
-//Source returns Radio
-func (track *Track) Source() int {
-	return common.Radio
+func (track *Track) IsRadio() bool {
+	return true
 }
 
 //Artist returns the artist's name of currently playing track on radio, if known
@@ -150,16 +147,12 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 }
 
 //Stream returns a 16/48 pcm stream of the track
-func (track *Track) Stream() (io.ReadCloser, error) {
+func (track *Track) Stream() (*common.Stream, error) {
 	stream, err := track.Download()
 	if err != nil {
 		return nil, err
 	}
-	stream, err = streamdecoder.NewVorbisDecoder(stream)
-	if err != nil {
-		return nil, err
-	}
-	return stream, nil
+	return &common.Stream{Format: common.VorbisStream, Body: stream}, nil
 }
 
 //PlayID returns 0

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package youtube
+package main
 
 import (
 	"encoding/json"
@@ -27,13 +27,16 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
 	"github.com/kkdai/youtube/v2"
 	"github.com/pkg/errors"
 )
+
+var Name string = "Youtube"
+var DisplayName string = "YT"
 
 type youtubeResponse struct {
 	Etag  string `json:"etag"`
@@ -109,9 +112,8 @@ func (track *Track) Album() string {
 	return ""
 }
 
-//Source returns the track's source
-func (track *Track) Source() int {
-	return common.Youtube
+func (track *Track) IsRadio() bool {
+	return false
 }
 
 //Artist returns the track's main artist
@@ -159,16 +161,12 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 }
 
 //Stream returns a 16/48 pcm stream of the track
-func (track *Track) Stream() (io.ReadCloser, error) {
+func (track *Track) Stream() (*common.Stream, error) {
 	stream, err := track.Download()
 	if err != nil {
 		return nil, err
 	}
-	stream, err = streamdecoder.NewWebMDecoder(stream)
-	if err != nil {
-		return nil, err
-	}
-	return stream, nil
+	return &common.Stream{Format: common.WebMStream, Body: stream}, nil
 }
 
 //Populate populates metadata for Download
@@ -220,13 +218,13 @@ type Client struct {
 	apiKey string
 }
 
-func (client *Client) getLyricsWithLang(id, lang, name string) (result []line, err error) {
-	if len(id) == 0 || len(lang) == 0 {
+func (track *Track) getLyricsWithLang(lang, name string) (result []line, err error) {
+	if len(track.ID()) == 0 || len(lang) == 0 {
 		return nil, errors.WithStack(errors.New("Invalid Arguments"))
 	}
 	reqURL, _ := url.Parse("https://www.youtube.com/api/timedtext?fmt=srv1")
 	queries := reqURL.Query()
-	queries.Add("v", id)
+	queries.Add("v", track.ID())
 	queries.Add("lang", lang)
 	queries.Add("name", name)
 	reqURL.RawQuery = queries.Encode()
@@ -243,8 +241,15 @@ func (client *Client) getLyricsWithLang(id, lang, name string) (result []line, e
 	return t.Lines, nil
 }
 
+func (client *Client) Name() string {
+	return Name
+}
+func (client *Client) DisplayName() string {
+	return DisplayName
+}
+
 //GetLyrics returns the subtitle for a video id
-func (client *Client) GetLyrics(id string) (result common.LyricsResult, err error) {
+func (track *Track) GetLyrics() (result common.LyricsResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			e, ok := r.(error)
@@ -256,7 +261,7 @@ func (client *Client) GetLyrics(id string) (result common.LyricsResult, err erro
 	}()
 	reqURL, _ := url.Parse("https://video.google.com/timedtext?hl=en&type=list")
 	queries := reqURL.Query()
-	queries.Add("v", id)
+	queries.Add("v", track.ID())
 	reqURL.RawQuery = queries.Encode()
 	response, err := http.DefaultClient.Get(reqURL.String())
 	if err != nil {
@@ -290,8 +295,8 @@ func (client *Client) GetLyrics(id string) (result common.LyricsResult, err erro
 			}
 		}
 	}
-	def, _ := client.getLyricsWithLang(id, defaultLang, defaultLangName)
-	trans, _ := client.getLyricsWithLang(id, translatedLang, translatedLangName)
+	def, _ := track.getLyricsWithLang(defaultLang, defaultLangName)
+	trans, _ := track.getLyricsWithLang(translatedLang, translatedLangName)
 	if len(def) == 0 {
 		return
 	}
@@ -404,7 +409,8 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 }
 
 //NewClient returns a new Client with the provided Youtube Developer API key
-func NewClient(DeveloperAPIKey string) (client *Client, err error) {
+func NewClient() (client common.MusicSource, err error) {
+	DeveloperAPIKey := os.Getenv("YOUTUBE_DEVELOPER_KEY")
 	if len(DeveloperAPIKey) <= 0 {
 		return nil, errors.WithStack(errors.New("Please provide Youtube Data API v3 key"))
 	}

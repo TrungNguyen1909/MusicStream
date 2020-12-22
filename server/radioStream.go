@@ -87,7 +87,11 @@ func (s *Server) preloadRadio(streamContext context.Context) {
 		if err != nil {
 			continue
 		}
-		if s.encodeRadio(stream, streamContext) {
+		rawStream, err := GetRawStream(stream)
+		if err != nil {
+			continue
+		}
+		if s.encodeRadio(rawStream, streamContext) {
 			break
 		}
 	}

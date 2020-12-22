@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package csn
+package main
 
 import (
 	"encoding/json"
@@ -29,9 +29,11 @@ import (
 	"strings"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
-	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
 	"github.com/pkg/errors"
 )
+
+var Name string = "ChiaSeNhac"
+var DisplayName string = "CSN"
 
 type csnTrack struct {
 	ID              json.Number `json:"music_id"`
@@ -74,10 +76,8 @@ func (track *Track) Title() string {
 func (track *Track) Album() string {
 	return track.csnTrack.Album
 }
-
-//Source returns the track's source
-func (track *Track) Source() int {
-	return common.CSN
+func (track *Track) IsRadio() bool {
+	return false
 }
 
 //Artist returns the track's main artist
@@ -125,16 +125,12 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 }
 
 //Stream returns a 16/48 pcm stream of the track
-func (track *Track) Stream() (io.ReadCloser, error) {
+func (track *Track) Stream() (*common.Stream, error) {
 	stream, err := track.Download()
 	if err != nil {
 		return nil, err
 	}
-	stream, err = streamdecoder.NewMP3Decoder(stream)
-	if err != nil {
-		return nil, err
-	}
-	return stream, nil
+	return &common.Stream{Format: common.MP3Stream, Body: stream}, nil
 }
 
 //SpotifyURI returns the track's equivalent spotify song, if known
@@ -243,6 +239,13 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 	return
 }
 
+func (client *Client) Name() string {
+	return Name
+}
+func (client *Client) DisplayName() string {
+	return DisplayName
+}
+
 //Populate populates the required metadata for downloading the track
 func (track *Track) Populate() (err error) {
 	queryURL, _ := url.Parse("http://old.chiasenhac.vn/api/listen.php?code=csn22052018&return=json")
@@ -272,7 +275,7 @@ func (track *Track) Populate() (err error) {
 }
 
 //NewClient returns a new CSN Client
-func NewClient() (*Client, error) {
+func NewClient() (common.MusicSource, error) {
 	pattern, _ := regexp.Compile(`loadPlayList\((\d+)\)`)
 	return &Client{pattern: pattern}, nil
 }

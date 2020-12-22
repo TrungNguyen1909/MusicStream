@@ -19,13 +19,26 @@
 package server
 
 import (
-	"errors"
 	"log"
 	"sync/atomic"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
 )
 
+func getSourcesList(s *Server, msg wsMessage) Response {
+	result := make([]common.MusicSourceInfo, len(s.sources))
+	for i, v := range s.sources {
+		result[i] = common.GetMusicSourceInfo(v)
+		result[i].ID = i
+	}
+	return Response{
+		Operation: opListSources,
+		Success:   true,
+		Data: map[string]interface{}{
+			"sources": result,
+		},
+	}
+}
 func getPlaying(s *Server, msg wsMessage) Response {
 	return Response{
 		Operation: opSetClientsTrack,
@@ -58,27 +71,15 @@ func enqueue(s *Server, msg wsMessage) Response {
 		}
 	}
 	var tracks []common.Track
-	log.Printf("Client Queried: %s", msg.Query)
-	switch msg.Selector {
-	case common.CSN:
-		if s.csnClient != nil {
-			tracks, err = s.csnClient.Search(msg.Query)
-		} else {
-			err = errors.New("[CSN] Source not configured")
-		}
-	case common.Youtube:
-		if s.ytClient != nil {
-			tracks, err = s.ytClient.Search(msg.Query)
-		} else {
-			err = errors.New("[YT] Source not configured")
-		}
-	default:
-		if s.dzClient != nil {
-			tracks, err = s.dzClient.SearchTrack(msg.Query, "")
-		} else {
-			err = errors.New("[DZ] Source not configured")
+	if msg.Selector < 0 || msg.Selector >= len(s.sources) {
+		return Response{
+			Operation: opClientRequestTrack,
+			Success:   false,
+			Reason:    "Invalid source!",
 		}
 	}
+	log.Printf("Client Queried: Source: %s: %s", s.sources[msg.Selector].Name(), msg.Query)
+	tracks, err = s.sources[msg.Selector].Search(msg.Query)
 	switch {
 	case err != nil:
 		log.Println("SearchTrack Failed:", err)

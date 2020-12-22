@@ -60,3 +60,4 @@ MusicStream
 frontend/node_modules
 frontend/.cache
 frontend/dist
+*.plugin

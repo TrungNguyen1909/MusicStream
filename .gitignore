@@ -1,5 +1,10 @@
+# Plugins
+/plugins/**/*.*
+!/plugins/csn/**/*.*
+!/plugins/youtube/**/*.*
 /server_py/
 /pkg/
+
 # Created by https://www.gitignore.io/api/go,macos
 # Edit at https://www.gitignore.io/?templates=go,macos
 
@@ -10,6 +15,7 @@
 *.dll
 *.so
 *.dylib
+*.plugin
 
 # Test binary, built with `go test -c`
 *.test

@@ -110,7 +110,7 @@ type Client struct {
 }
 
 //GetLyrics returns the lyrics of the song with provided information
-func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI string, duration int) (result common.LyricsResult, err error) {
+func (client *Client) GetLyrics(track common.Track) (result common.LyricsResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("musixmatch.Client.GetLyrics: %v\n", r)
@@ -124,20 +124,20 @@ func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI 
 	if len(client.obUserToken) > 0 {
 		queries.Add("OB-USER-TOKEN", client.obUserToken)
 	}
-	queries.Add("q_track", track)
-	queries.Add("q_artist", artist)
-	if len(artists) > 0 {
-		queries.Add("q_artists", artists)
+	queries.Add("q_track", track.Title())
+	queries.Add("q_artist", track.Artist())
+	if len(track.Artists()) > 0 {
+		queries.Add("q_artists", track.Artists())
 	} else {
-		queries.Add("q_artists", artist)
+		queries.Add("q_artists", track.Artist())
 	}
-	queries.Add("q_album", album)
-	if duration > 0 {
-		queries.Add("q_duration", strconv.Itoa(duration))
-		queries.Add("f_subtitle_length", strconv.Itoa(duration))
+	queries.Add("q_album", track.Album())
+	if track.Duration() > 0 {
+		queries.Add("q_duration", strconv.Itoa(track.Duration()))
+		queries.Add("f_subtitle_length", strconv.Itoa(track.Duration()))
 	}
-	if len(SpotifyURI) > 0 {
-		queries.Add("track_spotify_id", SpotifyURI)
+	if len(track.SpotifyURI()) > 0 {
+		queries.Add("track_spotify_id", track.SpotifyURI())
 	}
 	reqURL.RawQuery = queries.Encode()
 	req, _ := http.NewRequest("GET", reqURL.String(), nil)
@@ -195,13 +195,9 @@ func (client *Client) GetLyrics(track, artist, album, artists, ISRC, SpotifyURI 
 		}
 	}
 	if n := len(result.SyncedLyrics); n > 0 && (result.SyncedLyrics[n-1].Text != "" || result.SyncedLyrics[n-1].Translated != "" || result.SyncedLyrics[n-1].Original != "") {
-		addTime := 10.0
-		if duration > 0 {
-			addTime = float64(duration) - result.SyncedLyrics[n-1].Time.Total
-		}
 		result.SyncedLyrics = append(result.SyncedLyrics, common.LyricsLine{
 			Time: common.LyricsTime{
-				Total: result.SyncedLyrics[n-1].Time.Total + addTime,
+				Total: result.SyncedLyrics[n-1].Time.Total + 10.0,
 			},
 		})
 	}

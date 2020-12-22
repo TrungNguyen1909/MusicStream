@@ -25,21 +25,25 @@ import (
 	"github.com/pkg/errors"
 )
 
+type StreamFormat int
+
 const (
-	//Radio (listen.moe) Source
-	Radio = 0
-	//Deezer Source
-	Deezer = 1
-	//CSN Source
-	CSN = 2
-	//Youtube Source
-	Youtube = 3
+	RawStream = iota
+	MP3Stream
+	WebMStream
+	VorbisStream
 )
+
+//Stream is an encoded audio stream
+type Stream struct {
+	Format int
+	Body   io.ReadCloser
+}
 
 //Track represents a track from any sources
 type Track interface {
 	ID() string
-	Source() int
+	IsRadio() bool
 	Title() string
 	Artist() string
 	Artists() string
@@ -51,14 +55,19 @@ type Track interface {
 	SpotifyURI() string
 	PlayID() string
 	Populate() error
-	Download() (io.ReadCloser, error)
-	Stream() (io.ReadCloser, error)
+	Stream() (*Stream, error)
+}
+
+//TrackWithLyrics is a track that is responsible for fetching its own lyrics
+type TrackWithLyrics interface {
+	Track
+	GetLyrics() (LyricsResult, error)
 }
 
 //TrackMetadata contains essential informations about a track for client
 type TrackMetadata struct {
 	Title      string       `json:"title"`
-	Source     int          `json:"source"`
+	IsRadio    bool         `json:"is_radio"`
 	Duration   int          `json:"duration"`
 	Artist     string       `json:"artist"`
 	Artists    string       `json:"artists"`
@@ -75,7 +84,7 @@ type TrackMetadata struct {
 func GetMetadata(track Track) (d TrackMetadata) {
 	d = TrackMetadata{}
 	d.Title = track.Title()
-	d.Source = track.Source()
+	d.IsRadio = track.IsRadio()
 	d.Duration = track.Duration()
 	d.Artist = track.Artist()
 	d.Artists = track.Artists()
@@ -124,8 +133,8 @@ func (track *DefaultTrack) ID() string {
 	return "0"
 }
 
-func (track *DefaultTrack) Source() int {
-	return Radio
+func (track *DefaultTrack) IsRadio() bool {
+	return true
 }
 
 func (track *DefaultTrack) Title() string {
@@ -174,7 +183,28 @@ func (track *DefaultTrack) Download() (io.ReadCloser, error) {
 	return nil, errors.WithStack(errors.New("not implemented"))
 }
 
-//Stream returns a 16/48 pcm stream of the track
-func (track *DefaultTrack) Stream() (io.ReadCloser, error) {
+//Stream is intentionally not implemented on this track type
+func (track *DefaultTrack) Stream() (*Stream, error) {
 	return nil, errors.WithStack(errors.New("not implemented"))
+}
+
+//MusicSource is an interface for a music source
+type MusicSource interface {
+	Search(query string) ([]Track, error)
+	Name() string
+	DisplayName() string
+}
+
+//MusicSourceInfo contains information about a music source
+type MusicSourceInfo struct {
+	//Name is the full name of the source
+	Name string `json:"name"`
+	//DisplayName is the shortened name of the source, used to display on search bar
+	DisplayName string `json:"display_name"`
+	//ID is the source's id, assigned by the server, used for querying tracks
+	ID int `json:"id"`
+}
+
+func GetMusicSourceInfo(s MusicSource) MusicSourceInfo {
+	return MusicSourceInfo{Name: s.Name(), DisplayName: s.DisplayName()}
 }

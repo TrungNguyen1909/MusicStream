@@ -12,16 +12,15 @@ Listen to music together with your friends from everywhere, at the same time
 
 - _Synchronized_ music streaming from multiple sources across clients
 
-- _Time-synced_ lyrics with English translation
+- _Time-synced_ lyrics with translation
 
-### Supported music sources
-  - Deezer
+### Builtin music sources
   - chiasenhac.vn
-  - Youtube
+  - Youtube (with subtitle support)
+  - Other sources: checkout [PLUGINS.md](https://github.com/TrungNguyen1909/MusicStream/blob/master/docs/PLUGINS.md)
 
 ### Supported lyrics sources
   - MusixMatch
-  - Youtube subtitles
 
 ### Supported browsers
   - Chromium-based

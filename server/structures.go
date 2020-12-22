@@ -20,22 +20,25 @@ package server
 
 import (
 	"encoding/json"
+	"io"
+	"plugin"
 	"sync"
 
+	"github.com/TrungNguyen1909/MusicStream/common"
+	"github.com/TrungNguyen1909/MusicStream/streamdecoder"
 	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 )
 
-//Config contains the API keys for Server
+//Config contains Server's configuration
 type Config struct {
-	DeezerARL             string
 	MusixMatchUserToken   string
 	MusixMatchOBUserToken string
-	YoutubeDeveloperKey   string
-	SpotifyClientID       string
-	SpotifyClientSecret   string
+	Plugins               []*plugin.Plugin
 	RadioEnabled          bool
 	StaticFilesPath       string
 }
+
 type chunk struct {
 	buffer     []byte
 	encoderPos int64
@@ -96,3 +99,34 @@ func (r Response) EncodeJSON() []byte {
 
 //RequestHandler is a function that handles a request from user.
 type RequestHandler func(s *Server, msg wsMessage) Response
+
+//GetRawStream returns a decoded stream from a common.Stream
+func GetRawStream(s *common.Stream) (stream io.ReadCloser, err error) {
+	if s.Body == nil {
+		return nil, errors.New("Invalid stream")
+	}
+	switch s.Format {
+	case common.RawStream:
+		return s.Body, nil
+	case common.MP3Stream:
+		stream, err = streamdecoder.NewMP3Decoder(s.Body)
+		if err != nil {
+			stream = nil
+		}
+		return
+	case common.WebMStream:
+		stream, err = streamdecoder.NewWebMDecoder(s.Body)
+		if err != nil {
+			stream = nil
+		}
+		return
+	case common.VorbisStream:
+		stream, err = streamdecoder.NewVorbisDecoder(s.Body)
+		if err != nil {
+			stream = nil
+		}
+		return
+
+	}
+	return nil, errors.New("Unsupported stream format")
+}

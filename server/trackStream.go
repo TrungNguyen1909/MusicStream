@@ -85,24 +85,31 @@ func (s *Server) processTrack() {
 	}
 	log.Printf("Playing %v - %v\n", track.Title(), track.Artist())
 	trackDict := common.GetMetadata(track)
-	var mxmlyrics common.LyricsResult
-	if track.Source() != common.Youtube && s.mxmClient != nil {
-		mxmlyrics, err = s.mxmClient.GetLyrics(track.Title(), track.Artist(), track.Album(), track.Artists(), track.ISRC(), track.SpotifyURI(), track.Duration())
-		if err == nil {
-			trackDict.Lyrics = mxmlyrics
+	if ltrack, ok := track.(common.TrackWithLyrics); ok {
+		lyrics, err := ltrack.GetLyrics()
+		if err != nil {
+			log.Println("track.GetLyrics: ", err)
+		} else {
+			trackDict.Lyrics = lyrics
 		}
-	} else if track.Source() == common.Youtube {
-		ytsub, err := s.ytClient.GetLyrics(track.ID())
-		if err == nil {
-			trackDict.Lyrics = ytsub
+	} else if s.mxmClient != nil {
+		lyrics, err := s.mxmClient.GetLyrics(track)
+		if err != nil {
+			log.Println("s.mxmClient.GetLyrics: ", err)
+		} else {
+			trackDict.Lyrics = lyrics
 		}
 	}
 	stream, err := track.Stream()
 	if err != nil {
-		log.Panic("track.Stream:", err)
+		log.Panic("track.Stream: ", err)
+	}
+	rawStream, err := GetRawStream(stream)
+	if err != nil {
+		log.Panic("track.Stream: ", err)
 	}
 	streamContext, skipFunc := context.WithCancel(context.TODO())
-	go s.preloadTrack(stream, streamContext)
+	go s.preloadTrack(rawStream, streamContext)
 	time.Sleep(time.Until(s.lastStreamEnded))
 	s.startTime = time.Now()
 	s.setTrack(trackDict)

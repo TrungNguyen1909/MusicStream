@@ -28,30 +28,28 @@ import (
 
 	"github.com/TrungNguyen1909/MusicStream"
 	"github.com/TrungNguyen1909/MusicStream/common"
-	"github.com/TrungNguyen1909/MusicStream/csn"
-	"github.com/TrungNguyen1909/MusicStream/deezer"
 	"github.com/TrungNguyen1909/MusicStream/mp3encoder"
 	"github.com/TrungNguyen1909/MusicStream/mxmlyrics"
 	"github.com/TrungNguyen1909/MusicStream/queue"
 	"github.com/TrungNguyen1909/MusicStream/radio"
 	"github.com/TrungNguyen1909/MusicStream/vorbisencoder"
-	"github.com/TrungNguyen1909/MusicStream/youtube"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
 const (
-	opSetClientsTrack     = 1
-	opAllClientsSkip      = 2
-	opClientRequestTrack  = 3
-	opClientRequestSkip   = 4
-	opSetClientsListeners = 5
-	opTrackEnqueued       = 6
-	opClientRequestQueue  = 7
-	opWebSocketKeepAlive  = 8
-	opClientRemoveTrack   = 9
-	opClientAudioStartPos = 10
+	opListSources         = 1
+	opSetClientsTrack     = 2
+	opAllClientsSkip      = 3
+	opClientRequestTrack  = 4
+	opClientRequestSkip   = 5
+	opSetClientsListeners = 6
+	opTrackEnqueued       = 7
+	opClientRequestQueue  = 8
+	opWebSocketKeepAlive  = 9
+	opClientRemoveTrack   = 10
+	opClientAudioStartPos = 11
 )
 
 const (
@@ -65,10 +63,7 @@ type Server struct {
 	connections          sync.Map
 	currentTrack         common.Track
 	currentTrackMeta     atomic.Value
-	dzClient             *deezer.Client
-	ytClient             *youtube.Client
 	mxmClient            *mxmlyrics.Client
-	csnClient            *csn.Client
 	playQueue            *queue.Queue
 	currentVorbisChannel int
 	currentMP3Channel    int
@@ -101,6 +96,7 @@ type Server struct {
 	messageHandlers      map[int]RequestHandler
 	processedNonce       sync.Map
 	authCtxs             sync.Map
+	sources              []common.MusicSource
 }
 
 //AddMessageHandler registers a new message handler for the specified opcode
@@ -177,20 +173,40 @@ func NewServer(config Config) *Server {
 	s.mp3Header = s.mp3Header[:n]
 
 	var err error
-	s.dzClient, err = deezer.NewClient(config.DeezerARL, config.SpotifyClientID, config.SpotifyClientSecret)
-	if err != nil {
-		log.Println("[DZ] Failed to initalized source:", err)
-		err = nil
+	log.Println("[Sources] initializing source plugins")
+	for _, p := range config.Plugins {
+		sName, err := p.Lookup("Name")
+		if err != nil {
+			log.Println("[Sources] Failed to lookup plugin's name")
+			continue
+		}
+		name, ok := sName.(*string)
+		if !ok {
+			log.Println("[Sources] Failed to read plugin's name")
+			continue
+		}
+		sNewClient, err := p.Lookup("NewClient")
+		if err != nil {
+			log.Printf("[Sources] Failed to lookup plugin %s's NewClient", *name)
+			continue
+		}
+		newClient, ok := sNewClient.(func() (common.MusicSource, error))
+		if newClient == nil && !ok {
+			log.Printf("[Sources] Plugin %s's NewClient's signature is incorrect", *name)
+			continue
+		}
+		client, err := newClient()
+		if client == nil || err != nil {
+			log.Printf("[Sources] NewClient failed on plugin %s: %s", *name, err)
+			continue
+		}
+		s.sources = append(s.sources, client)
+		log.Printf("[Sources] Successfully loaded plugin %s", *name)
 	}
-	s.csnClient, err = csn.NewClient()
-	if err != nil {
-		log.Println("[CSN] Failed to initalized source:", err)
-		err = nil
-	}
-	s.ytClient, err = youtube.NewClient(config.YoutubeDeveloperKey)
-	if err != nil {
-		log.Println("[YT] Failed to initalized source:", err)
-		err = nil
+	if len(s.sources) <= 0 {
+		log.Panic("[ERROR] No sources intialized")
+	} else {
+		log.Printf("Loaded %d sources", len(s.sources))
 	}
 	s.mxmClient, err = mxmlyrics.NewClient(config.MusixMatchUserToken, config.MusixMatchOBUserToken)
 	if err != nil {
@@ -234,6 +250,7 @@ func NewServer(config Config) *Server {
 	s.server.HTTPErrorHandler = s.HandleError
 	s.server.HideBanner = true
 	s.messageHandlers = make(map[int]RequestHandler)
+	s.AddMessageHandler(opListSources, getSourcesList)
 	s.AddMessageHandler(opSetClientsTrack, getPlaying)
 	s.AddMessageHandler(opClientRequestTrack, enqueue)
 	s.AddMessageHandler(opClientRequestSkip, skip)
@@ -248,6 +265,7 @@ func NewServer(config Config) *Server {
 	s.server.GET("/fallback", s.audioHandler)
 	s.server.GET("/status", s.wsHandler)
 	s.server.GET("/playing", s.playingHandler)
+	s.server.GET("/sources", s.listSourcesHandler)
 	s.server.GET("/skip", s.skipHandler)
 	s.server.POST("/remove", s.removeTrackHandler)
 	s.server.GET("/queue", s.queueHandler)

@@ -204,6 +204,7 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 	defer ws.Close()
 	defer s.connections.Delete(ws)
 	s.newListenerC <- 1
+	_ = ws.WriteMessage(websocket.TextMessage, getSourcesList(s, wsMessage{}).EncodeJSON())
 	_ = ws.WriteMessage(websocket.TextMessage, getPlaying(s, wsMessage{}).EncodeJSON())
 	_ = ws.WriteMessage(websocket.TextMessage, getQueue(s, wsMessage{}).EncodeJSON())
 	if cookie, err := c.Cookie(cookieSessionID); err == nil && len(cookie.Value) > 0 {
@@ -251,6 +252,14 @@ func (s *Server) wsHandler(c echo.Context) (err error) {
 	return
 }
 
+func (s *Server) listSourcesHandler(c echo.Context) (err error) {
+	w := c.Response()
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
+	_, _ = w.Write(s.handleMessage(&wsMessage{Operation: opListSources}))
+	return
+}
 func (s *Server) playingHandler(c echo.Context) (err error) {
 	w := c.Response()
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, public, max-age=0")
