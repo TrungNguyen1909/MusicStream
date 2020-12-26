@@ -101,27 +101,28 @@ func (r Response) EncodeJSON() []byte {
 type RequestHandler func(s *Server, msg wsMessage) Response
 
 //GetRawStream returns a decoded stream from a common.Stream
-func GetRawStream(s *common.Stream) (stream io.ReadCloser, err error) {
-	if s.Body == nil {
+func GetRawStream(s common.Stream) (stream io.ReadCloser, err error) {
+	body := s.Body()
+	if body == nil {
 		return nil, errors.New("Invalid stream")
 	}
-	switch s.Format {
+	switch s.Format() {
 	case common.RawStream:
-		return s.Body, nil
+		return body, nil
 	case common.MP3Stream:
-		stream, err = streamdecoder.NewMP3Decoder(s.Body)
+		stream, err = streamdecoder.NewMP3Decoder(body)
 		if err != nil {
 			stream = nil
 		}
 		return
 	case common.WebMStream:
-		stream, err = streamdecoder.NewWebMDecoder(s.Body)
+		stream, err = streamdecoder.NewWebMDecoder(body)
 		if err != nil {
 			stream = nil
 		}
 		return
 	case common.VorbisStream:
-		stream, err = streamdecoder.NewVorbisDecoder(s.Body)
+		stream, err = streamdecoder.NewVorbisDecoder(body)
 		if err != nil {
 			stream = nil
 		}

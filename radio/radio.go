@@ -33,6 +33,17 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type radioStream struct {
+	body io.ReadCloser
+}
+
+func (s *radioStream) Format() int {
+	return common.VorbisStream
+}
+func (s *radioStream) Body() io.ReadCloser {
+	return s.body
+}
+
 //Track is a track from radio sources
 type Track struct {
 	id                 int
@@ -147,12 +158,12 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 }
 
 //Stream returns a 16/48 pcm stream of the track
-func (track *Track) Stream() (*common.Stream, error) {
+func (track *Track) Stream() (common.Stream, error) {
 	stream, err := track.Download()
 	if err != nil {
 		return nil, err
 	}
-	return &common.Stream{Format: common.VorbisStream, Body: stream}, nil
+	return &radioStream{body: stream}, nil
 }
 
 //PlayID returns 0

@@ -35,9 +35,9 @@ const (
 )
 
 //Stream is an encoded audio stream
-type Stream struct {
-	Format int
-	Body   io.ReadCloser
+type Stream interface {
+	Format() int
+	Body() io.ReadCloser
 }
 
 //Track represents a track from any sources
@@ -55,7 +55,7 @@ type Track interface {
 	SpotifyURI() string
 	PlayID() string
 	Populate() error
-	Stream() (*Stream, error)
+	Stream() (Stream, error)
 }
 
 //TrackWithLyrics is a track that is responsible for fetching its own lyrics
@@ -184,7 +184,7 @@ func (track *DefaultTrack) Download() (io.ReadCloser, error) {
 }
 
 //Stream is intentionally not implemented on this track type
-func (track *DefaultTrack) Stream() (*Stream, error) {
+func (track *DefaultTrack) Stream() (Stream, error) {
 	return nil, errors.WithStack(errors.New("not implemented"))
 }
 

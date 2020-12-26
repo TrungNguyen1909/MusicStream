@@ -54,6 +54,17 @@ type csnMusicInfo struct {
 	MusicInfo csnTrack `json:"music_info"`
 }
 
+type csnStream struct {
+	body io.ReadCloser
+}
+
+func (s *csnStream) Format() int {
+	return common.MP3Stream
+}
+func (s *csnStream) Body() io.ReadCloser {
+	return s.body
+}
+
 //Track represents a track on CSN site
 type Track struct {
 	csnTrack
@@ -125,12 +136,12 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 }
 
 //Stream returns a 16/48 pcm stream of the track
-func (track *Track) Stream() (*common.Stream, error) {
+func (track *Track) Stream() (common.Stream, error) {
 	stream, err := track.Download()
 	if err != nil {
 		return nil, err
 	}
-	return &common.Stream{Format: common.MP3Stream, Body: stream}, nil
+	return &csnStream{body: stream}, nil
 }
 
 //SpotifyURI returns the track's equivalent spotify song, if known

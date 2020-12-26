@@ -38,6 +38,17 @@ import (
 var Name string = "Youtube"
 var DisplayName string = "YT"
 
+type youtubeStream struct {
+	body io.ReadCloser
+}
+
+func (s *youtubeStream) Format() int {
+	return common.WebMStream
+}
+func (s *youtubeStream) Body() io.ReadCloser {
+	return s.body
+}
+
 type youtubeResponse struct {
 	Etag  string `json:"etag"`
 	Items []struct {
@@ -161,12 +172,12 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 }
 
 //Stream returns a 16/48 pcm stream of the track
-func (track *Track) Stream() (*common.Stream, error) {
+func (track *Track) Stream() (common.Stream, error) {
 	stream, err := track.Download()
 	if err != nil {
 		return nil, err
 	}
-	return &common.Stream{Format: common.WebMStream, Body: stream}, nil
+	return &youtubeStream{body: stream}, nil
 }
 
 //Populate populates metadata for Download
