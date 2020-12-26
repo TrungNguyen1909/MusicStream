@@ -15,8 +15,7 @@ COPY . .
 RUN GOOS=linux GOARCH=amd64 go build -a --ldflags "-w -s -X github.com/TrungNguyen1909/MusicStream.BuildVersion=`git describe --tags` -X github.com/TrungNguyen1909/MusicStream.BuildTime=`date +%FT%T%z`" -v -o /bin/MusicStream cmd/MusicStream/main.go
 
 ## Build source plugins
-RUN cd plugins/csn && GOOS=linux GOARCH=amd64 go build -buildmode=plugin --ldflags "-w -s" -v -o csn.plugin
-RUN cd plugins/youtube && GOOS=linux GOARCH=amd64 go build -buildmode=plugin --ldflags "-w -s" -v -o youtube.plugin
+RUN GOOS=linux GOARCH=amd64 make
 
 # Stage 2: Build frontend
 FROM node:14 AS frontend
