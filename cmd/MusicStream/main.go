@@ -32,8 +32,9 @@ func main() {
 		p, err := plugin.Open(path)
 		if err != nil {
 			log.Println("plugin.Open: ", err)
+		} else {
+			config.Plugins = append(config.Plugins, p)
 		}
-		config.Plugins = append(config.Plugins, p)
 	}
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
