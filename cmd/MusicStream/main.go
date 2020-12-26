@@ -42,5 +42,6 @@ func main() {
 	port = ":" + port
 	log.Printf("Intializing MusicStream v%s...", MusicStream.Version)
 	s := server.NewServer(config)
-	log.Fatal(s.Start(port))
+	defer s.Close()
+	log.Panic(s.Start(port))
 }

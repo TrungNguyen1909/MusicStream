@@ -20,6 +20,7 @@ package server
 
 import (
 	"context"
+	"io"
 	"log"
 	"net/http"
 	"sync"
@@ -145,6 +146,15 @@ func (s *Server) StartWithTLS(addr string) (err error) {
 	}
 	log.Printf("Starting up at %s with auto TLS", addr)
 	return s.server.StartAutoTLS(addr)
+}
+
+func (s *Server) Close() error {
+	for _, v := range s.sources {
+		if closer, ok := v.(io.Closer); ok {
+			closer.Close()
+		}
+	}
+	return nil
 }
 
 //NewServer returns a new server
