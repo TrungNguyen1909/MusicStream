@@ -1,7 +1,7 @@
 # Plugins
-/plugins/**/*.*
-!/plugins/csn/**/*.*
-!/plugins/youtube/**/*.*
+plugins/**/*
+!plugins/csn/**/*
+!plugins/youtube/**/*
 /server_py/
 /pkg/
 
