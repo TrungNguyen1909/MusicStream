@@ -148,6 +148,10 @@ func (s *Server) StartWithTLS(addr string) (err error) {
 	return s.server.StartAutoTLS(addr)
 }
 
+func (s *Server) Shutdown(context context.Context) (err error) {
+	err = s.server.Shutdown(context)
+	return
+}
 func (s *Server) Close() error {
 	for _, v := range s.sources {
 		if closer, ok := v.(io.Closer); ok {

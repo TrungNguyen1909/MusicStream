@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"plugin"
+	"time"
 
 	"github.com/TrungNguyen1909/MusicStream"
 	"github.com/TrungNguyen1909/MusicStream/server"
@@ -44,5 +48,21 @@ func main() {
 	log.Printf("Intializing MusicStream v%s...", MusicStream.Version)
 	s := server.NewServer(config)
 	defer s.Close()
-	log.Panic(s.Start(port))
+	idleConnsClosed := make(chan struct{})
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+		<-sigint
+		log.Println("Recevied interrupt, shutting down...")
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err = s.Shutdown(ctx); err != nil {
+			log.Printf("Server shutdown: %+v", err)
+		}
+		close(idleConnsClosed)
+	}()
+	if err = s.Start(port); err != http.ErrServerClosed {
+		log.Printf("Server stopped: %+v", err)
+	}
+	<-idleConnsClosed
 }
