@@ -98,7 +98,7 @@ func enqueue(s *Server, msg wsMessage) Response {
 		track := tracks[0]
 		err = track.Populate()
 		if err != nil {
-			log.Println("track.Populate() failed:", err)
+			log.Printf("track.Populate() failed: %+v", err)
 			return Response{
 				Operation: opClientRequestTrack,
 				Success:   false,

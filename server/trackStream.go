@@ -57,7 +57,7 @@ func (s *Server) preloadTrack(stream io.ReadCloser, streamContext context.Contex
 func (s *Server) processTrack() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Println("processTrack Panicked:", r)
+			log.Printf("processTrack Panicked: %+v", r)
 		}
 	}()
 	var track common.Track
@@ -102,11 +102,11 @@ func (s *Server) processTrack() {
 	}
 	stream, err := track.Stream()
 	if err != nil {
-		log.Panic("track.Stream: ", err)
+		log.Panicf("track.Stream: %+v", err)
 	}
 	rawStream, err := GetRawStream(stream)
 	if err != nil {
-		log.Panic("track.Stream: ", err)
+		log.Panic("GetRawStream: ", err)
 	}
 	streamContext, skipFunc := context.WithCancel(context.TODO())
 	go s.preloadTrack(rawStream, streamContext)
