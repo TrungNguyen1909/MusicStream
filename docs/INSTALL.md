@@ -49,12 +49,6 @@ Installation
 
 Enviroment variables are also loaded from `.env` file, if exists
 
-## Deezer
-
-- Login to Deezer on your browser
-- Find the `arl` cookies
-- Put that cookie value into environment variable `DEEZER_ARL`
-
 ## Musixmatch
 
 - Login to Musixmatch on your browser
@@ -64,9 +58,6 @@ Enviroment variables are also loaded from `.env` file, if exists
 
 ## Youtube
 - Get Youtube Data API v3 key from Google Cloud Console and put in the environment variable named `YOUTUBE_DEVELOPER_KEY`
-
-## Spotify
-- Create your app and put your client id and client secret in the environment variables named `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`, respectively
 
 # Configurations
 

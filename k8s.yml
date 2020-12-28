@@ -39,16 +39,6 @@ spec:
                   secretKeyRef:
                     name: musicstream
                     key: YOUTUBE_DEVELOPER_KEY
-            - name: SPOTIFY_CLIENT_ID
-              valueFrom:
-                  secretKeyRef:
-                    name: musicstream
-                    key: SPOTIFY_CLIENT_ID
-            - name: SPOTIFY_CLIENT_SECRET
-              valueFrom:
-                  secretKeyRef:
-                    name: musicstream
-                    key: SPOTIFY_CLIENT_SECRET
             - name: RADIO_ENABLED
               valueFrom:
                   secretKeyRef:
