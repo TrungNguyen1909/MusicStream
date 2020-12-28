@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"plugin"
+	"syscall"
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream"
@@ -52,6 +53,7 @@ func main() {
 	go func() {
 		sigint := make(chan os.Signal, 1)
 		signal.Notify(sigint, os.Interrupt)
+		signal.Notify(sigint, syscall.SIGTERM)
 		<-sigint
 		log.Println("Recevied interrupt, shutting down...")
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
