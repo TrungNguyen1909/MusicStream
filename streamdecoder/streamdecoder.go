@@ -256,7 +256,7 @@ func NewWebMDecoder(stream io.ReadCloser) (decoder *WebMDecoder, err error) {
 			if pkt.TrackNumber == decoder.atrack.TrackNumber {
 				n, err := o.Decode(pkt.Data, pcm)
 				if err != nil {
-					log.Println(err)
+					log.Printf("[StreamDecoder] WebMDecoder: %v", err)
 					break
 				}
 				for i := 0; i < int(n*2); i++ {

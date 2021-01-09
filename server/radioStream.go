@@ -48,14 +48,14 @@ func (s *Server) encodeRadio(stream io.ReadCloser, streamContext context.Context
 	}
 }
 func (s *Server) preloadRadio(streamContext context.Context) {
-	log.Println("Radio preloading started!")
+	log.Println("[Radio] Radio preloading started!")
 	defer s.endCurrentStream()
 	defer s.pushSilentFrames()
-	defer log.Println("Radio preloading stopped!")
+	defer log.Println("[Radio] Radio preloading stopped!")
 	go func() {
 		firstTime := true
-		log.Println("Starting Radio track update")
-		defer log.Println("Stopped Radio track update")
+		log.Println("[Radio] Starting Radio track update")
+		defer log.Println("[Radio] Stopped Radio track update")
 		for {
 			select {
 			case <-streamContext.Done():
@@ -102,6 +102,6 @@ func (s *Server) processRadio(streamContext context.Context) {
 	s.currentTrack = s.radioTrack
 	go s.preloadRadio(streamContext)
 	defer s.radioTrack.CloseWS()
-	defer func() { log.Println("Resuming track streaming...") }()
+	defer func() { log.Println("[MusicStream] Resuming track streaming...") }()
 	s.lastStreamEnded = s.streamToClients(streamContext)
 }

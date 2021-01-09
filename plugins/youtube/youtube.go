@@ -267,7 +267,7 @@ func (track *Track) GetLyrics() (result common.LyricsResult, err error) {
 			if ok {
 				err = e
 			}
-			log.Println("Youtube.GetLyrics() panicked: ", err)
+			log.Println("[Youtube] GetLyrics() panicked: ", err)
 		}
 	}()
 	reqURL, _ := url.Parse("https://video.google.com/timedtext?hl=en&type=list")
@@ -395,7 +395,6 @@ func (client *Client) Search(query string) (tracks []common.Track, err error) {
 	var resp youtubeResponse
 	err = json.NewDecoder(response.Body).Decode(&resp)
 	if err != nil {
-		log.Println("Youtube.Search", err)
 		return
 	}
 	if len(resp.Items) <= 0 {

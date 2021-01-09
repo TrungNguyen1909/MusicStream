@@ -201,7 +201,7 @@ func (s *Server) streamToClients(streamContext context.Context) time.Time {
 	if vorbisTime < mp3Time {
 		streamTime = mp3Time
 	}
-	log.Println("streamTime: ", streamTime)
+	log.Println("[MusicStream] streamTime: ", streamTime)
 	return start.Add(streamTime)
 }
 

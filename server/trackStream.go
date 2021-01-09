@@ -38,8 +38,8 @@ func (s *Server) preloadTrack(stream io.ReadCloser, streamContext context.Contex
 	pos := int64(s.vorbisEncoder.GranulePos())
 	atomic.StoreInt64(&s.startPos, pos)
 	s.deltaChannel <- pos
-	log.Println("Track preloading started")
-	defer log.Println("Track preloading done")
+	log.Println("[MusicStream] Track preloading started")
+	defer log.Println("[MusicStream] Track preloading done")
 	for {
 		select {
 		case <-streamContext.Done():
@@ -57,7 +57,7 @@ func (s *Server) preloadTrack(stream io.ReadCloser, streamContext context.Contex
 func (s *Server) processTrack() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("processTrack Panicked: %+v", r)
+			log.Printf("[MusicStream] processTrack ERROR: %+v", r)
 		}
 	}()
 	var track common.Track
@@ -83,30 +83,30 @@ func (s *Server) processTrack() {
 	if s.cancelRadio != nil {
 		s.cancelRadio()
 	}
-	log.Printf("Playing %v - %v\n", track.Title(), track.Artist())
+	log.Printf("[MusicStream] Playing %v - %v\n", track.Title(), track.Artist())
 	trackDict := common.GetMetadata(track)
 	if ltrack, ok := track.(common.TrackWithLyrics); ok {
 		lyrics, err := ltrack.GetLyrics()
 		if err != nil {
-			log.Println("track.GetLyrics: ", err)
+			log.Println("[MusicStream] track.GetLyrics: ERROR: ", err)
 		} else {
 			trackDict.Lyrics = lyrics
 		}
 	} else if s.mxmClient != nil {
 		lyrics, err := s.mxmClient.GetLyrics(track)
 		if err != nil {
-			log.Println("s.mxmClient.GetLyrics: ", err)
+			log.Println("[MusixMatch] GetLyrics: ", err)
 		} else {
 			trackDict.Lyrics = lyrics
 		}
 	}
 	stream, err := track.Stream()
 	if err != nil {
-		log.Panicf("track.Stream: %+v", err)
+		log.Panicf("[MusicStream] track.Stream: ERROR: %+v", err)
 	}
 	rawStream, err := GetRawStream(stream)
 	if err != nil {
-		log.Panic("GetRawStream: ", err)
+		log.Panic("[MusicStream] GetRawStream: ", err)
 	}
 	streamContext, skipFunc := context.WithCancel(context.TODO())
 	go s.preloadTrack(rawStream, streamContext)

@@ -113,7 +113,7 @@ type Client struct {
 func (client *Client) GetLyrics(track common.Track) (result common.LyricsResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("musixmatch.Client.GetLyrics: %v\n", r)
+			log.Printf("[MusixMatch]: %v\n", r)
 		}
 	}()
 	rawURL := "http://apic.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&user_language=en&tags=playing&namespace=lyrics_synched&f_subtitle_length_max_deviation=1&subtitle_format=mxm&app_id=mac-ios-v2.0&part=subtitle_translated%2Clyrics_translated&selected_language=en"

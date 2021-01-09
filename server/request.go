@@ -78,11 +78,11 @@ func enqueue(s *Server, msg wsMessage) Response {
 			Reason:    "Invalid source!",
 		}
 	}
-	log.Printf("Client Queried: Source: %s: %s", s.sources[msg.Selector].Name(), msg.Query)
+	log.Printf("[MusicStream] Client Queried: Source: %s: %s", s.sources[msg.Selector].Name(), msg.Query)
 	tracks, err = s.sources[msg.Selector].Search(msg.Query)
 	switch {
 	case err != nil:
-		log.Println("SearchTrack Failed:", err)
+		log.Printf("[MusicStream] SearchTrack: Source: %s: Failed: %v", s.sources[msg.Selector].Name(), err)
 		return Response{
 			Operation: opClientRequestTrack,
 			Success:   false,
@@ -98,7 +98,7 @@ func enqueue(s *Server, msg wsMessage) Response {
 		track := tracks[0]
 		err = track.Populate()
 		if err != nil {
-			log.Printf("track.Populate() failed: %+v", err)
+			log.Printf("[MusicStream] track.Populate() failed: %+v", err)
 			return Response{
 				Operation: opClientRequestTrack,
 				Success:   false,
@@ -106,7 +106,7 @@ func enqueue(s *Server, msg wsMessage) Response {
 			}
 		}
 		s.playQueue.Push(track)
-		log.Printf("Track enqueued: %v - %v\n", track.Title(), track.Artist())
+		log.Printf("[MusicStream] Track enqueued: %v - %v\n", track.Title(), track.Artist())
 		return Response{
 			Operation: opClientRequestTrack,
 			Success:   true,
@@ -169,7 +169,7 @@ func skip(s *Server, msg wsMessage) Response {
 		}
 	}
 	s.skipFunc()
-	log.Println("Current song skipped!")
+	log.Println("[MusicStream] Current song skipped!")
 	s.webSocketNotify(Response{
 		Operation: opAllClientsSkip,
 		Success:   true,

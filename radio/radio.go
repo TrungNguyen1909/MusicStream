@@ -174,8 +174,8 @@ func (track *Track) heartbeat() {
 	for len(track.heartbeatInterrupt) > 0 {
 		<-track.heartbeatInterrupt
 	}
-	log.Println("Radio: starting heartbeat")
-	defer log.Println("Radio: Stopped heartbeat")
+	log.Println("[Radio] starting heartbeat")
+	defer log.Println("[Radio] Stopped heartbeat")
 	ticker := time.NewTicker((time.Duration)(track.heartbeatInterval) * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -185,7 +185,7 @@ func (track *Track) heartbeat() {
 		case <-ticker.C:
 			err := track.ws.WriteJSON(map[string]interface{}{"op": 9})
 			if err != nil {
-				log.Printf("Track:heartbeat: %#v", err)
+				log.Printf("[Radio] heartbeat: %v", err)
 				return
 			}
 		}
@@ -213,10 +213,10 @@ func (track *Track) InitWS() {
 		track.heartbeatInterrupt = make(chan int, 1)
 	}
 	u := url.URL{Scheme: "wss", Host: "listen.moe", Path: "/gateway_v2"}
-	log.Println("Connecting to listen.moe WS")
+	log.Println("[Radio] Connecting to listen.moe WS")
 	ws, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		log.Panic("radioTrack.InitWS:dial:", err)
+		log.Panic("[Radio] radioTrack.InitWS:dial:", err)
 	}
 	track.ws = ws
 	for len(track.heartbeatInterrupt) > 0 {
@@ -227,7 +227,7 @@ func (track *Track) InitWS() {
 	}
 	go func() {
 		defer func() {
-			log.Println("Disconnected from listen.moe WS")
+			log.Println("[Radio] Disconnected from listen.moe WS")
 			track.mux.Lock()
 			track.title = "listen.moe"
 			track.artist = ""
@@ -247,7 +247,7 @@ func (track *Track) InitWS() {
 			}
 			err := ws.ReadJSON(&msg)
 			if err != nil {
-				log.Println("Track:readJSON:", err)
+				log.Println("[Radio] Track.readJSON:", err)
 				return
 			}
 			select {

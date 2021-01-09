@@ -35,7 +35,7 @@ func (s *Server) selfPinger() {
 	if !ok {
 		return
 	}
-	log.Println("Starting periodic keep-alive ping...")
+	log.Println("[MusicStream] Starting periodic keep-alive ping...")
 	url := fmt.Sprintf("https://%s.herokuapp.com", appName)
 	for {
 		if atomic.LoadInt32(&s.listenersCount) > 0 {
@@ -72,7 +72,7 @@ func (s *Server) inactivityMonitor() {
 		case <-lch:
 			timer.Reset(15 * time.Minute)
 			if isStandby {
-				log.Println("Waking up...")
+				log.Println("[MusicStream] Waking up...")
 				s.streamMux.Unlock()
 				if s.radioTrack != nil {
 					radioStreamContext, cancelRadio := context.WithCancel(context.TODO())
@@ -86,7 +86,7 @@ func (s *Server) inactivityMonitor() {
 				isStandby = false
 			}
 		case <-timer.C:
-			log.Println("Inactivity. Standby...")
+			log.Println("[MusicStream] Inactivity. Standby...")
 			isStandby = true
 			s.activityWg.Add(1)
 			if s.skipFunc != nil {

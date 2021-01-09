@@ -159,7 +159,7 @@ func (s *Server) audioHandler(c echo.Context) (err error) {
 				}
 			}
 			if chunkID != -1 && chunkID+1 != Chunk.chunkID {
-				log.Println("[", r.URL.Path, "]", "[WARN] chunks from ", chunkID+1, " to ", Chunk.chunkID-1, " have been lost.")
+				log.Println("[", r.URL.Path, "]", "[WARN] chunks from ", chunkID+1, " to ", Chunk.chunkID-1, " were unexpectedly dropped")
 			}
 			chunkID = Chunk.chunkID
 			_, err = w.Write(Chunk.buffer)
@@ -196,7 +196,7 @@ func (s *Server) handleMessage(msg *wsMessage) (r []byte) {
 func (s *Server) wsHandler(c echo.Context) (err error) {
 	_c, err := s.upgrader.Upgrade(c.Response(), c.Request(), nil)
 	if err != nil {
-		log.Print("upgrade:", err)
+		log.Print("[MusicStream] wsHandler: upgrade:", err)
 		return
 	}
 	ws := &webSocket{conn: _c, mux: &sync.Mutex{}}
@@ -349,7 +349,7 @@ func (s *Server) HandleError(err error, c echo.Context) {
 		// internal error: dump it.
 		_ = c.JSON(http.StatusInternalServerError, errCtx{Code: http.StatusInternalServerError})
 
-		errStr := fmt.Sprintf("An unexpected error has occured: %v\n", err)
+		errStr := fmt.Sprintf("[MusicStream] An unexpected error has occured: %v\n", err)
 		path := filepath.Join(os.TempDir(), fmt.Sprintf("MusicStream-%v.txt", time.Now().Format(time.RFC3339)))
 		if err := ioutil.WriteFile(path, []byte(fmt.Sprintf("%+v", err)), 0644); err != nil {
 			errStr += fmt.Sprintf("Cannot log the error down to file: %v", err)
@@ -359,7 +359,7 @@ Please check out the open issues and help opening a new one if possible on https
 		}
 		log.Println(errStr)
 		if s.server.Debug {
-			log.Printf("Error dump:\n%+v\n", err)
+			log.Printf("[MusicStream] Error dump:\n%+v\n", err)
 		}
 	}
 }

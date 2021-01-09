@@ -120,13 +120,13 @@ func (s *Server) Start(addr string) (err error) {
 		}
 	}()
 	if len(MusicStream.BuildVersion) > 0 {
-		log.Printf("MusicStream %s: %s", MusicStream.BuildVersion, MusicStream.BuildTime)
+		log.Printf("[MusicStream] MusicStream %s: %s", MusicStream.BuildVersion, MusicStream.BuildTime)
 	} else if len(MusicStream.BuildTime) > 0 {
-		log.Printf("MusicStream v%s: %s", MusicStream.Version, MusicStream.BuildTime)
+		log.Printf("[MusicStream] MusicStream v%s: %s", MusicStream.Version, MusicStream.BuildTime)
 	} else {
-		log.Printf("MusicStream v%s", MusicStream.Version)
+		log.Printf("[MusicStream] MusicStream v%s", MusicStream.Version)
 	}
-	log.Printf("Starting up at %s", addr)
+	log.Printf("[MusicStream] Starting up at %s", addr)
 	return s.server.Start(addr)
 }
 
@@ -140,11 +140,11 @@ func (s *Server) StartWithTLS(addr string) (err error) {
 		}
 	}()
 	if len(MusicStream.BuildVersion) > 0 {
-		log.Printf("MusicStream %s: %s", MusicStream.BuildVersion, MusicStream.BuildTime)
+		log.Printf("[MusicStream] MusicStream %s: %s", MusicStream.BuildVersion, MusicStream.BuildTime)
 	} else {
-		log.Printf("MusicStream v%s", MusicStream.Version)
+		log.Printf("[MusicStream] MusicStream v%s", MusicStream.Version)
 	}
-	log.Printf("Starting up at %s with auto TLS", addr)
+	log.Printf("[MusicStream] Starting up at %s with auto TLS", addr)
 	return s.server.StartAutoTLS(addr)
 }
 
@@ -187,44 +187,44 @@ func NewServer(config Config) *Server {
 	s.mp3Header = s.mp3Header[:n]
 
 	var err error
-	log.Println("[Sources] initializing source plugins")
+	log.Println("[MusicStream] initializing source plugins")
 	for _, p := range config.Plugins {
 		sName, err := p.Lookup("Name")
 		if err != nil {
-			log.Println("[Sources] Failed to lookup plugin's name")
+			log.Println("[MusicStream] Failed to lookup plugin's name")
 			continue
 		}
 		name, ok := sName.(*string)
 		if !ok {
-			log.Println("[Sources] Failed to read plugin's name")
+			log.Println("[MusicStream] Failed to read plugin's name")
 			continue
 		}
 		sNewClient, err := p.Lookup("NewClient")
 		if err != nil {
-			log.Printf("[Sources] Failed to lookup plugin %s's NewClient", *name)
+			log.Printf("[MusicStream] Failed to lookup plugin %s's NewClient", *name)
 			continue
 		}
 		newClient, ok := sNewClient.(func() (common.MusicSource, error))
 		if newClient == nil && !ok {
-			log.Printf("[Sources] Plugin %s's NewClient's signature is incorrect", *name)
+			log.Printf("[MusicStream] Plugin %s's NewClient's signature is incorrect", *name)
 			continue
 		}
 		client, err := newClient()
 		if client == nil || err != nil {
-			log.Printf("[Sources] NewClient failed on plugin %s: %s", *name, err)
+			log.Printf("[MusicStream] NewClient failed on plugin %s: %s", *name, err)
 			continue
 		}
 		s.sources = append(s.sources, client)
-		log.Printf("[Sources] Successfully loaded plugin %s", *name)
+		log.Printf("[MusicStream] Successfully loaded plugin %s", *name)
 	}
 	if len(s.sources) <= 0 {
-		log.Panic("[ERROR] No sources intialized")
+		log.Panic("[MusicStream] ERROR: No sources intialized")
 	} else {
-		log.Printf("Loaded %d sources", len(s.sources))
+		log.Printf("[MusicStream] Loaded %d sources", len(s.sources))
 	}
 	s.mxmClient, err = mxmlyrics.NewClient(config.MusixMatchUserToken, config.MusixMatchOBUserToken)
 	if err != nil {
-		log.Println("[MXM] Failed to initalized source:", err)
+		log.Println("[MusixMatch] Failed to initalized: ", err)
 		err = nil
 	}
 	s.cacheQueue = queue.New()
