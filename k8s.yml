@@ -51,6 +51,12 @@ spec:
                     name: musicstream
                     key: WWW
                     optional: true
+            - name: DEFAULT_SOURCE
+              valueFrom:
+                  secretKeyRef:
+                    name: musicstream
+                    key: DEFAULT_SOURCE
+                    optional: true
           resources:
             requests:
               cpu: "1"

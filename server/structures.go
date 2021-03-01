@@ -37,6 +37,7 @@ type Config struct {
 	Plugins               []*plugin.Plugin
 	RadioEnabled          bool
 	StaticFilesPath       string
+	DefaultMusicSource    string
 }
 
 type chunk struct {

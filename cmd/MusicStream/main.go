@@ -21,6 +21,9 @@ func main() {
 	if staticFilesPath, ok := os.LookupEnv("WWW"); ok && len(staticFilesPath) > 0 {
 		config.StaticFilesPath = staticFilesPath
 	}
+	if defaultSource, ok := os.LookupEnv("DEFAULT_SOURCE"); ok && len(defaultSource) > 0 {
+		config.DefaultMusicSource = defaultSource
+	}
 	if mxmUserToken, ok := os.LookupEnv("MUSIXMATCH_USER_TOKEN"); !ok {
 		log.Println("[main] Warning: Musixmatch token not found")
 	} else {

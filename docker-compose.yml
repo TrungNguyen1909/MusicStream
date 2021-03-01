@@ -12,5 +12,6 @@ services:
             - YOUTUBE_DEVELOPER_KEY=${YOUTUBE_DEVELOPER_KEY}
             - RADIO_ENABLED=${RADIO_ENABLED}
             - WWW=${WWW}
+            - DEFAULT_SOURCE=${DEFAULT_SOURCE}
         ports:
             - 8080:8080

@@ -214,6 +214,11 @@ func NewServer(config Config) *Server {
 			log.Printf("[MusicStream] NewClient failed on plugin %s: %s", *name, err)
 			continue
 		}
+		if client.Name() == config.DefaultMusicSource {
+			t := s.sources[0]
+			s.sources[0] = client
+			client = t
+		}
 		s.sources = append(s.sources, client)
 		log.Printf("[MusicStream] Successfully loaded plugin %s", *name)
 	}

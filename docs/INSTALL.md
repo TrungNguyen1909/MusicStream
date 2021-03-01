@@ -66,3 +66,6 @@ Enviroment variables are also loaded from `.env` file, if exists
 
 ## Frontend static files serving path
 - The default path will be served is `www/`, if you want to serve from another directory, set environment variable `WWW` to the path to that directory
+
+## Source order
+- By default, all music sources are sorted alphabetically by plugins' file name and the first source is selected automatically if user visits the website for the first time. Set environment variable `DEFAULT_SOURCE` to the first choice source.
