@@ -207,7 +207,7 @@ type trackRemoveRequestMessage struct {
 - The server will respond in a message which contains the same `op` and `nonce` describes whether the removal is successful or not.
 - The server will send this message to all clients in case of a successful removal. The track being removed is in the key `track` in the `data` dictionary. The `playID` field should be used to distinguish between tracks. The key `silent` will be `true` if the removal was initiated by this client, in this case, the UI should displayed to its user that the track has been removed successfully. Otherwise, the UI may remove the track in discretion.
 
-### opClientAudioStartPos (Notification)
+#### opClientAudioStartPos (Notification)
 - Uses to show synced lyrics.
 - The key `startPos` should contains the number of the first audio frame sent to the audio stream that contains the same `sessionId` cookie string, divide by `48000.0` to get the time in second.
 - `startPos` should be added to your audio player's current time only if the player does NOT parse the position data of the Vorbis stream.
