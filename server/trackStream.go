@@ -103,10 +103,30 @@ func (s *Server) processTrack() {
 	}
 	stream, err := track.Stream()
 	if err != nil {
+		data := Response{
+			Operation: opSetClientsTrack,
+			Success:   false,
+			Data: map[string]interface{}{
+				"track":     trackDict,
+				"listeners": atomic.LoadInt32(&s.listenersCount),
+			},
+			Reason: fmt.Sprintf("Failed to play %v - %v", trackDict.Title, trackDict.Artist),
+		}
+		s.webSocketNotify(data)
 		log.Panicf("[MusicStream] track.Stream: ERROR: %+v", err)
 	}
 	rawStream, err := GetRawStream(stream)
 	if err != nil {
+		data := Response{
+			Operation: opSetClientsTrack,
+			Success:   false,
+			Data: map[string]interface{}{
+				"track":     trackDict,
+				"listeners": atomic.LoadInt32(&s.listenersCount),
+			},
+			Reason: fmt.Sprintf("Failed to play %v - %v", trackDict.Title, trackDict.Artist),
+		}
+		s.webSocketNotify(data)
 		log.Panicf("[MusicStream] GetRawStream: ERROR: %+v", err)
 	}
 	streamContext, skipFunc := context.WithCancel(context.TODO())
