@@ -20,6 +20,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"sync/atomic"
@@ -106,7 +107,7 @@ func (s *Server) processTrack() {
 	}
 	rawStream, err := GetRawStream(stream)
 	if err != nil {
-		log.Panic("[MusicStream] GetRawStream: ", err)
+		log.Panicf("[MusicStream] GetRawStream: ERROR: %+v", err)
 	}
 	streamContext, skipFunc := context.WithCancel(context.TODO())
 	go s.preloadTrack(rawStream, streamContext)
