@@ -4,26 +4,33 @@ go 1.13
 
 require (
 	github.com/acomagu/bufpipe v1.0.3
+	github.com/beevik/etree v1.1.0
+	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
+	github.com/deckarep/golang-set v1.7.1
 	github.com/ebml-go/ebml v0.0.0-20160925193348-ca8851a10894 // indirect
 	github.com/ebml-go/webm v0.0.0-20160924163542-629e38feef2a
 	github.com/faiface/beep v1.0.2
-	github.com/google/uuid v1.1.2
+	github.com/golang/protobuf v1.5.2
+	github.com/google/uuid v1.2.0
 	github.com/gorilla/websocket v1.4.2
-	github.com/hajimehoshi/go-mp3 v0.3.1 // indirect
-	github.com/jfreymuth/oggvorbis v1.0.1 // indirect
+	github.com/hajimehoshi/go-mp3 v0.3.2 // indirect
+	github.com/jfreymuth/oggvorbis v1.0.3 // indirect
 	github.com/joho/godotenv v1.3.0
-	github.com/kkdai/youtube/v2 v2.3.0
+	github.com/kkdai/youtube/v2 v2.7.0
 	github.com/kr/text v0.2.0 // indirect
-	github.com/labstack/echo/v4 v4.1.17
+	github.com/labstack/echo/v4 v4.3.0
 	github.com/matryer/is v1.4.0 // indirect
-	github.com/mattn/go-colorable v0.1.8 // indirect
-	github.com/petar/GoLLRB v0.0.0-20190514000832-33fb24c13b99 // indirect
+	github.com/mattn/go-isatty v0.0.13 // indirect
+	github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9 // indirect
 	github.com/pkg/errors v0.9.1
-	golang.org/x/crypto v0.0.0-20201208171446-5f87f3452ae9
-	golang.org/x/net v0.0.0-20201209123823-ac852fbbde11 // indirect
-	golang.org/x/sys v0.0.0-20201207223542-d4d67f95c62d // indirect
-	golang.org/x/text v0.3.4
+	github.com/stretchr/testify v1.7.0
+	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
+	golang.org/x/net v0.0.0-20210525063256-abc453219eb5 // indirect
+	golang.org/x/sys v0.0.0-20210531080801-fdfd190a6549 // indirect
+	golang.org/x/text v0.3.6
+	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
+	google.golang.org/protobuf v1.26.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	gopkg.in/hraban/opus.v2 v2.0.0-20201025103112-d779bb1cc5a2
-	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
+	gopkg.in/hraban/opus.v2 v2.0.0-20210415224706-ab1467d63813
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
