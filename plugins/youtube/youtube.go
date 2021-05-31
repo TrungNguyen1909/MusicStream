@@ -164,11 +164,11 @@ func (track *Track) Download() (stream io.ReadCloser, err error) {
 		return
 	}
 	c := youtube.Client{}
-	response, err := c.GetStream(track.ytTrack.Video, track.ytTrack.Video.Formats.FindByItag(251))
+	response, _, err := c.GetStream(track.ytTrack.Video, track.ytTrack.Video.Formats.FindByItag(251))
 	if err != nil {
 		return
 	}
-	return response.Body, nil
+	return response, nil
 }
 
 //Stream returns a 16/48 pcm stream of the track
