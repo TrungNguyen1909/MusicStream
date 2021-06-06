@@ -44,9 +44,10 @@ func getPlaying(s *Server, msg wsMessage) Response {
 		Operation: opSetClientsTrack,
 		Success:   true,
 		Data: map[string]interface{}{
-			"track":     s.currentTrackMeta.Load().(common.TrackMetadata),
-			"pos":       atomic.LoadInt64(&s.startPos),
-			"listeners": atomic.LoadInt32(&s.listenersCount),
+			"track":       s.currentTrackMeta.Load().(common.TrackMetadata),
+			"pos":         atomic.LoadInt64(&s.startPos[0]),
+			"fallbackpos": atomic.LoadInt64(&s.startPos[1]),
+			"listeners":   atomic.LoadInt32(&s.listenersCount),
 		},
 	}
 }

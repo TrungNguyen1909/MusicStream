@@ -153,6 +153,19 @@ func (s *Server) streamMP3(streamContext context.Context, encodedDuration chan t
 	}()
 	return source
 }
+
+func (s *Server) updateStartPos(push bool) {
+	pos := int64(s.vorbisEncoder.GranulePos())
+	atomic.StoreInt64(&s.startPos[0], pos)
+	if push {
+		s.deltaChannel <- pos
+	}
+	pos = int64(s.mp3Encoder.GranulePos())
+	atomic.StoreInt64(&s.startPos[1], pos)
+	if push {
+		s.deltaChannel <- pos
+	}
+}
 func (s *Server) streamToClients(streamContext context.Context) time.Time {
 	start := time.Now()
 	interrupted := false
@@ -211,9 +224,10 @@ func (s *Server) setTrack(trackMeta common.TrackMetadata) {
 		Operation: opSetClientsTrack,
 		Success:   true,
 		Data: map[string]interface{}{
-			"track":     trackMeta,
-			"pos":       <-s.deltaChannel,
-			"listeners": atomic.LoadInt32(&s.listenersCount),
+			"track":       trackMeta,
+			"pos":         <-s.deltaChannel,
+			"fallbackpos": <-s.deltaChannel,
+			"listeners":   atomic.LoadInt32(&s.listenersCount),
 		},
 	}
 	s.webSocketNotify(data)

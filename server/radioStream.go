@@ -22,7 +22,6 @@ import (
 	"context"
 	"io"
 	"log"
-	"sync/atomic"
 	"time"
 
 	"github.com/TrungNguyen1909/MusicStream/common"
@@ -75,9 +74,7 @@ func (s *Server) preloadRadio(streamContext context.Context) {
 				}
 			}
 			if _, ok := s.currentTrack.(*radio.Track); ok {
-				pos := int64(s.vorbisEncoder.GranulePos())
-				atomic.StoreInt64(&s.startPos, pos)
-				s.deltaChannel <- pos
+				s.updateStartPos(true)
 				s.setTrack(metadata)
 			}
 		}

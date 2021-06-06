@@ -96,9 +96,7 @@ func (s *Server) inactivityMonitor() {
 				s.cancelRadio()
 			}
 			s.streamMux.Lock()
-			pos := int64(s.vorbisEncoder.GranulePos())
-			atomic.StoreInt64(&s.startPos, pos)
-			s.deltaChannel <- pos
+			s.updateStartPos(true)
 			s.setTrack(common.GetMetadata(s.defaultTrack))
 		}
 	}

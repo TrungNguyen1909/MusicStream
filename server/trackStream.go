@@ -36,9 +36,7 @@ func (s *Server) preloadTrack(stream io.ReadCloser, streamContext context.Contex
 	defer s.endCurrentStream()
 	s.pushSilentFrames()
 	defer s.pushSilentFrames()
-	pos := int64(s.vorbisEncoder.GranulePos())
-	atomic.StoreInt64(&s.startPos, pos)
-	s.deltaChannel <- pos
+	s.updateStartPos(true)
 	log.Println("[MusicStream] Track preloading started")
 	defer log.Println("[MusicStream] Track preloading done")
 	for {
@@ -72,9 +70,7 @@ func (s *Server) processTrack() {
 		s.cancelRadio = cancelRadio
 	} else if s.playQueue.Empty() {
 		s.currentTrack = s.defaultTrack
-		pos := int64(s.vorbisEncoder.GranulePos())
-		atomic.StoreInt64(&s.startPos, pos)
-		s.deltaChannel <- pos
+		s.updateStartPos(true)
 		s.setTrack(common.GetMetadata(s.currentTrack))
 	}
 	s.activityWg.Wait()

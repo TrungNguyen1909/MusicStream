@@ -83,7 +83,7 @@ type Server struct {
 	cancelRadio          context.CancelFunc
 	radioTrack           *radio.Track
 	defaultTrack         *common.DefaultTrack
-	startPos             int64
+	startPos             [2]int64
 	lastStreamEnded      time.Time
 	vorbisEncoder        *vorbisencoder.Encoder
 	mp3Encoder           *mp3encoder.Encoder
@@ -175,7 +175,7 @@ func NewServer(config Config) *Server {
 	s.mp3Subscribers = new(int64)
 	s.vorbisChunkID = new(int64)
 	s.mp3ChunkID = new(int64)
-	s.deltaChannel = make(chan int64, 1)
+	s.deltaChannel = make(chan int64, 2)
 	s.newListenerC = make(chan int, 1)
 	s.vorbisEncoder = vorbisencoder.NewEncoder(2, 48000, 320000)
 	s.oggHeader = make([]byte, 5000)

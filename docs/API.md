@@ -153,7 +153,8 @@ Description for each opcodes, the equivalent REST API path is surrounded in pare
 - When receive this opcode from the websocket, either the server responds to the inquiry or the server has just played a different track.
 - Data will contain the following keys:
     - track: a TrackMetadata object containing the metadata of the playing track
-    - pos: The audio frame number where the track starts. You can get the time in seconds using the following expression: `pos / 48000.0 + 1.584`.
+    - pos: The audio frame number where the track starts for Vorbis stream. You can get the time in seconds using the following expression: `pos / 48000.0 + 1.584`.
+    - fallbackpos: Same as `pos`, but for MP3 stream.
     - listeners: The number of clients connected to the stream.
 
 #### opClientRequestTrack (/enqueue)
