@@ -43,7 +43,7 @@ type youtubeStream struct {
 }
 
 func (s *youtubeStream) Format() int {
-	return common.WebMStream
+	return common.FFmpegStream
 }
 func (s *youtubeStream) Body() io.ReadCloser {
 	return s.body

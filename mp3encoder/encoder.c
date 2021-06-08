@@ -1,6 +1,6 @@
 /*
  * MusicStream - Listen to music together with your friends from everywhere, at the same time.
- * Copyright (C) 2020  Nguyễn Hoàng Trung
+ * Copyright (C) 2021 Nguyễn Hoàng Trung(TrungNguyen1909)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -22,14 +22,12 @@
 #include <time.h>
 #include <lame/lame.h>
 #define min(a, b) ((a) < (b) ? (a) : (b))
-struct GoSlice
-{
+struct GoSlice {
 	void *data;
 	long len;
 	long cap;
 };
-struct tEncoderState
-{
+typedef struct tEncoderState {
 	lame_t gfp;
 	long bitrate;
 	int packet_id;
@@ -42,8 +40,7 @@ struct tEncoderState
 	long encoded_length;
 
 	int hasHeader;
-};
-typedef struct tEncoderState Encoder;
+} Encoder;
 
 static Encoder *encoder_start(int sample_rate, long bitrate)
 {
@@ -61,8 +58,7 @@ static Encoder *encoder_start(int sample_rate, long bitrate)
 	lame_set_VBR(state->gfp, vbr_abr);
 	lame_set_VBR_mean_bitrate_kbps(state->gfp, bitrate / 1000);
 	lame_set_brate(state->gfp, bitrate);
-	if (lame_init_params(state->gfp) != 0)
-	{
+	if (lame_init_params(state->gfp) != 0) {
 		printf("encoder_start(): Failed to initialize mp3 lame.\n");
 		abort();
 	}
@@ -77,12 +73,13 @@ static long encode(Encoder *state, char *outputSlice, char *inputSlice)
 	char *pcm = (char *)dataSlice->data;
 	long out_size = outSlice->len;
 	long data_size = dataSlice->len;
-	if (data_size == 0)
-	{
+	if (data_size == 0) {
 		return 0;
 	}
 	state->granulepos += data_size / 4;
-	long ret = lame_encode_buffer_interleaved(state->gfp, (short *)pcm, data_size / 4, (unsigned char *)out, out_size);
+	long ret = lame_encode_buffer_interleaved(state->gfp, (short *)pcm,
+											  data_size / 4,
+											  (unsigned char *)out, out_size);
 	return ret;
 }
 static long encoder_finish(Encoder *state, char *outputSlice)
@@ -90,7 +87,6 @@ static long encoder_finish(Encoder *state, char *outputSlice)
 	struct GoSlice *outSlice = (struct GoSlice *)outputSlice;
 	char *out = outSlice != NULL ? (char *)outSlice->data : 0;
 	long out_size = outSlice->len;
-	//printf("encoder_finish(); ending stream\n");
 
 	// write an end-of-stream packet
 	out_size = lame_encode_flush(state->gfp, (unsigned char *)out, out_size);

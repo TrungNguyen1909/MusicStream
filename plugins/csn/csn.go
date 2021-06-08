@@ -59,7 +59,7 @@ type csnStream struct {
 }
 
 func (s *csnStream) Format() int {
-	return common.MP3Stream
+	return common.FFmpegStream
 }
 func (s *csnStream) Body() io.ReadCloser {
 	return s.body

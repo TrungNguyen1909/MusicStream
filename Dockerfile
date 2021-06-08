@@ -2,7 +2,7 @@
 FROM golang:alpine as build-env
 
 WORKDIR /go/src/github.com/TrungNguyen1909/MusicStream
-RUN apk --no-cache add --virtual .build-deps build-base ca-certificates git pkgconfig tzdata libogg-dev libvorbis-dev opus-dev opusfile-dev lame-dev
+RUN apk --no-cache add --virtual .build-deps build-base ca-certificates git pkgconfig tzdata libogg-dev libvorbis-dev lame-dev ffmpeg-dev
 
 COPY go.mod .
 COPY go.sum .
@@ -28,7 +28,7 @@ RUN yarn && yarn --prod --frozen-lockfile build
 
 # Stage 3: Build final image
 FROM alpine AS final
-RUN apk --no-cache add ca-certificates tzdata libogg libvorbis opus opusfile lame
+RUN apk --no-cache add ca-certificates tzdata libogg libvorbis lame ffmpeg-libs
 COPY --from=build-env /bin/MusicStream /bin/MusicStream
 COPY --from=build-env /go/src/github.com/TrungNguyen1909/MusicStream/plugins/csn/csn.plugin plugins/csn/csn.plugin
 COPY --from=build-env /go/src/github.com/TrungNguyen1909/MusicStream/plugins/youtube/youtube.plugin plugins/youtube/youtube.plugin

@@ -109,25 +109,11 @@ func GetRawStream(s common.Stream) (stream io.ReadCloser, err error) {
 	switch s.Format() {
 	case common.RawStream:
 		return body, nil
-	case common.MP3Stream:
-		stream, err = streamdecoder.NewMP3Decoder(body)
+	default:
+		stream, err = streamdecoder.NewAVDecoder(body)
 		if err != nil {
 			stream = nil
 		}
 		return
-	case common.WebMStream:
-		stream, err = streamdecoder.NewWebMDecoder(body)
-		if err != nil {
-			stream = nil
-		}
-		return
-	case common.VorbisStream:
-		stream, err = streamdecoder.NewVorbisDecoder(body)
-		if err != nil {
-			stream = nil
-		}
-		return
-
 	}
-	return nil, errors.New("Unsupported stream format")
 }

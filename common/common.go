@@ -29,9 +29,7 @@ type StreamFormat int
 
 const (
 	RawStream = iota
-	MP3Stream
-	WebMStream
-	VorbisStream
+	FFmpegStream
 )
 
 //Stream is an encoded audio stream
