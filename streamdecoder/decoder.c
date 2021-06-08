@@ -160,6 +160,15 @@ static Decoder *decoder_new(void *opaque, read_callback read_cb)
         goto cleanup_5;
     }
 
+    if (codec_par->extradata && codec_par->extradata_size > 0) {
+        ctx->extradata = (uint8_t *)av_calloc(1, codec_par->extradata_size + AV_INPUT_BUFFER_PADDING_SIZE);
+        if (!ctx->extradata) {
+            goto cleanup_6;
+        }
+        memcpy(ctx->extradata, codec_par->extradata, codec_par->extradata_size);
+        ctx->extradata_size = codec_par->extradata_size;
+    }
+
     if (avcodec_open2(ctx, codec, NULL) < 0) {
         goto cleanup_6;
     }
@@ -204,42 +213,27 @@ static Decoder *decoder_new(void *opaque, read_callback read_cb)
     }
     return dec;
 cleanup_9:
-    fprintf(stderr, "cleanup_9\n");
-    fflush(stderr);
     av_frame_free(&dec->frame);
 cleanup_8:
-    fprintf(stderr, "cleanup_8\n");
-    fflush(stderr);
     av_packet_free(&dec->packet);
 cleanup_7:
-    fprintf(stderr, "cleanup_7\n");
-    fflush(stderr);
     swr_free(&swr_ctx);
 cleanup_6:
-    fprintf(stderr, "cleanup_6\n");
-    fflush(stderr);
+    if (ctx->extradata) {
+        av_freep(&ctx->extradata);
+    }
     avcodec_free_context(&ctx);
 cleanup_5:
-    fprintf(stderr, "cleanup_5\n");
-    fflush(stderr);
     avformat_close_input(&container);
 cleanup_4:
-    fprintf(stderr, "cleanup_4\n");
-    fflush(stderr);
     av_freep(&input_ioctx->buffer);
     avio_context_free(&input_ioctx);
     goto cleanup_2;
 cleanup_3:
-    fprintf(stderr, "cleanup_3\n");
-    fflush(stderr);
     av_freep(&fileStreamBuffer);
 cleanup_2:
-    fprintf(stderr, "cleanup_2\n");
-    fflush(stderr);
     free(dec);
 cleanup_1:
-    fprintf(stderr, "cleanup_1\n");
-    fflush(stderr);
     return NULL;
 }
 
@@ -249,6 +243,9 @@ static void decoder_close(Decoder *dec)
     av_frame_free(&dec->frame);
     av_packet_free(&dec->packet);
     swr_free(&dec->swr_ctx);
+    if (dec->ctx->extradata) {
+        av_freep(&dec->ctx->extradata);
+    }
     avcodec_free_context(&dec->ctx);
     avformat_close_input(&dec->container);
     av_freep(&dec->input_ioctx->buffer);
