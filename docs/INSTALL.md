@@ -61,9 +61,6 @@ Enviroment variables are also loaded from `.env` file, if exists
 
 # Configurations
 
-## Radio streaming
-- To stream from listen.moe when there's no tracks in queue to fill the silence, set environment variable `RADIO_ENABLED` to `1`
-
 ## Frontend static files serving path
 - The default path will be served is `www/`, if you want to serve from another directory, set environment variable `WWW` to the path to that directory
 

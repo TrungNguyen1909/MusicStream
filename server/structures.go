@@ -35,7 +35,6 @@ type Config struct {
 	MusixMatchUserToken   string
 	MusixMatchOBUserToken string
 	Plugins               []*plugin.Plugin
-	RadioEnabled          bool
 	StaticFilesPath       string
 	DefaultMusicSource    string
 }

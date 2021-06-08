@@ -61,14 +61,7 @@ func (s *Server) processTrack() {
 	}()
 	var track common.Track
 	var err error
-	if s.playQueue.Empty() && s.radioTrack != nil {
-		radioStreamContext, cancelRadio := context.WithCancel(context.TODO())
-		if s.cancelRadio != nil {
-			s.cancelRadio()
-		}
-		go s.processRadio(radioStreamContext)
-		s.cancelRadio = cancelRadio
-	} else if s.playQueue.Empty() {
+	if s.playQueue.Empty() {
 		s.currentTrack = s.defaultTrack
 		s.updateStartPos(true)
 		s.setTrack(common.GetMetadata(s.currentTrack))
@@ -77,9 +70,6 @@ func (s *Server) processTrack() {
 	track = s.playQueue.Pop().(common.Track)
 	s.activityWg.Wait()
 	s.currentTrack = track
-	if s.cancelRadio != nil {
-		s.cancelRadio()
-	}
 	log.Printf("[MusicStream] Playing %v - %v\n", track.Title(), track.Artist())
 	trackDict := common.GetMetadata(track)
 	if ltrack, ok := track.(common.TrackWithLyrics); ok {

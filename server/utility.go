@@ -19,7 +19,6 @@
 package server
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -74,14 +73,6 @@ func (s *Server) inactivityMonitor() {
 			if isStandby {
 				log.Println("[MusicStream] Waking up...")
 				s.streamMux.Unlock()
-				if s.radioTrack != nil {
-					radioStreamContext, cancelRadio := context.WithCancel(context.TODO())
-					go s.processRadio(radioStreamContext)
-					if s.cancelRadio != nil {
-						s.cancelRadio()
-					}
-					s.cancelRadio = cancelRadio
-				}
 				s.activityWg.Done()
 				isStandby = false
 			}
@@ -91,9 +82,6 @@ func (s *Server) inactivityMonitor() {
 			s.activityWg.Add(1)
 			if s.skipFunc != nil {
 				s.skipFunc()
-			}
-			if s.cancelRadio != nil {
-				s.cancelRadio()
 			}
 			s.streamMux.Lock()
 			s.updateStartPos(true)

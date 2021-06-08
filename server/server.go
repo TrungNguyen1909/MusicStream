@@ -32,7 +32,6 @@ import (
 	"github.com/TrungNguyen1909/MusicStream/mp3encoder"
 	"github.com/TrungNguyen1909/MusicStream/mxmlyrics"
 	"github.com/TrungNguyen1909/MusicStream/queue"
-	"github.com/TrungNguyen1909/MusicStream/radio"
 	"github.com/TrungNguyen1909/MusicStream/vorbisencoder"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
@@ -80,8 +79,6 @@ type Server struct {
 	bufferingChannel     chan *chunk
 	streamContext        context.Context
 	skipFunc             context.CancelFunc
-	cancelRadio          context.CancelFunc
-	radioTrack           *radio.Track
 	defaultTrack         *common.DefaultTrack
 	startPos             [2]int64
 	lastStreamEnded      time.Time
@@ -236,9 +233,6 @@ func NewServer(config Config) *Server {
 	s.playQueue = queue.New()
 	s.playQueue.PushCallback = s.enqueueCallback
 	s.playQueue.PopCallback = s.dequeueCallback
-	if config.RadioEnabled {
-		s.radioTrack = radio.NewTrack()
-	}
 	s.currentTrack = s.defaultTrack
 	s.upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	s.server = echo.New()
