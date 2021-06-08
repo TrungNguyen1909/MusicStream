@@ -214,7 +214,7 @@ func NewServer(config Config) *Server {
 			log.Printf("[MusicStream] NewClient failed on plugin %s: %s", *name, err)
 			continue
 		}
-		if client.Name() == config.DefaultMusicSource {
+		if client.Name() == config.DefaultMusicSource && len(s.sources) > 0 {
 			t := s.sources[0]
 			s.sources[0] = client
 			client = t
