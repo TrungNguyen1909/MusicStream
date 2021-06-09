@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <assert.h>
 #include <vorbis/codec.h>
 #include <vorbis/vorbisenc.h>
 #define min(a, b) ((a) < (b) ? (a) : (b))
@@ -28,7 +29,7 @@ struct GoSlice {
 	long long len;
 	long long cap;
 };
-struct tEncoderState {
+typedef struct Encoder {
 	ogg_stream_state os;
 
 	vorbis_info vi;
@@ -44,38 +45,53 @@ struct tEncoderState {
 	int sample_rate;
 	int64_t granulepos;
 
-	long encoded_max_size;
-	long encoded_length;
-
-	int hasHeader;
-
-	unsigned char* encoded_buffer;
-};
-typedef struct tEncoderState Encoder;
-static int write_page(Encoder* state, ogg_page* page)
+	unsigned char *encoded_buffer;
+	unsigned char *encoded_ptr;
+	unsigned char *encoded_end;
+	unsigned char *encoded_max_end;
+} Encoder;
+static int write_page(Encoder *state, ogg_page* page)
 {
-		memcpy(state->encoded_buffer + state->encoded_length, page->header, page->header_len);
-		state->encoded_length += page->header_len;
+	if (state->encoded_end == state->encoded_ptr) {
+		state->encoded_ptr = state->encoded_end = state->encoded_buffer;
+	}
+	memcpy(state->encoded_end, page->header, page->header_len);
+	state->encoded_end += page->header_len;
 
-		memcpy(state->encoded_buffer + state->encoded_length, page->body, page->body_len);
-		state->encoded_length += page->body_len;
-
-		return page->header_len+page->body_len;
+	memcpy(state->encoded_end, page->body, page->body_len);
+	state->encoded_end += page->body_len;
+	assert (state->encoded_end < state->encoded_max_end);
+	return page->header_len + page->body_len;
 }
 
-static Encoder* encoder_start(int sample_rate, long bitrate)
+static int out_buffer(Encoder *state, char **out, long *out_size)
 {
-	Encoder *state = calloc(1, sizeof(struct tEncoderState));
+	int copy_length = min(*out_size, state->encoded_end - state->encoded_ptr);
+
+	memcpy(*out, state->encoded_ptr, copy_length);
+	*out += copy_length;
+	*out_size -= copy_length;
+	state->encoded_ptr += copy_length;
+
+	if (state->encoded_end == state->encoded_ptr) {
+		state->encoded_ptr = state->encoded_end = state->encoded_buffer;
+	}
+
+	return copy_length;
+}
+
+static Encoder *encoder_start(int sample_rate, long bitrate)
+{
+	Encoder *state = calloc(1, sizeof(Encoder));
 	srand(time(NULL));
 	ogg_stream_init(&state->os, rand());
 
 	state->sample_rate = sample_rate;
 	state->num_channels = 2;
-	state->encoded_buffer = malloc(4096);
+	state->encoded_buffer = state->encoded_ptr = state->encoded_end = malloc(4 * 1024 * 1024);
+	state->encoded_max_end = state->encoded_buffer + (4 * 1024 * 1024);
     state->bitrate = bitrate;
 
-	state->encoded_max_size = 0;
-	state->encoded_length = 0;
 	vorbis_info_init(&state->vi);
 	if (vorbis_encode_init(&state->vi, 2, state->sample_rate, state->bitrate,
 						   state->bitrate, state->bitrate)) {
@@ -86,68 +102,57 @@ static Encoder* encoder_start(int sample_rate, long bitrate)
 	vorbis_comment_add_tag(&state->vc, "Encoder", "MusicStream");
 	vorbis_analysis_init(&state->vd, &state->vi);
 	vorbis_block_init(&state->vd, &state->vb);
-	ogg_packet header,headerComm,headerCode;
+	ogg_packet header, headerComm, headerCode;
 	vorbis_analysis_headerout(&state->vd, &state->vc, &header, &headerComm, &headerCode);
 	ogg_stream_packetin(&state->os, &header);
 	ogg_stream_packetin(&state->os, &headerComm);
 	ogg_stream_packetin(&state->os, &headerCode);
-	state->hasHeader = 1;
+	ogg_page og;
+	while (ogg_stream_flush(&state->os, &og)) {
+		write_page(state, &og);
+	}
 	return state;
 }
 
-static long encode(Encoder* state, char* outputSlice, char* inputSlice)
+static long encode(Encoder *state, char* outputSlice, char* inputSlice)
 {
+	long ret = 0;
 	struct GoSlice *outSlice = (struct GoSlice *)outputSlice;
 	struct GoSlice *dataSlice = (struct GoSlice *)inputSlice;
 	char* out = (char *)outSlice->data;
 	char* pcm = (char *)dataSlice->data;
 	long out_size = outSlice->len;
 	long data_size = dataSlice->len;
-	if (state->hasHeader) {
-		ogg_page og;
-		while (ogg_stream_flush(&state->os, &og)) {
-			write_page(state, &og);
+	ret += out_buffer(state, &out, &out_size);
+
+	if (data_size > 0) {
+		float **buffer = vorbis_analysis_buffer(&state->vd, data_size / 4);
+		for (int i = 0; i < data_size / 4; i++) {
+			buffer[0][i] = ((short)(pcm[4 * i + 1 ] << 8)|(short)(0x00ff & pcm[i * 4])) / 32768.0;
+			buffer[1][i] = ((short)(pcm[4 * i + 3 ] << 8)|(short)(0x00ff & pcm[i * 4 + 2])) / 32768.0;
 		}
-		state->hasHeader = 0;
+		vorbis_analysis_wrote(&state->vd, data_size / 4);
 	}
-	if (data_size == 0) {
-		memcpy(out, state->encoded_buffer, state->encoded_length);
-		long ret = state->encoded_length;
-		state->encoded_length = 0;
-		return ret;
-	}
-	float **buffer = vorbis_analysis_buffer(&state->vd, data_size / 4);
-	for (int i = 0; i < data_size / 4; i++) {
-		buffer[0][i] = ((short)(pcm[4 * i + 1 ] << 8)|(short)(0x00ff & pcm[i * 4])) / 32768.0;
-		buffer[1][i] = ((short)(pcm[4 * i + 3 ] << 8)|(short)(0x00ff & pcm[i * 4 + 2])) / 32768.0;
-	}
-	vorbis_analysis_wrote(&state->vd, data_size / 4);
 	ogg_page og;
 	while (vorbis_analysis_blockout(&state->vd, &state->vb) == 1) {
 		vorbis_analysis(&state->vb, NULL);
 		vorbis_bitrate_addblock(&state->vb);
-		while (vorbis_bitrate_flushpacket(&state->vd, &state->op)) {
+		while (vorbis_bitrate_flushpacket(&state->vd, &state->op) == 1) {
 			// push packet into ogg
 			ogg_stream_packetin(&state->os, &state->op);
 
 			// fetch page from ogg
-			while(ogg_stream_pageout(&state->os, &og)
-				  || (state->op.e_o_s && ogg_stream_flush(&state->os, &og))) {
+			while (ogg_stream_pageout(&state->os, &og)
+				   || (state->op.e_o_s && ogg_stream_flush(&state->os, &og))) {
 				write_page(state, &og);
 				state->granulepos = ogg_page_granulepos(&og);
 			}
 		}
 	}
-    if (out_size < state->encoded_length) {
-        fprintf(stderr, "Output size too small %ld < %ld\n", out_size, state->encoded_length);
-        fflush(stderr);
-    }
-	memcpy(out, state->encoded_buffer, min(state->encoded_length, out_size));
-	long ret = min(state->encoded_length, out_size);
-	state->encoded_length -= min(state->encoded_length, out_size);
+	ret += out_buffer(state, &out, &out_size);
 	return ret;
 }
-static long encoder_finish(Encoder* state, char* outputSlice)
+static long encoder_finish(Encoder *state, char *outputSlice)
 {
 	struct GoSlice *outSlice = (struct GoSlice *)outputSlice;
 	char *out = (outSlice != NULL) ? (char *)outSlice->data : 0;
@@ -172,9 +177,7 @@ static long encoder_finish(Encoder* state, char* outputSlice)
 		}
 	}
 
-	memcpy(out, state->encoded_buffer, min(state->encoded_length, out_size));
-	long ret = min(state->encoded_length, out_size);
-	state->encoded_length -= min(state->encoded_length, out_size);
+	long ret = out_buffer(state, &out, &out_size);
 
 	ogg_stream_clear(&state->os);
 	vorbis_block_clear(&state->vb);
@@ -183,5 +186,5 @@ static long encoder_finish(Encoder* state, char* outputSlice)
 	vorbis_info_clear(&state->vi);
 	free(state->encoded_buffer);
 	free(state);
-	return out_size;
+	return ret;
 }
