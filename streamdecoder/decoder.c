@@ -106,7 +106,6 @@ static int decoder_in(void *opaque, uint8_t *buf, int buf_size)
     int ret = -1;
     Decoder *dec = (Decoder *)opaque;
     ret = dec->read_cb(dec->opaque, buf, buf_size);
-    fflush(stdout);
     return ret;
 }
 
@@ -118,11 +117,11 @@ static Decoder *decoder_new(void *opaque, read_callback read_cb)
     }
     dec->opaque = opaque;
     dec->read_cb = read_cb;
-    unsigned char *fileStreamBuffer = (unsigned char*)av_malloc(4096);
+    unsigned char *fileStreamBuffer = (unsigned char*)av_malloc(8192);
     if (!fileStreamBuffer) {
         goto cleanup_2;
     }
-    AVIOContext *input_ioctx = avio_alloc_context(fileStreamBuffer, 4096, 
+    AVIOContext *input_ioctx = avio_alloc_context(fileStreamBuffer, 8192, 
                                                   0, dec, decoder_in, NULL, NULL);
     if (!input_ioctx) {
         goto cleanup_3;
@@ -161,7 +160,7 @@ static Decoder *decoder_new(void *opaque, read_callback read_cb)
     }
 
     if (codec_par->extradata && codec_par->extradata_size > 0) {
-        ctx->extradata = (uint8_t *)av_calloc(1, codec_par->extradata_size + AV_INPUT_BUFFER_PADDING_SIZE);
+        ctx->extradata = (uint8_t *)av_mallocz(codec_par->extradata_size + AV_INPUT_BUFFER_PADDING_SIZE);
         if (!ctx->extradata) {
             goto cleanup_6;
         }

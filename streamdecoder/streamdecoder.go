@@ -58,6 +58,7 @@ func (d *AVDecoder) Read(p []byte) (n int, err error) {
 
 func (d *AVDecoder) Close() (err error) {
 	C.decoder_close(d.dec)
+	d.dec = nil
 	pointer.Unref(d.p)
 	return d.r.Close()
 }
